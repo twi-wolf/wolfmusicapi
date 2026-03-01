@@ -628,55 +628,32 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
         background: "#000000",
         border: "1px solid rgba(0,255,0,0.12)",
       }}>
-        <div className="flex gap-6">
-          <div className="hidden sm:flex items-center">
-            <h2
-              className="text-2xl sm:text-3xl font-bold"
-              style={{
-                fontFamily: "'Orbitron', sans-serif",
-                color: "#ffffff",
-                writingMode: "vertical-rl",
-                textOrientation: "mixed",
-                letterSpacing: "0.15em",
-                textShadow: "0 0 20px rgba(0,255,0,0.3)",
-                borderRight: "2px solid rgba(0,255,0,0.2)",
-                paddingRight: "1.25rem",
-              }}
-              data-testid="text-hero-title"
-            >
-              Multi-Provider API Hub
-            </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5" style={{ color: "#00ff00" }} />
+            <span className="text-[11px] font-bold tracking-[0.25em]" style={{ color: "#00ff00" }}>
+              APIS BY SILENT WOLF
+            </span>
           </div>
-          <div className="space-y-4 flex-1">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5" style={{ color: "#00ff00" }} />
-              <span className="text-[11px] font-bold tracking-[0.25em]" style={{ color: "#00ff00" }}>
-                APIS BY SILENT WOLF
-              </span>
+          <h2 className="text-3xl sm:text-4xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }} data-testid="text-hero-title">
+            Multi-Provider API Hub
+          </h2>
+          <p className="text-sm sm:text-base max-w-xl" style={{ color: "rgba(255,255,255,0.4)" }}>
+            {allEndpoints.length}+ endpoints across {apiCategories.length} categories.
+            AI chat, image effects, social media downloaders, music tools, and OSINT utilities.
+            All free, no API key required.
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{
+              border: "1px solid rgba(0,255,0,0.2)",
+            }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 8px #00ff00" }} />
+              <span className="text-[11px] font-semibold" style={{ color: "#00ff00" }}>ALL SYSTEMS LIVE</span>
             </div>
-            <h2
-              className="sm:hidden text-3xl font-bold"
-              style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }}
-            >
-              Multi-Provider API Hub
-            </h2>
-            <p className="text-sm sm:text-base max-w-xl" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {allEndpoints.length}+ endpoints across {apiCategories.length} categories.
-              AI chat, image effects, social media downloaders, music tools, and OSINT utilities.
-              All free, no API key required.
-            </p>
-            <div className="flex items-center gap-3 pt-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{
-                border: "1px solid rgba(0,255,0,0.2)",
-              }}>
-                <div className="w-2 h-2 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 8px #00ff00" }} />
-                <span className="text-[11px] font-semibold" style={{ color: "#00ff00" }}>ALL SYSTEMS LIVE</span>
-              </div>
-              <span className="text-[11px] font-mono px-2.5 py-1 rounded" style={{
-                border: "1px solid rgba(0,255,0,0.12)",
-                color: "rgba(255,255,255,0.35)",
-              }}>v4.0</span>
-            </div>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded" style={{
+              border: "1px solid rgba(0,255,0,0.12)",
+              color: "rgba(255,255,255,0.35)",
+            }}>v4.0</span>
           </div>
         </div>
       </div>
