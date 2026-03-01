@@ -1251,6 +1251,10 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [effectSearch, setEffectSearch] = useState("");
 
+  const comingSoonCategories = ["photofunia", "ephoto", "security", "movie", "urlshortener"];
+  const displayCategories = apiCategories.filter(cat => !comingSoonCategories.includes(cat.id));
+  const soonCategories = apiCategories.filter(cat => comingSoonCategories.includes(cat.id));
+
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const handleTry = (ep: ApiEndpoint) => {
@@ -1379,7 +1383,7 @@ export default function Home() {
             )}
           </button>
 
-          {endpointCounts.map((cat) => {
+          {displayCategories.map((cat) => {
             const Icon = categoryIcons[cat.id] || Code2;
             const isActive = activeCategory === cat.id;
             return (
@@ -1407,6 +1411,33 @@ export default function Home() {
                   </>
                 )}
               </button>
+            );
+          })}
+        </nav>
+
+        {!sidebarCollapsed && soonCategories.length > 0 && (
+          <div className="px-4 pt-4 pb-1">
+            <span className="text-[9px] font-bold tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.2)" }}>
+              COMING SOON
+            </span>
+          </div>
+        )}
+
+        <nav className="px-2 py-1 space-y-0.5">
+          {soonCategories.map((cat) => {
+            const Icon = categoryIcons[cat.id] || Code2;
+            return (
+              <div
+                key={cat.id}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left opacity-40 cursor-not-allowed"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+                title={`${cat.name} (Coming Soon)`}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {!sidebarCollapsed && (
+                  <span className="text-[13px] font-medium flex-1 truncate">{cat.name}</span>
+                )}
+              </div>
             );
           })}
         </nav>
