@@ -31,6 +31,14 @@ export async function setupVite(server: Server, app: Express) {
 
   app.use(vite.middlewares);
 
+  app.use((req, res, next) => {
+    // Skip SPA rendering for API routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/download')) {
+      return next();
+    }
+    next();
+  });
+
   app.use("/{*path}", async (req, res, next) => {
     const url = req.originalUrl;
 
