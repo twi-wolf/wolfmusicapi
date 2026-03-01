@@ -34,7 +34,7 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "lightning", name: "Lightning", slug: "lightning", category: "halloween", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "cemeterygates", name: "Cemetery Gates", slug: "cemetery-gates", category: "halloween", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "RIP" }] },
   { id: "summoningspirits", name: "Summoning Spirits", slug: "summoning-spirits", category: "halloween", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "ghostwood", name: "Ghost Wood", slug: "ghost-wood", category: "halloween", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "ghostwood", name: "Ghost Wood", slug: "ghostwood", category: "halloween", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
 
   { id: "autumn", name: "Autumn", slug: "autumn", category: "filters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "jade", name: "Jade", slug: "jade", category: "filters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -48,13 +48,13 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "cinematicket", name: "Cinema Ticket", slug: "cinema-ticket", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Movie" }] },
   { id: "arrowsigns", name: "Arrow Signs", slug: "arrow-signs", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "This way" }] },
   { id: "yacht", name: "Yacht", slug: "yacht", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Name" }] },
-  { id: "cloudyfilter", name: "Cloudy Filter", slug: "cloudy", category: "filters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "cloudyfilter", name: "Cloudy Filter", slug: "cloudy-filter", category: "filters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "lightgraffiti", name: "Light Graffiti", slug: "light-graffiti", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
   { id: "chalkboard", name: "Chalkboard", slug: "blackboard", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
   { id: "rustywriting", name: "Rusty Writing", slug: "rusty-writing", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Rusty" }] },
   { id: "streetsign", name: "Street Sign", slug: "street-sign", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Street" }] },
   { id: "floralwreath", name: "Floral Wreath", slug: "floral-wreath", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "retrowave", name: "Retrowave", slug: "retrowave", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Retro" }] },
+  { id: "retrowave", name: "Retrowave", slug: "retro-wave", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Retro" }] },
   { id: "youaremyuniverse", name: "You Are My Universe", slug: "you-are-my-universe", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "einstein", name: "Einstein", slug: "einstein", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", maxLength: 15, placeholder: "E=mc²" }] },
   { id: "rugbyball", name: "Rugby Ball", slug: "rugby-ball", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Team" }] },
@@ -66,9 +66,9 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "wanted", name: "Wanted", slug: "wanted", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Name", placeholder: "Name" }] },
   { id: "crown", name: "Crown", slug: "crown", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "anime", name: "Anime", slug: "anime", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "popart", name: "Pop Art", slug: "pop-art", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "popart", name: "Pop Art", slug: "popart", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "puzzle", name: "Puzzle", slug: "puzzle", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "glass", name: "Glass", slug: "glass-ball", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "glass", name: "Glass", slug: "glass", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "animator", name: "Animator", slug: "animator", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
 
   { id: "postersonthewall", name: "Posters on the Wall", slug: "posters-on-the-wall", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -76,9 +76,9 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "trainstationposter", name: "Train Station Poster", slug: "train-station-poster", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "rainynight", name: "Rainy Night", slug: "rainy-night", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "nightmotion", name: "Night Motion", slug: "night-motion", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "campaign", name: "Campaign", slug: "campaign-poster", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "campaign", name: "Campaign", slug: "campaign", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "bicycle", name: "Bicycle", slug: "bicycle", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "citylight", name: "City Light", slug: "city-light", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "citylight", name: "City Light", slug: "citylight", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "affiche", name: "Affiche", slug: "affiche", category: "posters", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Title" }] },
   { id: "sidewalk", name: "Sidewalk", slug: "sidewalk", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "cyclist", name: "Cyclist", slug: "cyclist", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -96,7 +96,7 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "paintingandsketches", name: "Painting & Sketches", slug: "painting-and-sketches", category: "galleries", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "passingbythepainting", name: "Passing by the Painting", slug: "passing-by-the-painting", category: "galleries", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "silhouettes", name: "Silhouettes", slug: "silhouettes", category: "galleries", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "rijskmuseum", name: "Rijks Museum", slug: "rijksmuseum", category: "galleries", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Art" }] },
+  { id: "rijskmuseum", name: "Rijks Museum", slug: "rijskmuseum", category: "galleries", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Art" }] },
 
   { id: "oldcamera", name: "Old Camera", slug: "old-camera", category: "photography", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "kittyandframe", name: "Kitty and Frame", slug: "kitty-and-frame", category: "photography", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -160,7 +160,7 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "tablet", name: "Tablet", slug: "tablet", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "artonthebrickwall", name: "Art on Brick Wall", slug: "art-on-the-brick-wall", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "toasts", name: "Toasts", slug: "toasts", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
-  { id: "photowall", name: "Photo Wall", slug: "photo-wall", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "photowall", name: "Photo Wall", slug: "photowall", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "lego", name: "Lego", slug: "lego", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "wall", name: "Wall", slug: "wall", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "eye", name: "Eye", slug: "eye", category: "misc", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -171,7 +171,7 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "beer", name: "Beer", slug: "beer", category: "misc", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Cheers" }] },
   { id: "coin", name: "Coin", slug: "coin", category: "misc", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "2024" }] },
 
-  { id: "readingmagazine", name: "Reading Magazine", slug: "reading-a-magazine", category: "magazines", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Title" }] },
+  { id: "readingmagazine", name: "Reading Magazine", slug: "reading-magazine", category: "magazines", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Title" }] },
   { id: "rosesandmarshmallows", name: "Roses & Marshmallows", slug: "roses-and-marshmallows", category: "magazines", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "interview", name: "Interview", slug: "interview", category: "magazines", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Star" }] },
   { id: "reading", name: "Reading", slug: "reading", category: "magazines", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -203,28 +203,85 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "newyearframes", name: "New Year Frames", slug: "new-year-frames", category: "christmas", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
 ];
 
-async function uploadImageToPhotofunia(imageUrl: string): Promise<string | null> {
-  try {
-    const imgRes = await fetchWithTimeout(imageUrl, { headers: { "User-Agent": USER_AGENT } });
-    if (!imgRes.ok) return null;
-    const imgBuffer = await imgRes.arrayBuffer();
+function extractCookies(res: Response): string {
+  const cookies: string[] = [];
+  const setCookieHeaders = res.headers.getSetCookie?.() || [];
+  for (const h of setCookieHeaders) {
+    const parts = h.split(";")[0];
+    if (parts) cookies.push(parts);
+  }
+  return cookies.join("; ");
+}
 
-    const blob = new Blob([imgBuffer], { type: "image/jpeg" });
-    const formData = new FormData();
-    formData.append("photo", blob, "image.jpg");
+async function getPhotofuniaSession(effectSlug: string): Promise<string> {
+  try {
+    const res = await fetchWithTimeout(`https://photofunia.com/effects/${effectSlug}`, {
+      headers: { "User-Agent": USER_AGENT },
+    });
+    return extractCookies(res);
+  } catch {
+    return "";
+  }
+}
+
+async function uploadImageToPhotofunia(imageUrl: string, cookies: string, effectSlug: string): Promise<{ key: string | null; cookies: string }> {
+  try {
+    const imgRes = await fetchWithTimeout(imageUrl, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Accept": "image/*,*/*",
+      },
+    });
+    if (!imgRes.ok) {
+      console.log(`[photofunia] Failed to fetch image: ${imgRes.status} ${imgRes.statusText}`);
+      return { key: null, cookies };
+    }
+
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+
+    const ext = contentType.includes("png") ? "png" : contentType.includes("gif") ? "gif" : contentType.includes("webp") ? "webp" : "jpg";
+    const mimeType = contentType.includes("image/") ? contentType.split(";")[0] : "image/jpeg";
+
+    const boundary = "----WebKitFormBoundary" + Math.random().toString(36).slice(2);
+    const parts: Buffer[] = [];
+
+    parts.push(Buffer.from(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="photo"; filename="image.${ext}"\r\n` +
+      `Content-Type: ${mimeType}\r\n\r\n`
+    ));
+    parts.push(imgBuffer);
+    parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+
+    const body = Buffer.concat(parts);
 
     const uploadRes = await fetchWithTimeout("https://photofunia.com/images?server=1", {
       method: "POST",
-      headers: { "User-Agent": USER_AGENT },
-      body: formData,
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Referer": `https://photofunia.com/effects/${effectSlug}`,
+        "Origin": "https://photofunia.com",
+        ...(cookies ? { "Cookie": cookies } : {}),
+      },
+      body: body,
     });
 
-    if (!uploadRes.ok) return null;
+    const newCookies = extractCookies(uploadRes);
+    const mergedCookies = newCookies ? `${cookies}; ${newCookies}` : cookies;
+
+    if (!uploadRes.ok) {
+      console.log(`[photofunia] Upload response: ${uploadRes.status}`);
+      return { key: null, cookies: mergedCookies };
+    }
+
     const uploadData = await uploadRes.json() as any;
-    return uploadData?.response?.key || null;
+    const key = uploadData?.response?.key || uploadData?.key || null;
+    return { key, cookies: mergedCookies };
   } catch (err: any) {
     console.log(`[photofunia] Image upload failed: ${err.message}`);
-    return null;
+    return { key: null, cookies };
   }
 }
 
@@ -233,39 +290,70 @@ export async function generatePhotofunia(
   textInputs: Record<string, string>,
   imageUrl?: string
 ): Promise<PhotoFuniaResult> {
+  const CREATOR = "APIs by Silent Wolf | A tech explorer";
   const effect = PHOTOFUNIA_EFFECTS.find(e => e.id === effectId || e.slug === effectId);
   if (!effect) {
-    return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: `Effect "${effectId}" not found. Use /api/photofunia/list to see available effects.` };
+    return { success: false, creator: CREATOR, error: `Effect "${effectId}" not found. Use /api/photofunia/list to see available effects.` };
+  }
+
+  const needsImage = effect.fields.some(f => f.type === "image");
+  const needsText = effect.fields.some(f => f.type === "text");
+
+  if (needsImage && !imageUrl) {
+    return { success: false, creator: CREATOR, error: `Effect "${effect.name}" requires an image. Provide 'imageUrl' parameter with a valid image URL.` };
+  }
+
+  if (needsText) {
+    const hasAnyText = effect.fields.filter(f => f.type === "text").some(f => textInputs[f.name] || textInputs["text"]);
+    if (!hasAnyText) {
+      const textFields = effect.fields.filter(f => f.type === "text").map(f => f.name);
+      return { success: false, creator: CREATOR, error: `Effect "${effect.name}" requires text input. Provide '${textFields.join("' or '")}' parameter.` };
+    }
   }
 
   try {
-    const formData = new FormData();
-    formData.append("current-category", "all_effects");
+    let sessionCookies = await getPhotofuniaSession(effect.slug);
+    let imageKey: string | null = null;
+
+    if (needsImage && imageUrl) {
+      const uploadResult = await uploadImageToPhotofunia(imageUrl, sessionCookies, effect.slug);
+      imageKey = uploadResult.key;
+      sessionCookies = uploadResult.cookies;
+      if (!imageKey) {
+        return { success: false, creator: CREATOR, error: "Failed to upload image to PhotoFunia. Make sure the image URL is accessible and points to a valid image." };
+      }
+    }
+
+    const boundary = "----WebKitFormBoundary" + Math.random().toString(36).slice(2);
+    const parts: string[] = [];
+
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="current-category"\r\n\r\nall_effects`);
 
     for (const field of effect.fields) {
       if (field.type === "text") {
         const value = textInputs[field.name] || textInputs["text"] || "";
-        if (value) formData.append(field.name, value);
-      } else if (field.type === "image") {
-        if (imageUrl) {
-          const imageKey = await uploadImageToPhotofunia(imageUrl);
-          if (imageKey) {
-            formData.append(field.name, imageKey);
-          } else {
-            return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Failed to upload image. Provide a valid image URL." };
-          }
+        if (value) {
+          parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${value}`);
         }
+      } else if (field.type === "image" && imageKey) {
+        parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${imageKey}`);
+        parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}:crop"\r\n\r\n`);
       }
     }
+
+    const bodyStr = parts.join("\r\n") + `\r\n--${boundary}--\r\n`;
 
     const postUrl = `https://photofunia.com/categories/all_effects/${effect.slug}?server=1`;
     const postRes = await fetchWithTimeout(postUrl, {
       method: "POST",
       headers: {
         "User-Agent": USER_AGENT,
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
         "Referer": `https://photofunia.com/effects/${effect.slug}`,
+        "Origin": "https://photofunia.com",
+        ...(sessionCookies ? { "Cookie": sessionCookies } : {}),
       },
-      body: formData,
+      body: bodyStr,
       redirect: "manual",
     });
 
@@ -273,11 +361,11 @@ export async function generatePhotofunia(
     if (postRes.status === 302 || postRes.status === 301) {
       const location = postRes.headers.get("location");
       if (!location) {
-        return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "No redirect location from PhotoFunia." };
+        return { success: false, creator: CREATOR, error: "No redirect location from PhotoFunia." };
       }
       resultPageUrl = location.startsWith("http") ? location : `https://photofunia.com${location}`;
     } else {
-      return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: `PhotoFunia returned status ${postRes.status} instead of redirect.` };
+      return { success: false, creator: CREATOR, error: `PhotoFunia returned status ${postRes.status} instead of redirect.` };
     }
 
     const resultRes = await fetchWithTimeout(resultPageUrl, {
@@ -285,28 +373,19 @@ export async function generatePhotofunia(
     });
     const resultHtml = await resultRes.text();
 
-    const imageMatch = resultHtml.match(/https:\/\/u\.photofunia\.com\/[^"]+_r\.jpg/);
-    if (!imageMatch) {
-      const anyImage = resultHtml.match(/https:\/\/u\.photofunia\.com\/[^"]+\.jpg/);
-      if (anyImage) {
-        return {
-          success: true,
-          creator: "APIs by Silent Wolf | A tech explorer",
-          effectName: effect.name,
-          imageUrl: anyImage[0],
-        };
-      }
-      return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Could not extract result image from PhotoFunia." };
+    const imageMatch = resultHtml.match(/https:\/\/u\.photofunia\.com\/[^"'\s]+_r\.jpg/);
+    if (imageMatch) {
+      return { success: true, creator: CREATOR, effectName: effect.name, imageUrl: imageMatch[0] };
     }
 
-    return {
-      success: true,
-      creator: "APIs by Silent Wolf | A tech explorer",
-      effectName: effect.name,
-      imageUrl: imageMatch[0],
-    };
+    const anyImage = resultHtml.match(/https:\/\/u\.photofunia\.com\/[^"'\s]+\.jpg/);
+    if (anyImage) {
+      return { success: true, creator: CREATOR, effectName: effect.name, imageUrl: anyImage[0] };
+    }
+
+    return { success: false, creator: CREATOR, error: "Could not extract result image from PhotoFunia. The effect may have failed to process." };
   } catch (err: any) {
-    return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: err.message || "PhotoFunia generation failed" };
+    return { success: false, creator: CREATOR, error: err.message || "PhotoFunia generation failed" };
   }
 }
 
