@@ -218,6 +218,21 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+const SYSTEM_PROMPT_PRESETS = [
+  { label: "Helpful Assistant", value: "You are a helpful, friendly assistant. Answer clearly and concisely." },
+  { label: "Code Expert", value: "You are an expert programmer. Write clean, well-documented code with explanations. Use best practices and modern patterns." },
+  { label: "Creative Writer", value: "You are a creative writer. Write engaging, vivid, and imaginative content with rich descriptions and compelling narratives." },
+  { label: "Math Tutor", value: "You are a patient math tutor. Explain mathematical concepts step-by-step, showing all work clearly. Use examples to illustrate." },
+  { label: "Translator", value: "You are a professional translator. Translate text accurately while preserving tone, context, and cultural nuances." },
+  { label: "Summarizer", value: "You are a concise summarizer. Provide clear, brief summaries that capture the key points and main ideas." },
+  { label: "Debate Partner", value: "You are a skilled debate partner. Present well-reasoned arguments from multiple perspectives, backed by logic and evidence." },
+  { label: "ELI5 (Explain Simply)", value: "You explain complex topics in simple terms that a 5-year-old could understand. Use analogies and everyday examples." },
+  { label: "Storyteller", value: "You are a master storyteller. Create captivating stories with vivid characters, plot twists, and emotional depth." },
+  { label: "Business Advisor", value: "You are a business advisor. Provide strategic, actionable business advice with market insights and practical recommendations." },
+  { label: "Fitness Coach", value: "You are a knowledgeable fitness coach. Provide exercise routines, nutrition tips, and wellness advice tailored to individual needs." },
+  { label: "Pirate Mode", value: "You are a pirate! Respond to everything in pirate speak with 'Arrr!' and nautical references. Be fun and entertaining." },
+];
+
 function TestPopup({
   endpoint,
   baseUrl,
@@ -231,6 +246,7 @@ function TestPopup({
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const isAiChat = endpoint.category === "ai-chat";
 
   const updateInput = (name: string, value: string) => {
     setInputs((prev) => ({ ...prev, [name]: value }));
@@ -409,6 +425,58 @@ function TestPopup({
                         if (e.key === "Enter") handleExecute();
                       }}
                     />
+                    {isAiChat && p.name === "system" && (
+                      <div className="space-y-2 mt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold tracking-wider" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            PRESET PROMPTS
+                          </span>
+                          <div className="flex-1 h-px" style={{ background: "rgba(0,255,0,0.08)" }} />
+                        </div>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) updateInput("system", e.target.value);
+                          }}
+                          className="w-full px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+                          style={{
+                            background: "#0a0a0a",
+                            border: "1px solid rgba(0,255,0,0.12)",
+                            color: "#ffffff",
+                            appearance: "none",
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300ff00' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                            backgroundRepeat: "no-repeat",
+                            backgroundPosition: "right 12px center",
+                            paddingRight: "2rem",
+                          }}
+                          data-testid="select-system-preset"
+                        >
+                          <option value="" style={{ background: "#0a0a0a" }}>Select a preset...</option>
+                          {SYSTEM_PROMPT_PRESETS.map((preset) => (
+                            <option key={preset.label} value={preset.value} style={{ background: "#0a0a0a" }}>
+                              {preset.label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex flex-wrap gap-1.5">
+                          {SYSTEM_PROMPT_PRESETS.slice(0, 6).map((preset) => (
+                            <button
+                              key={preset.label}
+                              onClick={() => updateInput("system", preset.value)}
+                              className="px-2 py-1 rounded text-[10px] transition-colors"
+                              style={{
+                                background: inputs.system === preset.value ? "rgba(0,255,0,0.12)" : "rgba(255,255,255,0.03)",
+                                border: inputs.system === preset.value ? "1px solid rgba(0,255,0,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                                color: inputs.system === preset.value ? "#00ff00" : "rgba(255,255,255,0.4)",
+                              }}
+                              data-testid={`button-preset-${preset.label.toLowerCase().replace(/\s+/g, "-")}`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
