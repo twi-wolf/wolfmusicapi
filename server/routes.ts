@@ -10,6 +10,7 @@ import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
 import { generateEphoto, listEphotoEffects } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
+import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, waChannelStalk } from "../lib/downloaders/stalker";
 import { allEndpoints as schemaEndpoints, apiCategories as schemaCategories } from "../shared/schema";
 
 function isYouTubeUrl(input: string): boolean {
@@ -438,6 +439,116 @@ export async function registerRoutes(
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "PhotoFunia generation failed" });
+    }
+  });
+
+  app.get("/api/ephoto/:effectId", async (req, res) => {
+    try {
+      const { effectId } = req.params;
+      const text = (req.query.text as string) || "";
+      if (!text) {
+        return res.status(400).json({ success: false, error: "Query parameter 'text' is required." });
+      }
+      const result = await generateEphoto(effectId, [text]);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "Ephoto generation failed" });
+    }
+  });
+
+  app.get("/api/photofunia/:effectId", async (req, res) => {
+    try {
+      const { effectId } = req.params;
+      const text = (req.query.text as string) || "";
+      const imageUrl = req.query.imageUrl as string;
+      const textInputs: Record<string, string> = {};
+      if (text) textInputs["text"] = text;
+      for (const [key, value] of Object.entries(req.query)) {
+        if (key !== "text" && key !== "imageUrl" && typeof value === "string") {
+          textInputs[key] = value;
+        }
+      }
+      const result = await generatePhotofunia(effectId, textInputs, imageUrl);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "PhotoFunia generation failed" });
+    }
+  });
+
+  app.get("/api/stalk/github", async (req, res) => {
+    try {
+      const username = req.query.username as string;
+      if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
+      const result = await githubStalk(username.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/ip", async (req, res) => {
+    try {
+      const ip = req.query.ip as string;
+      if (!ip) return res.status(400).json({ success: false, error: "Query parameter 'ip' is required." });
+      const result = await ipStalk(ip.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/npm", async (req, res) => {
+    try {
+      const pkg = (req.query.package as string) || (req.query.name as string);
+      if (!pkg) return res.status(400).json({ success: false, error: "Query parameter 'package' is required." });
+      const result = await npmStalk(pkg.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/tiktok", async (req, res) => {
+    try {
+      const username = req.query.username as string;
+      if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
+      const result = await tiktokStalk(username.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/instagram", async (req, res) => {
+    try {
+      const username = req.query.username as string;
+      if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
+      const result = await instagramStalk(username.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/twitter", async (req, res) => {
+    try {
+      const username = req.query.username as string;
+      if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
+      const result = await twitterStalk(username.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/whatsapp", async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      if (!query) return res.status(400).json({ success: false, error: "Query parameter 'query' is required." });
+      const result = await waChannelStalk(query.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
     }
   });
 
