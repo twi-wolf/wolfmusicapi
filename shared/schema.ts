@@ -67,7 +67,8 @@ export const apiCategories = [
   { id: "sports", name: "Sports", description: "Live scores, fixtures, standings, team & player data", icon: "Trophy" },
   { id: "search", name: "Search", description: "Wikipedia, news, GitHub, NPM, and web search APIs", icon: "Search" },
   { id: "movie", name: "Movie", description: "Movie search, info, trailers, trending, and discover via TMDB", icon: "Film" },
-  { id: "textpro", name: "Text Effects", description: "111 text effect generators via TextPro.me", icon: "Type" },
+  { id: "textpro", name: "Text Effects", description: "109 text effect generators with neon, 3D, chrome, fire, and more", icon: "Type" },
+  { id: "converter", name: "Converter", description: "Media conversion tools for WhatsApp bots (sticker, image, video, GIF)", icon: "RefreshCw" },
 ];
 
 const aiChatEndpoints: ApiEndpoint[] = [
@@ -104,6 +105,8 @@ const aiChatEndpoints: ApiEndpoint[] = [
   { path: "/api/ai/nemotron", method: "POST", description: "Chat with Nemotron - NVIDIA's AI model", params: [{ name: "prompt", type: "string", required: true, description: "The message/prompt to send" }, { name: "system", type: "string", required: false, description: "Custom system prompt" }], format: "json", category: "ai-chat", provider: "ChatEverywhere" },
   { path: "/api/ai/internlm", method: "POST", description: "Chat with InternLM - multilingual AI", params: [{ name: "prompt", type: "string", required: true, description: "The message/prompt to send" }, { name: "system", type: "string", required: false, description: "Custom system prompt" }], format: "json", category: "ai-chat", provider: "ChatEverywhere" },
   { path: "/api/ai/chatglm", method: "POST", description: "Chat with ChatGLM - bilingual model", params: [{ name: "prompt", type: "string", required: true, description: "The message/prompt to send" }, { name: "system", type: "string", required: false, description: "Custom system prompt" }], format: "json", category: "ai-chat", provider: "ChatEverywhere" },
+  { path: "/api/ai/wormgpt", method: "POST", description: "Chat with WormGPT - unrestricted AI model", params: [{ name: "prompt", type: "string", required: true, description: "The message/prompt to send" }, { name: "system", type: "string", required: false, description: "Custom system prompt" }], format: "json", category: "ai-chat", provider: "ChatEverywhere" },
+  { path: "/api/ai/replit", method: "POST", description: "Chat with Replit AI - coding assistant for code generation and debugging", params: [{ name: "prompt", type: "string", required: true, description: "The message/prompt to send" }, { name: "system", type: "string", required: false, description: "Custom system prompt" }], format: "json", category: "ai-chat", provider: "ChatEverywhere" },
 ];
 
 const aiToolEndpoints: ApiEndpoint[] = [
@@ -121,6 +124,7 @@ const aiImageEndpoints: ApiEndpoint[] = [
   { path: "/api/ai/image/lorem-flickr", method: "GET", description: "Get random themed image from LoremFlickr", params: [{ name: "q", type: "string", required: true, description: "Image theme keyword" }, { name: "width", type: "number", required: false, description: "Image width (default 800)" }, { name: "height", type: "number", required: false, description: "Image height (default 600)" }], format: "json", category: "ai-image", provider: "LoremFlickr" },
   { path: "/api/ai/image/dog", method: "GET", description: "Get random dog image", params: [{ name: "breed", type: "string", required: false, description: "Dog breed (e.g. husky, poodle)" }], format: "json", category: "ai-image", provider: "Dog CEO" },
   { path: "/api/ai/image/cat", method: "GET", description: "Get random cat image", params: [], format: "json", category: "ai-image", provider: "CATAAS" },
+  { path: "/api/ai/image/bing", method: "POST", description: "Generate AI image via Bing Image Creator", params: [{ name: "prompt", type: "string", required: true, description: "Image generation prompt" }], format: "json", category: "ai-image", provider: "Bing" },
 ];
 
 const musicEndpoints: ApiEndpoint[] = [
@@ -765,6 +769,15 @@ const textproEndpoints: ApiEndpoint[] = [
   })),
 ];
 
+const converterEndpoints: ApiEndpoint[] = [
+  { path: "/api/converter/img-to-sticker", method: "GET", description: "Convert image to WhatsApp sticker (WebP)", params: [{ name: "url", type: "string", required: true, description: "Image URL to convert" }], format: "json", category: "converter", provider: "WolfAPIs" },
+  { path: "/api/converter/sticker-to-img", method: "GET", description: "Convert sticker (WebP) to image (PNG)", params: [{ name: "url", type: "string", required: true, description: "Sticker/WebP URL to convert" }], format: "json", category: "converter", provider: "WolfAPIs" },
+  { path: "/api/converter/video-to-sticker", method: "GET", description: "Convert video to animated WhatsApp sticker", params: [{ name: "url", type: "string", required: true, description: "Video URL (MP4, max 6 seconds)" }], format: "json", category: "converter", provider: "WolfAPIs" },
+  { path: "/api/converter/sticker-to-video", method: "GET", description: "Convert animated sticker to video (MP4)", params: [{ name: "url", type: "string", required: true, description: "Animated sticker/WebP URL" }], format: "json", category: "converter", provider: "WolfAPIs" },
+  { path: "/api/converter/video-to-gif", method: "GET", description: "Convert video to GIF", params: [{ name: "url", type: "string", required: true, description: "Video URL to convert" }], format: "json", category: "converter", provider: "WolfAPIs" },
+  { path: "/api/converter/gif-to-video", method: "GET", description: "Convert GIF to video (MP4)", params: [{ name: "url", type: "string", required: true, description: "GIF URL to convert" }], format: "json", category: "converter", provider: "WolfAPIs" },
+];
+
 export const allEndpoints: ApiEndpoint[] = [
   ...aiChatEndpoints,
   ...aiToolEndpoints,
@@ -788,6 +801,7 @@ export const allEndpoints: ApiEndpoint[] = [
   ...searchEndpoints,
   ...movieEndpoints,
   ...textproEndpoints,
+  ...converterEndpoints,
 ];
 
 export const endpointInfo = allEndpoints.filter(e => e.category === "music");

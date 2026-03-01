@@ -44,6 +44,7 @@ import {
   Search,
   Film,
   Type,
+  RefreshCw,
 } from "lucide-react";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
@@ -71,13 +72,14 @@ const categoryIcons: Record<string, typeof MessageSquare> = {
   search: Search,
   movie: Film,
   textpro: Type,
+  converter: RefreshCw,
 };
 
 const heroData: Record<string, { tagline: string; title: string; description: string }> = {
   "ai-chat": {
     tagline: "MULTI-PROVIDER AI HUB",
-    title: "33+ AI Chat Models",
-    description: "GPT-4o, Claude, Mistral, Gemini, DeepSeek, LLaMA, Mixtral, CodeLlama, and more. All through a single unified API.",
+    title: "35+ AI Chat Models",
+    description: "GPT-4o, Claude, Mistral, Gemini, DeepSeek, LLaMA, Mixtral, WormGPT, Replit AI, and more. All through a single unified API.",
   },
   "ai-tools": {
     tagline: "AI-POWERED UTILITIES",
@@ -183,6 +185,11 @@ const heroData: Record<string, { tagline: string; title: string; description: st
     tagline: "TEXT EFFECT GENERATOR",
     title: `${TEXTPRO_EFFECTS.length} Text Effects`,
     description: "Generate stunning text effects including neon, 3D, chrome, fire, glitter, graffiti, vintage, and more styles.",
+  },
+  converter: {
+    tagline: "WHATSAPP MEDIA CONVERTER",
+    title: "6 Converter Endpoints",
+    description: "Convert between images, stickers, videos, and GIFs for WhatsApp bots. Image↔Sticker, Video↔Sticker, Video↔GIF.",
   },
 };
 
@@ -599,10 +606,11 @@ function EffectTable({
   );
 }
 
-function WelcomePage({ onCategoryClick }: { onCategoryClick: (id: string) => void }) {
+function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id: string) => void; onTryEndpoint: (ep: ApiEndpoint) => void }) {
+  const [globalSearch, setGlobalSearch] = useState("");
   const stats = [
     { label: "TOTAL ENDPOINTS", value: allEndpoints.length.toString(), icon: Globe, desc: "Across all categories" },
-    { label: "AI MODELS", value: "33+", icon: Cpu, desc: "Multi-provider hub" },
+    { label: "AI MODELS", value: "35+", icon: Cpu, desc: "Multi-provider hub" },
     { label: "CATEGORIES", value: apiCategories.length.toString(), icon: Shield, desc: `${apiCategories.length} API groups` },
     { label: "PHOTO EFFECTS", value: `${ephotoEffectsList.length + photofuniaEffectsList.length}+`, icon: Sparkles, desc: "Ephoto & PhotoFunia" },
   ];
@@ -642,6 +650,14 @@ function WelcomePage({ onCategoryClick }: { onCategoryClick: (id: string) => voi
           </div>
         </div>
       </div>
+
+      <EndpointSearchBar
+        endpoints={allEndpoints}
+        searchQuery={globalSearch}
+        setSearchQuery={setGlobalSearch}
+        onSelectEndpoint={onTryEndpoint}
+        placeholder="Search all 500+ endpoints... (e.g. neon, fire, translate, sticker)"
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat) => {
@@ -1053,28 +1069,37 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
   );
 }
 
-function EffectSearchBar({
+function EndpointSearchBar({
   endpoints,
   searchQuery,
   setSearchQuery,
-  onSelectEffect,
+  onSelectEndpoint,
+  placeholder,
 }: {
   endpoints: ApiEndpoint[];
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  onSelectEffect: (ep: ApiEndpoint) => void;
+  onSelectEndpoint: (ep: ApiEndpoint) => void;
+  placeholder?: string;
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const matchEndpoint = (ep: ApiEndpoint, q: string) => {
+    const lower = q.toLowerCase();
+    return ep.description.toLowerCase().includes(lower) ||
+           ep.path.toLowerCase().includes(lower) ||
+           (ep.provider || "").toLowerCase().includes(lower);
+  };
+
   const suggestions = searchQuery.length > 0
-    ? endpoints.filter((ep) => {
-        const name = ep.description.replace(/^Generate\s+/, "").replace(/\s+(via|text effect).*$/i, "");
-        return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               ep.path.toLowerCase().includes(searchQuery.toLowerCase());
-      }).slice(0, 8)
+    ? endpoints.filter((ep) => matchEndpoint(ep, searchQuery)).slice(0, 8)
     : [];
+
+  const matchCount = searchQuery.length > 0
+    ? endpoints.filter((ep) => matchEndpoint(ep, searchQuery)).length
+    : endpoints.length;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -1104,10 +1129,10 @@ function EffectSearchBar({
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
           onFocus={() => setShowSuggestions(true)}
-          placeholder="Search effects... (e.g. neon, fire, chrome)"
+          placeholder={placeholder || "Search endpoints..."}
           className="flex-1 bg-transparent outline-none text-sm"
           style={{ color: "#ffffff" }}
-          data-testid="input-search-effects"
+          data-testid="input-search-endpoints"
         />
         {searchQuery && (
           <button
@@ -1120,10 +1145,7 @@ function EffectSearchBar({
           </button>
         )}
         <span className="text-[10px] font-mono flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }}>
-          {searchQuery ? `${endpoints.filter((ep) => {
-            const name = ep.description.replace(/^Generate\s+/, "").replace(/\s+(via|text effect).*$/i, "");
-            return name.toLowerCase().includes(searchQuery.toLowerCase()) || ep.path.toLowerCase().includes(searchQuery.toLowerCase());
-          }).length} found` : `${endpoints.length} effects`}
+          {searchQuery ? `${matchCount} found` : `${endpoints.length} endpoints`}
         </span>
       </div>
       {showSuggestions && suggestions.length > 0 && (
@@ -1137,30 +1159,27 @@ function EffectSearchBar({
           }}
           data-testid="search-suggestions"
         >
-          {suggestions.map((ep) => {
-            const name = ep.description.replace(/^Generate\s+/, "").replace(/\s+(via|text effect).*$/i, "");
-            return (
-              <button
-                key={ep.path}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
-                style={{ borderBottom: "1px solid rgba(0,255,0,0.06)" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,255,0,0.05)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                onClick={() => {
-                  onSelectEffect(ep);
-                  setShowSuggestions(false);
-                }}
-                data-testid={`suggestion-${ep.path}`}
-              >
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(0,255,0,0.4)" }} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium block truncate" style={{ color: "#ffffff" }}>{name}</span>
-                  <span className="text-[10px] font-mono block truncate" style={{ color: "rgba(0,255,0,0.4)" }}>{ep.path}</span>
-                </div>
-                <ArrowUpRight className="w-3 h-3 flex-shrink-0" style={{ color: "rgba(0,255,0,0.2)" }} />
-              </button>
-            );
-          })}
+          {suggestions.map((ep) => (
+            <button
+              key={ep.path}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+              style={{ borderBottom: "1px solid rgba(0,255,0,0.06)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,255,0,0.05)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              onClick={() => {
+                onSelectEndpoint(ep);
+                setShowSuggestions(false);
+              }}
+              data-testid={`suggestion-${ep.path}`}
+            >
+              <Zap className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(0,255,0,0.4)" }} />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-medium block truncate" style={{ color: "#ffffff" }}>{ep.description}</span>
+                <span className="text-[10px] font-mono block truncate" style={{ color: "rgba(0,255,0,0.4)" }}>{ep.path}</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00" }}>{ep.method}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -1186,11 +1205,12 @@ export default function Home() {
   };
 
   const filteredEndpoints = activeCategory ? allEndpoints.filter((e) => e.category === activeCategory) : [];
-  const hasSearchBar = activeCategory === "ephoto" || activeCategory === "photofunia" || activeCategory === "textpro";
-  const displayedEndpoints = hasSearchBar && effectSearch
+  const displayedEndpoints = effectSearch
     ? filteredEndpoints.filter((ep) => {
-        const name = ep.description.replace(/^Generate\s+/, "").replace(/\s+(via|text effect).*$/i, "");
-        return name.toLowerCase().includes(effectSearch.toLowerCase()) || ep.path.toLowerCase().includes(effectSearch.toLowerCase());
+        const lower = effectSearch.toLowerCase();
+        return ep.description.toLowerCase().includes(lower) ||
+               ep.path.toLowerCase().includes(lower) ||
+               (ep.provider || "").toLowerCase().includes(lower);
       })
     : filteredEndpoints;
   const activeCategoryData = activeCategory ? apiCategories.find((c) => c.id === activeCategory) : null;
@@ -1460,7 +1480,7 @@ export default function Home() {
         </header>
 
         {activeCategory === null ? (
-          <WelcomePage onCategoryClick={handleCategoryClick} />
+          <WelcomePage onCategoryClick={handleCategoryClick} onTryEndpoint={handleTry} />
         ) : activeCategory === "docs" ? (
           <DocumentationPage onNavigateToCategory={(catId) => { setActiveCategory(catId); }} />
         ) : (
@@ -1468,14 +1488,13 @@ export default function Home() {
             <HeroSection categoryId={activeCategory} />
 
             <section className="px-6 py-5">
-              {hasSearchBar && (
-                <EffectSearchBar
-                  endpoints={filteredEndpoints}
-                  searchQuery={effectSearch}
-                  setSearchQuery={setEffectSearch}
-                  onSelectEffect={handleTry}
-                />
-              )}
+              <EndpointSearchBar
+                endpoints={filteredEndpoints}
+                searchQuery={effectSearch}
+                setSearchQuery={setEffectSearch}
+                onSelectEndpoint={handleTry}
+                placeholder={`Search ${activeCategoryData?.name || "endpoints"}...`}
+              />
 
               {isTableView ? (
                 <EffectTable endpoints={displayedEndpoints} onTry={handleTry} />

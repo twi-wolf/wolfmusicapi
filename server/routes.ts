@@ -19,6 +19,7 @@ import * as security from "../lib/downloaders/security";
 import * as sports from "../lib/downloaders/sports";
 import * as movie from "../lib/downloaders/movie";
 import { listTextproEffects, generateTextpro } from "../lib/downloaders/textpro";
+import { imageToSticker, stickerToImage, videoToSticker, stickerToVideo, videoToGif, gifToVideo } from "../lib/downloaders/converter";
 import { allEndpoints as schemaEndpoints, apiCategories as schemaCategories } from "../shared/schema";
 
 function isYouTubeUrl(input: string): boolean {
@@ -1753,6 +1754,60 @@ export async function registerRoutes(
       if (!text) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'text' parameter" });
       const imageUrl = await generateTextpro(effectId, text);
       return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", effect: effectId, text, imageUrl });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/img-to-sticker", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await imageToSticker(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/sticker-to-img", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await stickerToImage(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/video-to-sticker", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await videoToSticker(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/sticker-to-video", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await stickerToVideo(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/video-to-gif", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await videoToGif(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/converter/gif-to-video", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter" });
+      const result = await gifToVideo(url);
+      return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
     } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
   });
 
