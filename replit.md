@@ -1,7 +1,7 @@
 # WolfApis
 
 ## Overview
-A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access to 33+ AI chat models, AI tools (translate, summarize, code, AI scanner, humanizer), AI image endpoints (6 providers: Unsplash, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook), Spotify search/download, Shazam music recognition, Ephoto360 text effect generation (60 effects), PhotoFunia image effects (154 effects), anime images (30 types), fun text content (37 categories), URL services (7 shorteners + ImgBB + Catbox image hosting), developer tools (21 utilities), security/ethical hacking tools (38 endpoints), and sports data (24 endpoints via TheSportsDB). 447+ total endpoints across 19 categories. Features a cyberpunk-themed sidebar navigation UI with popup-based API testing and a documentation page with community links.
+A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access to 33+ AI chat models, AI tools (translate, summarize, code, AI scanner, humanizer), AI image endpoints (6 providers: Unsplash, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook), Spotify search/download, Shazam music recognition, Ephoto360 text effect generation (60 effects), PhotoFunia image effects (154 effects), anime images (30 types), fun text content (37 categories), URL services (7 shorteners + ImgBB + Catbox image hosting), developer tools (21 utilities), security/ethical hacking tools (38 endpoints), sports data (24 endpoints via TheSportsDB), and search APIs (10 endpoints). 457+ total endpoints across 20 categories. Features a cyberpunk-themed sidebar navigation UI with popup-based API testing and a documentation page with clickable expandable endpoint docs.
 
 ## Architecture
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui components
@@ -18,31 +18,32 @@ A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access
 - **URL Shortener**: `lib/downloaders/urlshortener.ts` - 7 shortener services (TinyURL, is.gd, v.gd, CleanURI, etc.)
 - **Tools**: `lib/downloaders/tools.ts` - 21 utility endpoints (QR, dictionary, weather, password, hash, etc.)
 - **Security**: `lib/downloaders/security.ts` - 38 security/ethical hacking endpoints (DNS, WHOIS, port scan, SSL, WAF, etc.)
+- **Sports**: `lib/downloaders/sports.ts` - 24 sports data endpoints via TheSportsDB free API
+- **Search**: 10 search endpoints in `server/routes.ts` (Wikipedia, GNews, GitHub, NPM, PyPI, StackOverflow, Reddit, Urban Dictionary, Emoji, REST Countries)
 - **Lyrics**: Uses lrclib.net API for song lyrics (with synced lyrics support)
 - **Provider Health System**: Automatic tracking of provider failures with cooldown periods
 - **Stalker**: `lib/downloaders/stalker.ts` - OSINT profile lookup tools (GitHub, IP, NPM, TikTok, Instagram, Twitter, WhatsApp)
-- **Sports**: `lib/downloaders/sports.ts` - 24 sports data endpoints via TheSportsDB free API (live scores, team/player/league search, fixtures, standings, highlights)
 
 ## Key Files
-- `shared/schema.ts` - All 447+ endpoint definitions, 19 categories, and TypeScript types
-- `server/ai-routes.ts` - AI proxy endpoints (33 chat + 3 tools + 1 image)
-- `server/routes.ts` - Express API endpoint definitions (all categories + registers AI routes)
+- `shared/schema.ts` - All 457+ endpoint definitions, 20 categories, and TypeScript types
+- `server/ai-routes.ts` - AI proxy endpoints (33 chat + 5 tools + 6 image)
+- `server/routes.ts` - Express API endpoint definitions (all categories + registers AI routes + 10 search routes)
 - `lib/scraper.ts` - Shared scraping logic (search, check, download info)
 - `lib/downloaders/` - All downloader/module implementations
-- `client/src/pages/home.tsx` - Main UI with sidebar navigation and popup API tester
+- `client/src/pages/home.tsx` - Main UI with sidebar navigation, popup API tester, and docs page
 - `client/src/index.css` - Neon cyberpunk theme styles
 - `client/src/assets/wolf-logo.png` - Wolf logo
 
-## API Categories (414+ endpoints across 18 categories)
+## API Categories (457+ endpoints across 20 categories)
 
 ### AI Chat (33 endpoints)
 GPT, GPT-4, GPT-4o, Claude, Mistral, Gemini, DeepSeek, Venice, Groq, Cohere, LLaMA, Mixtral, Phi, Qwen, Falcon, Vicuna, OpenChat, WizardLM, Zephyr, CodeLlama, StarCoder, Dolphin, Nous Hermes, OpenHermes, NeuralChat, Solar, Yi, TinyLlama, Orca, Command R, Nemotron, InternLM, ChatGLM
 
-### AI Tools (3 endpoints)
-translate, summarize, code
+### AI Tools (5 endpoints)
+translate, summarize, code, scanner, humanizer
 
-### AI Image (1 endpoint)
-Image search (Unsplash-powered)
+### AI Image (6 endpoints)
+Unsplash+Picsum, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS, image search
 
 ### Music & Media (15 endpoints)
 Search, MP3/MP4 download, lyrics (lrclib.net), trending
@@ -54,10 +55,10 @@ Search and download via spotdown.org
 Search, recognize, track details
 
 ### Ephoto360 (2 endpoints, 60 effects)
-List effects, generate text effect image
+List effects, generate text effect image - card grid view
 
 ### PhotoFunia (2 endpoints, 154 effects)
-List effects, generate photo effect
+List effects, generate photo effect - card grid view
 
 ### Social Media Downloaders (4 endpoints)
 TikTok, Instagram, YouTube, Facebook
@@ -71,14 +72,20 @@ waifu, neko, shinobu, megumin, cuddle, hug, kiss, pat, smug, bonk, blush, smile,
 ### Fun (37 endpoints)
 jokes, advice, quotes, motivation, flirt, pickuplines, truth, dares, riddles, trivia, funfacts, puns, roasts, compliments, wouldyourather, goodmorning, goodnight, valentines, birthday, love, friendship, shayari, humor, wisdom, success, heartbreak, sorry, halloween, christmas, newyear, thankyou, gratitude, roseday, fathersday, mothersday, girlfriendsday, boyfriendsday
 
-### URL Shortener (7 endpoints)
-TinyURL, is.gd, v.gd, CleanURI, Chilp.it, clck.ru, da.gd
+### URL (9 endpoints)
+7 shorteners (TinyURL, is.gd, v.gd, CleanURI, Chilp.it, clck.ru, da.gd) + ImgBB + Catbox image hosting
 
 ### Tools (21 endpoints)
 QR code, Bible verse, dictionary, Wikipedia, weather, Base64 encode/decode, text stats, password generator, Lorem Ipsum, color generator, timestamp, URL encode/decode, JSON formatter, email validation, IP validation, hash, UUID, password strength, screenshot
 
 ### Security (38 endpoints)
 WHOIS, DNS lookup, subdomain scan, reverse IP, GeoIP, port scan, HTTP headers, SSL check, TLS info, ping, latency, traceroute, ASN lookup, MAC lookup, security headers, WAF detection, firewall check, robots.txt, sitemap, CMS detection, tech stack, cookies scan, redirect chain, XSS check, SQL injection check, CSRF check, clickjacking check, directory scan, exposed files, misconfig check, hash identify, hash generate, password strength, open ports, IP info, URL scan, phishing check, metadata extract
+
+### Sports (24 endpoints)
+Live scores, fixtures, standings, team/player/league search, event stats, lineups, highlights via TheSportsDB
+
+### Search (10 endpoints)
+Wikipedia, GNews, GitHub repos, NPM packages, PyPI, Stack Overflow, Reddit, Urban Dictionary, Emoji search, REST Countries
 
 ## Environment Variables
 - `OPENAI_API_KEY` - Required for GPT-4/GPT-4o endpoints only (optional, other AI endpoints work without it)
@@ -88,10 +95,11 @@ WHOIS, DNS lookup, subdomain scan, reverse IP, GeoIP, port scan, HTTP headers, S
 ## Branding
 - Name: WOLFAPIS (WOLF in green #00ff00, APIS in white)
 - Creator tag: "APIs by Silent Wolf | A tech explorer"
-- Dark theme: main #050505, sidebar #080808, cards #0c0c0c, neon green accents
+- Dark theme: main #050505, sidebar #080808, cards #000000, neon green accents
 - Sidebar navigation with popup-based API testing, collapsible sidebar
 
 ## Recent Changes
-- 2026-03-01: v4.0 major expansion - Added 5 new categories: Anime (30 endpoints via waifu.pics/nekos.best), Fun (37 text content endpoints), URL Shortener (7 services), Tools (21 utility endpoints), Security (38 ethical hacking endpoints). Total now 414+ endpoints across 18 categories. Darkened UI backgrounds to #050505/#080808/#0c0c0c, removed sidebar border line.
+- 2026-03-01: Added Search category (10 endpoints: Wikipedia, GNews, GitHub, NPM, PyPI, StackOverflow, Reddit, Urban Dictionary, Emoji, Countries). Changed Ephoto360 & PhotoFunia from table view to card grid view. Made Docs page API Categories clickable/expandable showing endpoint docs with method, path, params, and example requests. Total now 457+ endpoints across 20 categories.
+- 2026-03-01: v4.0 major expansion - Added 5 new categories: Anime (30 endpoints via waifu.pics/nekos.best), Fun (37 text content endpoints), URL Shortener (7 services), Tools (21 utility endpoints), Security (38 ethical hacking endpoints).
 - 2026-03-01: v4.0 initial - Added PhotoFunia (154 effects), expanded Ephoto360 (60 effects), fixed lyrics endpoint, fixed AI model names, updated schema
 - 2026-03-01: Major v3.0 expansion - 33 AI chat models, Spotify rewrite (spotdown.org), Ephoto360 text effects, sidebar UI + popup tester

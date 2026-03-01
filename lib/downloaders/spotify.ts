@@ -163,20 +163,62 @@ export async function downloadSpotify(
   input = input.trim();
 
   try {
-    const songData = await spotdownRequest(`/api/song-details?url=${encodeURIComponent(input)}`);
+    let song: any = null;
+    let spotifyUrl: string | undefined;
 
-    if (!songData.songs || songData.songs.length === 0) {
+    try {
+      const songData = await spotdownRequest(`/api/song-details?url=${encodeURIComponent(input)}`);
+      if (songData.songs && songData.songs.length > 0) {
+        song = songData.songs[0];
+        spotifyUrl = song.url;
+      }
+    } catch (e: any) {
+      console.log(`[spotify] Spotdown metadata failed: ${e.message}`);
+    }
+
+    if (!song) {
+      const itunesResults = await searchViaItunes(input);
+      if (itunesResults.length > 0) {
+        const t = itunesResults[0];
+        song = { title: t.title, artist: t.artist, album: t.album, thumbnail: t.albumArt, previewUrl: t.previewUrl };
+        spotifyUrl = t.spotifyUrl;
+      }
+    }
+
+    if (!song) {
       return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: `No results found for "${input}".` };
     }
 
-    const song = songData.songs[0];
-    const spotifyUrl = song.url;
+    let downloadUrl: string | undefined;
 
-    if (!spotifyUrl) {
-      return { success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Could not find Spotify URL for track." };
+    if (spotifyUrl) {
+      try {
+        const dlRes = await fetchWithTimeout(`${SPOTDOWN_BASE}/api/direct-download?url=${encodeURIComponent(spotifyUrl)}`, {
+          headers: { "User-Agent": USER_AGENT, "X-API-Key": SPOTDOWN_API_KEY, "Referer": `${SPOTDOWN_BASE}/` },
+        }, 15000);
+        if (dlRes.ok) {
+          downloadUrl = dlRes.url;
+        }
+      } catch {}
     }
 
-    const downloadUrl = `${SPOTDOWN_BASE}/api/direct-download?url=${encodeURIComponent(spotifyUrl)}`;
+    if (!downloadUrl) {
+      try {
+        const savidRes = await fetchWithTimeout(`https://api.savidfy.com/api/download?url=${encodeURIComponent(spotifyUrl || input)}`, {
+          headers: { "User-Agent": USER_AGENT },
+        }, 15000);
+        if (savidRes.ok) {
+          const savidData = await savidRes.json() as any;
+          if (savidData.url || savidData.downloadUrl || savidData.link) {
+            downloadUrl = savidData.url || savidData.downloadUrl || savidData.link;
+          }
+        }
+      } catch {}
+    }
+
+    if (!downloadUrl && song.previewUrl) {
+      downloadUrl = song.previewUrl;
+    }
 
     return {
       success: true,
@@ -185,34 +227,28 @@ export async function downloadSpotify(
       artist: song.artist || "Unknown",
       album: song.album || undefined,
       albumArt: song.thumbnail || undefined,
-      downloadUrl,
+      downloadUrl: downloadUrl || undefined,
       format: "mp3",
-      source: "spotdown",
-      spotifyUrl,
+      source: downloadUrl ? (downloadUrl.includes("spotdown") ? "spotdown" : "direct") : "metadata-only",
+      spotifyUrl: spotifyUrl || undefined,
     };
   } catch (err: any) {
-    console.log(`[spotify] Spotdown download failed: ${err.message}`);
-
-    if (isSpotifyUrl(input)) {
-      return {
-        success: false,
-        creator: "APIs by Silent Wolf | A tech explorer",
-        error: `Download failed: ${err.message}. Please try again later.`,
-      };
-    }
+    console.log(`[spotify] Download failed: ${err.message}`);
 
     try {
       const searchResult = await searchViaItunes(input);
       if (searchResult.length > 0) {
         const track = searchResult[0];
         return {
-          success: false,
+          success: true,
           creator: "APIs by Silent Wolf | A tech explorer",
           title: track.title,
           artist: track.artist,
           album: track.album,
           albumArt: track.albumArt,
-          error: "Download temporarily unavailable. Track info returned from iTunes.",
+          downloadUrl: track.previewUrl || undefined,
+          format: "mp3",
+          source: "itunes",
         };
       }
     } catch {}

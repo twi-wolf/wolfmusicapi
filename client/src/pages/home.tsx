@@ -41,6 +41,7 @@ import {
   BookOpen,
   ExternalLink,
   Github,
+  Search,
 } from "lucide-react";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
@@ -65,6 +66,7 @@ const categoryIcons: Record<string, typeof MessageSquare> = {
   tools: Wrench,
   security: ShieldCheck,
   sports: Trophy,
+  search: Search,
 };
 
 const heroData: Record<string, { tagline: string; title: string; description: string }> = {
@@ -162,6 +164,11 @@ const heroData: Record<string, { tagline: string; title: string; description: st
     tagline: "LIVE SPORTS DATA API",
     title: "24 Sports Endpoints",
     description: "Live scores, fixtures, standings, team & player info, event stats, lineups, and highlights via TheSportsDB.",
+  },
+  search: {
+    tagline: "UNIVERSAL SEARCH API",
+    title: "10 Search Endpoints",
+    description: "Wikipedia, news, GitHub repos, NPM packages, Stack Overflow, Reddit, Urban Dictionary, country info, and more.",
   },
 };
 
@@ -737,7 +744,9 @@ function HeroSection({ categoryId }: { categoryId: string }) {
   );
 }
 
-function DocumentationPage() {
+function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (catId: string) => void }) {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const links = [
     {
       title: "WhatsApp Group",
@@ -880,27 +889,99 @@ function DocumentationPage() {
         >
           API Categories
         </h3>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
           {apiCategories.map((cat) => {
-            const count = allEndpoints.filter(e => e.category === cat.id).length;
+            const catEndpoints = allEndpoints.filter(e => e.category === cat.id);
+            const count = catEndpoints.length;
             const Icon = categoryIcons[cat.id] || Code2;
+            const isExpanded = expandedCategory === cat.id;
             return (
-              <div
-                key={cat.id}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg"
-                style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.08)" }}
-                data-testid={`docs-cat-${cat.id}`}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "#00ff00" }} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium" style={{ color: "#ffffff" }}>{cat.name}</span>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: "rgba(0,255,0,0.1)", color: "#00ff00" }}
+              <div key={cat.id} className="rounded-lg overflow-hidden" style={{ border: isExpanded ? "1px solid rgba(0,255,0,0.2)" : "1px solid rgba(0,255,0,0.08)" }}>
+                <button
+                  onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[#0a0a0a]"
+                  style={{ background: "#000000" }}
+                  data-testid={`docs-cat-${cat.id}`}
                 >
-                  {count}
-                </span>
+                  <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "#00ff00" }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium" style={{ color: "#ffffff" }}>{cat.name}</span>
+                    <span className="text-[10px] ml-2" style={{ color: "rgba(255,255,255,0.3)" }}>{cat.description}</span>
+                  </div>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full mr-2"
+                    style={{ background: "rgba(0,255,0,0.1)", color: "#00ff00" }}
+                  >
+                    {count}
+                  </span>
+                  <ChevronRight className="w-3 h-3 flex-shrink-0 transition-transform" style={{ color: "rgba(255,255,255,0.3)", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }} />
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-3 space-y-2" style={{ background: "#000000" }}>
+                    <div className="flex items-center justify-between pt-1 pb-2" style={{ borderTop: "1px solid rgba(0,255,0,0.08)" }}>
+                      <span className="text-[10px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.3)" }}>ENDPOINTS</span>
+                      {onNavigateToCategory && (
+                        <button
+                          onClick={() => onNavigateToCategory(cat.id)}
+                          className="text-[10px] font-bold px-2 py-1 rounded transition-colors hover:bg-[#0a0a0a]"
+                          style={{ color: "#00ff00" }}
+                          data-testid={`btn-goto-${cat.id}`}
+                        >
+                          Try it →
+                        </button>
+                      )}
+                    </div>
+                    {catEndpoints.map((ep, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg px-3 py-2.5"
+                        style={{ background: "rgba(0,255,0,0.03)", border: "1px solid rgba(0,255,0,0.06)" }}
+                        data-testid={`docs-endpoint-${cat.id}-${idx}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                            style={{ background: ep.method === "POST" ? "rgba(255,165,0,0.15)" : "rgba(0,255,0,0.15)", color: ep.method === "POST" ? "#ffa500" : "#00ff00" }}
+                          >
+                            {ep.method}
+                          </span>
+                          <code className="text-[11px] font-mono" style={{ color: "#ffffff" }}>{ep.path}</code>
+                          {ep.provider && <span className="text-[9px] ml-auto" style={{ color: "rgba(255,255,255,0.25)" }}>{ep.provider}</span>}
+                        </div>
+                        <p className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>{ep.description}</p>
+                        {ep.params && ep.params.length > 0 && (
+                          <div className="space-y-1 mb-2">
+                            <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.25)" }}>PARAMETERS:</span>
+                            {ep.params.map((p, pi) => (
+                              <div key={pi} className="flex items-center gap-2 text-[10px]">
+                                <code style={{ color: "#00ff00" }}>{p.name}</code>
+                                <span style={{ color: "rgba(255,255,255,0.2)" }}>{p.type}</span>
+                                {p.required && <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,100,100,0.15)", color: "#ff6464" }}>required</span>}
+                                <span style={{ color: "rgba(255,255,255,0.3)" }}>{p.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.25)" }}>EXAMPLE:</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <code
+                              className="text-[10px] px-2 py-1 rounded font-mono flex-1 overflow-x-auto"
+                              style={{ background: "rgba(0,255,0,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(0,255,0,0.08)" }}
+                            >
+                              {ep.method === "POST"
+                                ? `curl -X POST ${baseUrl}${ep.path} -H "Content-Type: application/json" -d '${JSON.stringify(Object.fromEntries((ep.params || []).filter(p => p.required).map(p => [p.name, p.type === "string" ? "example" : "value"])))}'`
+                                : `${baseUrl}${ep.path}${ep.params?.some(p => p.required) ? "?" + ep.params.filter(p => p.required).map(p => `${p.name}=example`).join("&") : ""}`}
+                            </code>
+                            <CopyButton text={ep.method === "POST"
+                              ? `curl -X POST ${baseUrl}${ep.path} -H "Content-Type: application/json" -d '${JSON.stringify(Object.fromEntries((ep.params || []).filter(p => p.required).map(p => [p.name, p.type === "string" ? "example" : "value"])))}'`
+                              : `${baseUrl}${ep.path}${ep.params?.some(p => p.required) ? "?" + ep.params.filter(p => p.required).map(p => `${p.name}=example`).join("&") : ""}`} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -952,7 +1033,7 @@ export default function Home() {
     count: allEndpoints.filter((e) => e.category === cat.id).length,
   }));
 
-  const isTableView = activeCategory === "ephoto" || activeCategory === "photofunia";
+  const isTableView = false;
 
   const sidebarWidth = sidebarCollapsed ? "60px" : "240px";
 
@@ -1213,7 +1294,7 @@ export default function Home() {
         {activeCategory === null ? (
           <WelcomePage onCategoryClick={handleCategoryClick} />
         ) : activeCategory === "docs" ? (
-          <DocumentationPage />
+          <DocumentationPage onNavigateToCategory={(catId) => { setActiveCategory(catId); }} />
         ) : (
           <>
             <HeroSection categoryId={activeCategory} />

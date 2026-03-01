@@ -1491,6 +1491,136 @@ export async function registerRoutes(
     }
   });
 
+  // ============== SEARCH ROUTES ==============
+  app.get("/api/search/wiki", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
+      if (!wikiRes.ok) {
+        const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&srlimit=5`);
+        const searchData = await searchRes.json() as any;
+        const results = searchData.query?.search || [];
+        return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", results: results.map((r: any) => ({ title: r.title, snippet: r.snippet?.replace(/<[^>]*>/g, ""), wordcount: r.wordcount, pageId: r.pageid })) });
+      }
+      const data = await wikiRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", result: { title: data.title, extract: data.extract, description: data.description, thumbnail: data.thumbnail?.source, url: data.content_urls?.desktop?.page } });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/news", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const lang = (req.query.lang as string) || "en";
+      const newsRes = await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=${lang}&max=10&apikey=free`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (newsRes.ok) {
+        const data = await newsRes.json() as any;
+        if (data.articles) return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", total: data.totalArticles, articles: data.articles.map((a: any) => ({ title: a.title, description: a.description, url: a.url, image: a.image, source: a.source?.name, publishedAt: a.publishedAt })) });
+      }
+      const wikiNewsRes = await fetch(`https://en.wikinews.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&srlimit=10`);
+      const wikiData = await wikiNewsRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", source: "WikiNews", results: (wikiData.query?.search || []).map((r: any) => ({ title: r.title, snippet: r.snippet?.replace(/<[^>]*>/g, ""), timestamp: r.timestamp })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/github", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const ghRes = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&per_page=10&sort=stars`, { headers: { "User-Agent": "WolfAPIs/4.0", Accept: "application/vnd.github.v3+json" } });
+      if (!ghRes.ok) throw new Error("GitHub API request failed");
+      const data = await ghRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", total: data.total_count, repos: (data.items || []).map((r: any) => ({ name: r.full_name, description: r.description, stars: r.stargazers_count, forks: r.forks_count, language: r.language, url: r.html_url, topics: r.topics?.slice(0, 5) })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/npm", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const npmRes = await fetch(`https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(q)}&size=10`);
+      if (!npmRes.ok) throw new Error("NPM API request failed");
+      const data = await npmRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", total: data.total, packages: (data.objects || []).map((o: any) => ({ name: o.package.name, version: o.package.version, description: o.package.description, keywords: o.package.keywords?.slice(0, 5), url: o.package.links?.npm, downloads: o.score?.detail?.popularity })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/pypi", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const pypiRes = await fetch(`https://pypi.org/pypi/${encodeURIComponent(q)}/json`);
+      if (pypiRes.ok) {
+        const data = await pypiRes.json() as any;
+        return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", result: { name: data.info.name, version: data.info.version, summary: data.info.summary, author: data.info.author, license: data.info.license, url: data.info.project_url, homepage: data.info.home_page } });
+      }
+      const searchRes = await fetch(`https://pypi.org/simple/`, { headers: { Accept: "application/vnd.pypi.simple.v1+json" } });
+      throw new Error(`Package "${q}" not found on PyPI`);
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/stackoverflow", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const soRes = await fetch(`https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(q)}&site=stackoverflow&pagesize=10&filter=withbody`);
+      if (!soRes.ok) throw new Error("Stack Overflow API request failed");
+      const data = await soRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", total: data.total || 0, questions: (data.items || []).map((q: any) => ({ title: q.title, score: q.score, answers: q.answer_count, views: q.view_count, tags: q.tags, url: q.link, isAnswered: q.is_answered })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/reddit", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const sort = (req.query.sort as string) || "relevance";
+      const redditRes = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=${sort}&limit=10`, { headers: { "User-Agent": "WolfAPIs/4.0" } });
+      if (!redditRes.ok) throw new Error("Reddit API request failed");
+      const data = await redditRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", results: (data.data?.children || []).map((c: any) => ({ title: c.data.title, subreddit: c.data.subreddit, author: c.data.author, score: c.data.score, comments: c.data.num_comments, url: `https://reddit.com${c.data.permalink}`, selftext: c.data.selftext?.substring(0, 200) })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/urbandictionary", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const udRes = await fetch(`https://api.urbandictionary.com/v0/define?term=${encodeURIComponent(q)}`);
+      if (!udRes.ok) throw new Error("Urban Dictionary API request failed");
+      const data = await udRes.json() as any;
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", word: q, definitions: (data.list || []).slice(0, 5).map((d: any) => ({ definition: d.definition?.replace(/[\[\]]/g, ""), example: d.example?.replace(/[\[\]]/g, ""), author: d.author, thumbsUp: d.thumbs_up, thumbsDown: d.thumbs_down })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/emoji", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const emojiRes = await fetch(`https://emoji-api.com/emojis?search=${encodeURIComponent(q)}&access_key=free`);
+      if (emojiRes.ok) {
+        const data = await emojiRes.json() as any;
+        if (Array.isArray(data)) return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", results: data.slice(0, 10).map((e: any) => ({ character: e.character, unicodeName: e.unicodeName, slug: e.slug, group: e.group, subGroup: e.subGroup })) });
+      }
+      const openRes = await fetch("https://raw.githubusercontent.com/muan/unicode-emoji-json/main/data-by-emoji.json");
+      const allEmoji = await openRes.json() as Record<string, any>;
+      const matches = Object.entries(allEmoji).filter(([, v]) => v.name.toLowerCase().includes(q.toLowerCase()) || v.slug.toLowerCase().includes(q.toLowerCase())).slice(0, 10);
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", results: matches.map(([emoji, v]) => ({ character: emoji, name: v.name, slug: v.slug, group: v.group })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
+  app.get("/api/search/country", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter" });
+      const countryRes = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(q)}?fields=name,capital,population,region,subregion,languages,currencies,flags,timezones`);
+      if (!countryRes.ok) throw new Error(`No country found for "${q}"`);
+      const data = await countryRes.json() as any[];
+      return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", results: data.slice(0, 5).map((c: any) => ({ name: c.name?.common, official: c.name?.official, capital: c.capital?.[0], population: c.population, region: c.region, subregion: c.subregion, languages: c.languages ? Object.values(c.languages) : [], currencies: c.currencies ? Object.values(c.currencies).map((cur: any) => cur.name) : [], flag: c.flags?.png, timezones: c.timezones })) });
+    } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
+  });
+
   app.get("/api/endpoints", (_req, res) => {
     return res.json({
       success: true,

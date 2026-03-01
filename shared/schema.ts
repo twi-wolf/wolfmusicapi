@@ -65,6 +65,7 @@ export const apiCategories = [
   { id: "tools", name: "Tools", description: "QR codes, dictionary, weather, passwords, and more utilities", icon: "Wrench" },
   { id: "security", name: "Security", description: "Ethical hacking, OSINT, vulnerability scanning tools", icon: "ShieldCheck" },
   { id: "sports", name: "Sports", description: "Live scores, fixtures, standings, team & player data", icon: "Trophy" },
+  { id: "search", name: "Search", description: "Wikipedia, news, GitHub, NPM, and web search APIs", icon: "Search" },
 ];
 
 const aiChatEndpoints: ApiEndpoint[] = [
@@ -607,6 +608,19 @@ const sportsEndpoints: ApiEndpoint[] = [
   { path: "/api/sports/venue", method: "GET", description: "Get venue details by ID", params: [{ name: "id", type: "string", required: true, description: "Venue ID" }], format: "json", category: "sports", provider: "TheSportsDB" },
 ];
 
+const searchEndpoints: ApiEndpoint[] = [
+  { path: "/api/search/wiki", method: "GET", description: "Search Wikipedia articles with summaries", params: [{ name: "q", type: "string", required: true, description: "Search query" }], format: "json", category: "search", provider: "Wikipedia" },
+  { path: "/api/search/news", method: "GET", description: "Search latest news articles worldwide", params: [{ name: "q", type: "string", required: true, description: "Search query" }, { name: "lang", type: "string", required: false, description: "Language (default: en)" }], format: "json", category: "search", provider: "GNews" },
+  { path: "/api/search/github", method: "GET", description: "Search GitHub repositories", params: [{ name: "q", type: "string", required: true, description: "Search query" }], format: "json", category: "search", provider: "GitHub" },
+  { path: "/api/search/npm", method: "GET", description: "Search NPM packages", params: [{ name: "q", type: "string", required: true, description: "Package name or keyword" }], format: "json", category: "search", provider: "NPM" },
+  { path: "/api/search/pypi", method: "GET", description: "Search Python packages on PyPI", params: [{ name: "q", type: "string", required: true, description: "Package name or keyword" }], format: "json", category: "search", provider: "PyPI" },
+  { path: "/api/search/stackoverflow", method: "GET", description: "Search Stack Overflow questions", params: [{ name: "q", type: "string", required: true, description: "Search query" }], format: "json", category: "search", provider: "StackExchange" },
+  { path: "/api/search/reddit", method: "GET", description: "Search Reddit posts and subreddits", params: [{ name: "q", type: "string", required: true, description: "Search query" }, { name: "sort", type: "string", required: false, description: "Sort by: relevance, hot, top, new" }], format: "json", category: "search", provider: "Reddit" },
+  { path: "/api/search/urbandictionary", method: "GET", description: "Search Urban Dictionary definitions", params: [{ name: "q", type: "string", required: true, description: "Word or phrase" }], format: "json", category: "search", provider: "Urban Dictionary" },
+  { path: "/api/search/emoji", method: "GET", description: "Search emojis by keyword", params: [{ name: "q", type: "string", required: true, description: "Emoji keyword" }], format: "json", category: "search", provider: "Open Emoji" },
+  { path: "/api/search/country", method: "GET", description: "Search country information", params: [{ name: "q", type: "string", required: true, description: "Country name" }], format: "json", category: "search", provider: "REST Countries" },
+];
+
 export const allEndpoints: ApiEndpoint[] = [
   ...aiChatEndpoints,
   ...aiToolEndpoints,
@@ -627,6 +641,7 @@ export const allEndpoints: ApiEndpoint[] = [
   ...toolsEndpoints,
   ...securityEndpoints,
   ...sportsEndpoints,
+  ...searchEndpoints,
 ];
 
 export const endpointInfo = allEndpoints.filter(e => e.category === "music");

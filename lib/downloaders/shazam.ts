@@ -314,7 +314,58 @@ export async function recognizeShazam(audioBuffer: Buffer): Promise<ShazamRecogn
   }
 }
 
+async function recognizeViaACRCloud(audioBuffer: Buffer): Promise<ShazamRecognizeResult | null> {
+  try {
+    const acrcloud = (await import("acrcloud")).default;
+    const acr = new acrcloud({
+      host: "identify-us-west-2.acrcloud.com",
+      access_key: "4ee38e62e85515a47158aeb3d26fb741",
+      access_secret: "KZd3cUQoOYSmZQn1n5ACW5XSbqGlKLhg6G8S8EvJ",
+    });
+
+    let buffer = audioBuffer;
+    const MAX_SIZE = 1 * 1024 * 1024;
+    if (buffer.length > MAX_SIZE) {
+      buffer = buffer.slice(0, MAX_SIZE);
+    }
+
+    const { status, metadata } = await acr.identify(buffer);
+
+    if (status.code !== 0 || !metadata?.music?.[0]) {
+      console.log(`[shazam] ACRCloud failed: ${status.msg}`);
+      return null;
+    }
+
+    const music = metadata.music[0];
+    const response: ShazamRecognizeResult = {
+      success: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      title: music.title || "Unknown",
+      artist: music.artists?.map((a: any) => a.name).join(", ") || "Unknown",
+      album: music.album?.name || undefined,
+      genre: music.genres?.map((g: any) => g.name).join(", ") || undefined,
+      year: music.release_date?.substring(0, 4) || undefined,
+    };
+
+    if (music.external_metadata?.spotify?.track?.id) {
+      response.spotify = `https://open.spotify.com/track/${music.external_metadata.spotify.track.id}`;
+    }
+
+    if (music.external_metadata?.deezer?.track?.id) {
+      response.trackId = music.external_metadata.deezer.track.id.toString();
+    }
+
+    return response;
+  } catch (err: any) {
+    console.error(`[shazam] ACRCloud error:`, err.message);
+    return null;
+  }
+}
+
 export async function recognizeShazamFull(audioBuffer: Buffer): Promise<ShazamRecognizeResult> {
+  const acrResult = await recognizeViaACRCloud(audioBuffer);
+  if (acrResult) return acrResult;
+
   try {
     const { Shazam, s16LEToSamplesArray } = await import("shazam-api");
 
@@ -381,7 +432,7 @@ export async function recognizeShazamFull(audioBuffer: Buffer): Promise<ShazamRe
     return {
       success: false,
       creator: "APIs by Silent Wolf | A tech explorer",
-      error: `Recognition failed: ${err.message || "Unknown error"}. Ensure audio is raw PCM (s16LE, mono, 16kHz).`,
+      error: `Recognition failed: ${err.message || "Unknown error"}. Try a shorter audio clip (10-20 seconds).`,
     };
   }
 }
