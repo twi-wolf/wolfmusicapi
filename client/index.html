@@ -11,6 +11,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function(){
+        document.addEventListener('contextmenu',function(e){e.preventDefault();});
+        document.addEventListener('keydown',function(e){
+          if(e.key==='F12')e.preventDefault();
+          if(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key.toUpperCase()))e.preventDefault();
+          if(e.ctrlKey&&e.key.toUpperCase()==='U')e.preventDefault();
+          if(e.metaKey&&e.altKey&&['I','J','C'].includes(e.key.toUpperCase()))e.preventDefault();
+        });
+        (function d(){try{(function(){return false;}).constructor('debugger')();} catch(e){}setTimeout(d,100);})();
+        var t=new Image();Object.defineProperty(t,'id',{get:function(){document.title='WolfAPIs';window.location.reload();}});
+        var c=console;['log','warn','error','info','debug','table','trace','dir','dirxml','group','groupEnd','time','timeEnd','assert','count','clear'].forEach(function(m){c[m]=function(){};});
+        Object.defineProperty(window,'console',{get:function(){return c;},set:function(){}});
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
