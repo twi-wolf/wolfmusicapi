@@ -1,0 +1,111 @@
+const axios = require("axios");
+
+const HEADERS = {
+  html: {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "accept-language": "en-US,en;q=0.9",
+    "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36"
+  },
+  api: {
+    "accept": "*/*",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+    "origin": "https://v1.y2mate.nu",
+    "referer": "https://v1.y2mate.nu/",
+    "save-data": "on",
+    "sec-ch-ua": '"Chromium";v="137", "Not/A)Brand";v="24"',
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": '"Android"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "cross-site",
+    "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36"
+  }
+};
+
+function extractVideoId(url) {
+  const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:&|$)/);
+  if (!match) throw new Error("Invalid YouTube URL");
+  return match[1];
+}
+
+async function fetchToken() {
+  const htmlRes = await axios.get("https://v1.y2mate.nu/", { headers: HEADERS.html });
+  const jsonMatch = /var json = JSON\.parse\('(.+?)'\)/.exec(htmlRes.data);
+  if (!jsonMatch) throw new Error("Failed to extract token JSON");
+
+  const json = JSON.parse(jsonMatch[1]);
+  let token = "";
+  for (let i = 0; i < json[0].length; i++) {
+    token += String.fromCharCode(json[0][i] - json[2][json[2].length - (i + 1)]);
+  }
+  if (json[1]) token = token.split("").reverse().join("");
+  return {
+    token: token.substring(0, 32),
+    param: String.fromCharCode(json[6])
+  };
+}
+
+async function fetchDownloadUrl(videoId, format) {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const { token, param } = await fetchToken();
+
+  const initUrl = `https://eta.etacloud.org/api/v1/init?${param}=${encodeURIComponent(token)}&t=${timestamp}`;
+  const initRes = await axios.get(initUrl, { headers: HEADERS.api });
+
+  if (!initRes.data?.convertURL) {
+    throw new Error("Init failed or no convertURL returned");
+  }
+
+  const convertUrl = `${initRes.data.convertURL.split("&v=")[0]}&v=${videoId}&f=${format}&t=${timestamp}`;
+  const convertRes = await axios.get(convertUrl, { headers: HEADERS.api });
+
+  if (convertRes.data.error !== 0) {
+    throw new Error("Convert API error: " + JSON.stringify(convertRes.data));
+  }
+
+  if (convertRes.data.downloadURL) {
+    return convertRes.data.downloadURL;
+  }
+
+  if (convertRes.data.progressURL) {
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    while (attempts++ < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const progressRes = await axios.get(`${convertRes.data.progressURL}&t=${timestamp}`, { headers: HEADERS.api });
+
+      if (progressRes.data.error !== 0) {
+        throw new Error("Progress error: " + JSON.stringify(progressRes.data));
+      }
+
+      if (progressRes.data.downloadURL) {
+        return progressRes.data.downloadURL;
+      }
+    }
+
+    throw new Error("Conversion timed out");
+  }
+
+  if (convertRes.data.redirectURL) {
+    const redirectRes = await axios.get(convertRes.data.redirectURL, { headers: HEADERS.api });
+    return redirectRes.data.downloadURL;
+  }
+
+  throw new Error("No download URL found in response");
+}
+
+async function downloadYouTubeAudio(url) {
+  const videoId = extractVideoId(url);
+  return await fetchDownloadUrl(videoId, "mp3");
+}
+
+async function downloadYouTubeVideo(url) {
+  const videoId = extractVideoId(url);
+  return await fetchDownloadUrl(videoId, "mp4");
+}
+
+module.exports = {
+  downloadYouTubeAudio,
+  downloadYouTubeVideo
+};

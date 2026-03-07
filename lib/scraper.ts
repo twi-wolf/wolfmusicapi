@@ -36,9 +36,24 @@ export function reloadCookies(): void {
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 const Y2MATE_HEADERS = {
-  "User-Agent": USER_AGENT,
-  "Referer": "https://v1.y2mate.nu/",
-  "Origin": "https://v1.y2mate.nu",
+  "accept": "*/*",
+  "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+  "origin": "https://v1.y2mate.nu",
+  "referer": "https://v1.y2mate.nu/",
+  "save-data": "on",
+  "sec-ch-ua": '"Chromium";v="137", "Not/A)Brand";v="24"',
+  "sec-ch-ua-mobile": "?1",
+  "sec-ch-ua-platform": '"Android"',
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "cross-site",
+  "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+};
+
+const Y2MATE_HTML_HEADERS = {
+  "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+  "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
 };
 
 async function safeJsonParse(res: Response, label: string): Promise<any> {
@@ -319,7 +334,7 @@ async function fetchY2MateAuth(): Promise<{ auth: string; paramChar: string }> {
   }
 
   const pageRes = await fetchWithTimeout("https://v1.y2mate.nu/", {
-    headers: { "User-Agent": USER_AGENT },
+    headers: Y2MATE_HTML_HEADERS,
   }, 10000);
   const html = await pageRes.text();
 
@@ -362,14 +377,11 @@ async function y2mateConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
 
   const initData = await safeJsonParse(initRes, "y2mate init");
 
-  if (initData.error !== "0" && initData.error !== 0) {
-    throw new Error("y2mate init failed: " + (initData.error || "unknown"));
+  if (!initData?.convertURL) {
+    throw new Error("y2mate init failed or no convertURL returned");
   }
 
-  let convertUrl = initData.convertURL;
-  if (convertUrl.includes("&v=")) convertUrl = convertUrl.split("&v=")[0];
-  convertUrl += `&v=${videoId}&f=${format}&t=${ts()}`;
-
+  const convertUrl = `${initData.convertURL.split("&v=")[0]}&v=${videoId}&f=${format}&t=${ts()}`;
   const convertRes = await fetchWithTimeout(convertUrl, { headers: Y2MATE_HEADERS }, 15000);
 
   if (convertRes.status === 429) {
@@ -377,48 +389,43 @@ async function y2mateConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
     throw new Error("y2mate convert rate limited (429)");
   }
 
-  let data = await safeJsonParse(convertRes, "y2mate convert");
+  const data = await safeJsonParse(convertRes, "y2mate convert");
 
-  if (data.redirect === 1 && data.redirectURL) {
-    let rUrl = data.redirectURL;
-    if (rUrl.includes("&v=")) rUrl = rUrl.split("&v=")[0];
-    rUrl += `&v=${videoId}&f=${format}&t=${ts()}`;
-    const rRes = await fetchWithTimeout(rUrl, { headers: Y2MATE_HEADERS }, 15000);
-    data = await safeJsonParse(rRes, "y2mate redirect");
-  }
-
-  if (data.error && data.error !== "0" && data.error !== 0) {
-    throw new Error("y2mate convert error: " + data.error);
-  }
-
-  let title = data.title || "";
-
-  if (data.progressURL) {
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const pRes = await fetchWithTimeout(data.progressURL + "&t=" + ts(), { headers: Y2MATE_HEADERS }, 10000);
-      const p = await safeJsonParse(pRes, "y2mate progress");
-      if (p.title) title = p.title;
-      if (p.error && p.error !== 0 && p.error !== "0") {
-        throw new Error("Conversion error: " + p.error);
-      }
-      if (p.progress >= 3 || p.progress === "completed") {
-        if (p.url) {
-          return { downloadUrl: p.url + `&s=3&v=${videoId}&f=${format}`, title };
-        }
-        break;
-      }
-    }
+  if (data.error !== 0 && data.error !== "0" && data.error) {
+    throw new Error("y2mate convert error: " + JSON.stringify(data));
   }
 
   if (data.downloadURL) {
-    return {
-      downloadUrl: data.downloadURL + `&s=3&v=${videoId}&f=${format}`,
-      title,
-    };
+    return { downloadUrl: data.downloadURL, title: data.title || `video_${videoId}` };
   }
 
-  throw new Error("Conversion timed out or no download URL received.");
+  if (data.progressURL) {
+    const maxAttempts = 20;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const pRes = await fetchWithTimeout(`${data.progressURL}&t=${ts()}`, { headers: Y2MATE_HEADERS }, 10000);
+      const p = await safeJsonParse(pRes, "y2mate progress");
+
+      if (p.error !== 0 && p.error !== "0" && p.error) {
+        throw new Error("y2mate progress error: " + JSON.stringify(p));
+      }
+
+      if (p.downloadURL) {
+        return { downloadUrl: p.downloadURL, title: p.title || data.title || `video_${videoId}` };
+      }
+    }
+    throw new Error("y2mate conversion timed out");
+  }
+
+  if (data.redirectURL) {
+    const rRes = await fetchWithTimeout(data.redirectURL, { headers: Y2MATE_HEADERS }, 15000);
+    const rData = await safeJsonParse(rRes, "y2mate redirect");
+    if (rData.downloadURL) {
+      return { downloadUrl: rData.downloadURL, title: rData.title || data.title || `video_${videoId}` };
+    }
+  }
+
+  throw new Error("y2mate: no download URL found in response");
 }
 
 async function veviozConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
