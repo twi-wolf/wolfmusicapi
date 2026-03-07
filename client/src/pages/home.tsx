@@ -326,9 +326,9 @@ function TestPopup({
 
         <div className="overflow-y-auto" style={{ maxHeight: "calc(90vh - 52px)" }}>
           <div className="px-5 py-4 space-y-4">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
               <span
-                className="font-mono text-[10px] font-bold px-2 py-0.5 rounded"
+                className="font-mono text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
                 style={{
                   background: endpoint.method === "POST" ? "rgba(59,130,246,0.12)" : "rgba(0,255,0,0.12)",
                   color: endpoint.method === "POST" ? "#60a5fa" : "#00ff00",
@@ -337,7 +337,7 @@ function TestPopup({
               >
                 {endpoint.method}
               </span>
-              <code className="text-sm font-mono" style={{ color: "#ffffff" }}>
+              <code className="text-sm font-mono break-all min-w-0" style={{ color: "#ffffff" }}>
                 {endpoint.path}
               </code>
               {endpoint.provider && (
@@ -546,9 +546,9 @@ function EndpointCard({
         className="absolute top-3 right-3 w-3.5 h-3.5 transition-opacity"
         style={{ color: "rgba(0,255,0,0.3)" }}
       />
-      <div className="flex items-center gap-2 flex-wrap pr-6">
+      <div className="flex items-center gap-2 flex-wrap pr-6 overflow-hidden">
         <span
-          className="font-mono text-[10px] font-bold px-2 py-0.5 rounded"
+          className="font-mono text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
           style={{
             background: endpoint.method === "POST" ? "rgba(59,130,246,0.1)" : "rgba(0,255,0,0.1)",
             color: endpoint.method === "POST" ? "#60a5fa" : "#00ff00",
@@ -557,7 +557,7 @@ function EndpointCard({
         >
           {endpoint.method}
         </span>
-        <code className="text-sm font-mono" style={{ color: "#ffffff" }}>
+        <code className="text-sm font-mono truncate min-w-0" style={{ color: "#ffffff" }}>
           {endpoint.path}
         </code>
       </div>
@@ -674,8 +674,8 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
   ];
 
   return (
-    <div className="px-6 py-6 space-y-8">
-      <div className="rounded-lg p-6 sm:p-8" style={{
+    <div className="px-3 py-4 sm:px-6 sm:py-6 space-y-6 sm:space-y-8">
+      <div className="rounded-lg p-4 sm:p-6 lg:p-8" style={{
         background: "#000000",
         border: "1px solid rgba(0,255,0,0.12)",
       }}>
@@ -717,13 +717,13 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
         placeholder="Search all 500+ endpoints... (e.g. neon, fire, translate, sticker)"
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.label}
-              className="relative rounded-lg p-5"
+              className="relative rounded-lg p-3 sm:p-5"
               style={{
                 background: "#000000",
                 border: "1px solid rgba(0,255,0,0.12)",
@@ -731,16 +731,16 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
               data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <Icon
-                className="absolute top-4 right-4 w-5 h-5"
+                className="absolute top-3 right-3 w-4 h-4 sm:w-5 sm:h-5"
                 style={{ color: "rgba(0,255,0,0.4)" }}
               />
-              <span className="text-[10px] font-semibold tracking-wider block mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>
+              <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider block mb-1 sm:mb-2 pr-5 leading-tight" style={{ color: "rgba(255,255,255,0.35)" }}>
                 {stat.label}
               </span>
-              <p className="text-2xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>
+              <p className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>
                 {stat.value}
               </p>
-              <p className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.25)" }}>
+              <p className="text-[9px] sm:text-[10px] mt-1 sm:mt-2" style={{ color: "rgba(255,255,255,0.25)" }}>
                 {stat.desc}
               </p>
             </div>
@@ -755,14 +755,14 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
             API Categories
           </h3>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
           {apiCategories.map((cat) => {
             const Icon = categoryIcons[cat.id] || Code2;
             const count = allEndpoints.filter(e => e.category === cat.id).length;
             return (
               <button
                 key={cat.id}
-                className="relative flex items-center gap-4 rounded-lg p-4 text-left transition-all"
+                className="relative flex items-center gap-3 rounded-lg p-3 sm:p-4 text-left transition-all"
                 style={{
                   background: "#000000",
                   border: "1px solid rgba(0,255,0,0.12)",
@@ -773,25 +773,25 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
                 data-testid={`card-category-${cat.id}`}
               >
                 <ArrowUpRight
-                  className="absolute top-3 right-3 w-3.5 h-3.5"
+                  className="absolute top-2.5 right-2.5 w-3 h-3"
                   style={{ color: "rgba(0,255,0,0.3)" }}
                 />
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.15)" }}
                 >
-                  <Icon className="w-4.5 h-4.5" style={{ color: "#00ff00" }} />
+                  <Icon className="w-4 h-4" style={{ color: "#00ff00" }} />
                 </div>
-                <div className="flex-1 min-w-0 pr-5">
-                  <span className="text-sm font-bold block" style={{ color: "#ffffff" }}>
+                <div className="flex-1 min-w-0 pr-8">
+                  <span className="text-sm font-bold block leading-tight" style={{ color: "#ffffff" }}>
                     {cat.name}
                   </span>
-                  <span className="text-[11px] block mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  <span className="text-[11px] block mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.3)" }}>
                     {cat.description}
                   </span>
                 </div>
                 <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded absolute bottom-3 right-3"
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded absolute bottom-2.5 right-2.5"
                   style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}
                 >{count}</span>
               </button>
@@ -808,8 +808,8 @@ function HeroSection({ categoryId }: { categoryId: string }) {
   if (!data) return null;
   const Icon = categoryIcons[categoryId] || Zap;
   return (
-    <section className="px-6 pt-6 pb-2">
-      <div className="rounded-lg p-6" style={{
+    <section className="px-3 pt-4 pb-2 sm:px-6 sm:pt-6">
+      <div className="rounded-lg p-4 sm:p-6" style={{
         background: "#000000",
         border: "1px solid rgba(0,255,0,0.12)",
       }}>
@@ -860,7 +860,7 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
   ];
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto">
+    <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-4xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Zap className="w-4 h-4" style={{ color: "#00ff00" }} />
@@ -1202,8 +1202,8 @@ function EndpointSearchBar({
             <X className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className="text-[10px] font-mono flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }}>
-          {searchQuery ? `${matchCount} found` : `${endpoints.length} endpoints`}
+        <span className="text-[10px] font-mono flex-shrink-0 hidden xs:block" style={{ color: "rgba(255,255,255,0.2)" }}>
+          {searchQuery ? `${matchCount} found` : `${endpoints.length}`}
         </span>
       </div>
       {showSuggestions && suggestions.length > 0 && (
@@ -1507,7 +1507,7 @@ export default function Home() {
             borderBottom: "1px solid rgba(255,255,255,0.04)",
           }}
         >
-          <div className="px-6 py-3 flex items-center gap-3">
+          <div className="px-3 py-2 sm:px-6 sm:py-3 flex items-center gap-2 sm:gap-3">
             <button
               className="lg:hidden p-1.5 rounded-md"
               onClick={() => setSidebarOpen(true)}
@@ -1538,19 +1538,19 @@ export default function Home() {
                     const Icon = categoryIcons[activeCategoryData.id] || Code2;
                     return <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "#00ff00" }} />;
                   })()}
-                  <h2 className="text-sm font-bold tracking-wider" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>
+                  <h2 className="text-sm font-bold tracking-wider truncate max-w-[100px] xs:max-w-none" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>
                     {activeCategoryData.name.toUpperCase()}
                   </h2>
                   <span
-                    className="text-[10px] font-mono px-2 py-0.5 rounded"
+                    className="hidden xs:inline text-[10px] font-mono px-2 py-0.5 rounded flex-shrink-0"
                     style={{ background: "rgba(0,255,0,0.06)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}
                   >
-                    {filteredEndpoints.length} endpoint{filteredEndpoints.length !== 1 ? "s" : ""}
+                    {filteredEndpoints.length}
                   </span>
                   <button
                     onClick={handleCopyAllEndpoints}
                     data-testid="button-copy-all-endpoints"
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wider transition-all"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wider transition-all flex-shrink-0"
                     style={{
                       background: copiedAllEndpoints ? "rgba(0,255,0,0.12)" : "rgba(0,255,0,0.06)",
                       color: copiedAllEndpoints ? "#00ff00" : "rgba(0,255,0,0.7)",
@@ -1563,19 +1563,19 @@ export default function Home() {
                     ) : (
                       <Copy className="w-3 h-3" />
                     )}
-                    {copiedAllEndpoints ? "COPIED!" : "COPY ALL"}
+                    <span className="hidden sm:inline">{copiedAllEndpoints ? "COPIED!" : "COPY ALL"}</span>
                   </button>
                 </>
               ) : null}
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg"
                 style={{ border: "1px solid rgba(0,255,0,0.12)" }}
                 data-testid="status-live"
               >
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 6px #00ff00" }} />
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#00ff00", boxShadow: "0 0 6px #00ff00" }} />
                 <span className="text-[10px] font-semibold tracking-wider" style={{ color: "#00ff00" }}>
                   LIVE
                 </span>
@@ -1585,7 +1585,7 @@ export default function Home() {
                 href="https://github.com/7silent-wolf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2 py-1 rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
                 style={{ border: "1px solid rgba(0,255,0,0.1)" }}
                 data-testid="link-github-header"
               >
@@ -1604,7 +1604,7 @@ export default function Home() {
           <>
             <HeroSection categoryId={activeCategory} />
 
-            <section className="px-6 py-5">
+            <section className="px-3 py-4 sm:px-6 sm:py-5">
               <EndpointSearchBar
                 endpoints={filteredEndpoints}
                 searchQuery={effectSearch}
@@ -1616,7 +1616,7 @@ export default function Home() {
               {isTableView ? (
                 <EffectTable endpoints={displayedEndpoints} onTry={handleTry} />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
                   {displayedEndpoints.map((ep) => (
                     <EndpointCard key={ep.path} endpoint={ep} onTry={handleTry} />
                   ))}
