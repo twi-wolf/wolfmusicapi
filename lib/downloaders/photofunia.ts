@@ -128,6 +128,68 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "puzzle", name: "Puzzle", slug: "puzzle", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "glass", name: "Glass", slug: "glass", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "animator", name: "Animator", slug: "animator", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "oldtvset", name: "Old TV Set", slug: "old-tv-set", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "animation", type: "hidden", default: "animated" }, { name: "colour", type: "hidden", default: "70" }] },
+  { id: "balloon", name: "Balloon", slug: "balloon", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
+  { id: "surfingboard", name: "Surfing Board", slug: "surfing-board", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Line 1", placeholder: "Text" }, { name: "text2", type: "text", label: "Line 2", placeholder: "Text" }, { name: "colour", type: "hidden", default: "orange" }] },
+  { id: "beachsign", name: "Beach Sign", slug: "beach-sign", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Beach" }] },
+  { id: "neonwriting", name: "Neon Writing", slug: "neon-writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Line 1", placeholder: "Line 1" }, { name: "text2", type: "text", label: "Line 2", placeholder: "Line 2" }] },
+  { id: "waterwriting", name: "Water Writing", slug: "water-writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Water" }] },
+  { id: "bracelet", name: "Bracelet", slug: "bracelet", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Name" }] },
+  { id: "frostedfilter", name: "Frosted Filter", slug: "frosted-filter", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "type", type: "hidden", default: "frost2" }] },
+  { id: "sparklers", name: "Sparklers", slug: "sparklers", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "neonsign", name: "Neon Sign", slug: "neon-sign", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Neon" }, { name: "colour", type: "hidden", default: "r" }] },
+  { id: "ledroadsign", name: "LED Road Sign", slug: "led-road-sign", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Warning" }] },
+  { id: "airline", name: "Airline", slug: "airline", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "name", type: "text", label: "Name", placeholder: "Your Name" }, { name: "colour", type: "hidden", default: "bd1827" }, { name: "font", type: "hidden", default: "airline" }] },
+  { id: "leprechaunhat", name: "Leprechaun Hat", slug: "leprechaun-hat", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Face Photo" }, { name: "orientation", type: "hidden", default: "center" }] },
+  { id: "noir", name: "Noir", slug: "noir", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Noir" }, { name: "type", type: "hidden", default: "2" }] },
+  { id: "spydossier", name: "Spy Dossier", slug: "spy-dossier", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Face Photo" }, { name: "name", type: "text", label: "Name", placeholder: "Agent Name" }] },
+  { id: "artisticfilter", name: "Artistic Filter", slug: "artistic-filter", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "planebanner", name: "Plane Banner", slug: "plane-banner", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Your Message" }] },
+  { id: "fortunecookie", name: "Fortune Cookie", slug: "fortune-cookie", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Fortune", placeholder: "Your fortune" }] },
+  { id: "pendant", name: "Pendant", slug: "pendant", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Name" }, { name: "skin", type: "hidden", default: "w" }, { name: "metal", type: "hidden", default: "gold" }] },
+  { id: "lipstickwriting", name: "Lipstick Writing", slug: "lipstick-writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Love" }] },
+  { id: "lightwriting", name: "Light Writing", slug: "light-writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }, { name: "base", type: "hidden", default: "e1" }] },
+  { id: "numberplate", name: "Number Plate", slug: "number-plate", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "ABC 123" }, { name: "colour", type: "hidden", default: "orange" }] },
+  { id: "doubleexposure", name: "Double Exposure", slug: "double-exposure", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "hald", type: "hidden", default: "colour" }, { name: "type", type: "hidden", default: "forest1" }] },
+  { id: "blinkinglights", name: "Blinking Lights", slug: "blinking-lights", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }, { name: "symbols", type: "hidden", default: "heart" }] },
+  { id: "lifebuoy", name: "Lifebuoy", slug: "lifebuoy", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text1", type: "text", label: "Top Text", placeholder: "Top" }, { name: "text2", type: "text", label: "Bottom Text", placeholder: "Bottom" }] },
+  { id: "hearttattoo", name: "Heart Tattoo", slug: "heart_tattoo", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Face Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Love" }, { name: "font", type: "hidden", default: "CyrillicGoth" }] },
+  { id: "nightvision", name: "Night Vision", slug: "night_vision", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "stripes", type: "hidden", default: "yes1" }, { name: "hole", type: "hidden", default: "yes2" }] },
+  { id: "books", name: "Books", slug: "books", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Title 1", placeholder: "Book 1" }, { name: "text2", type: "text", label: "Title 2", placeholder: "Book 2" }, { name: "text3", type: "text", label: "Title 3", placeholder: "Book 3" }, { name: "text4", type: "text", label: "Title 4", placeholder: "Book 4" }, { name: "text5", type: "text", label: "Title 5", placeholder: "Book 5" }, { name: "text6", type: "text", label: "Title 6", placeholder: "Book 6" }] },
+  { id: "tvinterference", name: "TV Interference", slug: "tv_interference", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "animation", type: "hidden", default: "animated" }, { name: "colour", type: "hidden", default: "70" }] },
+  { id: "footballfan", name: "Football Fan", slug: "football_fan", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Face Photo" }, { name: "orientation", type: "hidden", default: "straight" }, { name: "type", type: "hidden", default: "face" }, { name: "country", type: "hidden", default: "br" }] },
+  { id: "treecarving", name: "Tree Carving", slug: "tree_carving", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Line 1", placeholder: "Name 1" }, { name: "text2", type: "text", label: "Line 2", placeholder: "Name 2" }] },
+  { id: "soupletters", name: "Soup Letters", slug: "soup_letters", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
+  { id: "foggywindowwriting", name: "Foggy Window Writing", slug: "foggy_window_writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }, { name: "bcg", type: "hidden", default: "2" }] },
+  { id: "quadriptych", name: "Quadriptych", slug: "quadriptych", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo 1" }, { name: "image2", type: "image", label: "Photo 2" }, { name: "image3", type: "image", label: "Photo 3" }, { name: "image4", type: "image", label: "Photo 4" }] },
+  { id: "moviemarquee", name: "Movie Marquee", slug: "movie_marquee", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text1", type: "text", label: "Title", placeholder: "Movie Title" }, { name: "text2", type: "text", label: "Subtitle", placeholder: "Subtitle" }] },
+  { id: "cookieswriting", name: "Cookies Writing", slug: "cookies_writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
+  { id: "triptych", name: "Triptych", slug: "triptych", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo 1" }, { name: "image2", type: "image", label: "Photo 2" }, { name: "image3", type: "image", label: "Photo 3" }, { name: "canvas_ratio", type: "hidden", default: "100" }, { name: "bcg_colour", type: "hidden", default: "000000" }, { name: "layout", type: "hidden", default: "l1" }] },
+  { id: "graffititext", name: "Graffiti Text", slug: "graffiti_text", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Graffiti" }, { name: "font", type: "hidden", default: "whoa" }, { name: "texture", type: "hidden", default: "1" }, { name: "textcolour", type: "hidden", default: "85d860" }, { name: "text_ornament", type: "hidden", default: "gradient" }, { name: "bcg", type: "hidden", default: "cloud" }, { name: "bcg_colour", type: "hidden", default: "ec6416" }] },
+  { id: "woodensign", name: "Wooden Sign", slug: "wooden_sign", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Text" }] },
+  { id: "chalkwriting", name: "Chalk Writing", slug: "chalk_writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }, { name: "colour", type: "hidden", default: "f3f4e9" }, { name: "symbol", type: "hidden", default: "heart" }, { name: "position", type: "hidden", default: "center" }] },
+  { id: "sandwriting", name: "Sand Writing", slug: "sand_writing", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
+  { id: "spaceromance", name: "Space Romance", slug: "space_romance", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "filmscan", name: "Film Scan", slug: "film_scan", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "keepcalm", name: "Keep Calm", slug: "keep_calm", category: "lab", inputType: "text", fields: [{ name: "line1", type: "text", label: "Line 1", placeholder: "Keep" }, { name: "line2", type: "text", label: "Line 2", placeholder: "Calm" }, { name: "line3", type: "text", label: "Line 3", placeholder: "And" }, { name: "line4", type: "text", label: "Line 4", placeholder: "Carry On" }, { name: "line5", type: "text", label: "Line 5", placeholder: "" }, { name: "symbol", type: "hidden", default: "crown" }, { name: "background", type: "hidden", default: "cc0012" }] },
+  { id: "hogwartsletter", name: "Hogwarts Letter", slug: "hogwarts_letter", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "name", type: "text", label: "Name", placeholder: "Your Name" }] },
+  { id: "instantcamera", name: "Instant Camera", slug: "instant_camera", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Caption", placeholder: "Caption" }] },
+  { id: "clown", name: "Clown", slug: "clown", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Face Photo" }] },
+  { id: "alien", name: "Alien", slug: "alien", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Face Photo" }] },
+  { id: "oilpainting", name: "Oil Painting", slug: "oil_painting", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "fatmaker", name: "Fat Maker", slug: "fat_maker", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Face Photo" }] },
+  { id: "photobooth", name: "Photo Booth", slug: "photobooth", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo 1" }, { name: "image2", type: "image", label: "Photo 2" }, { name: "image3", type: "image", label: "Photo 3" }, { name: "image4", type: "image", label: "Photo 4" }] },
+  { id: "labembroidery", name: "Embroidery", slug: "embroidery", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "diploma", name: "Diploma", slug: "diploma", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "sealform", type: "hidden", default: "type1" }] },
+  { id: "legoportrait", name: "Lego Portrait", slug: "lego_portrait", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "pencildrawing", name: "Pencil Drawing", slug: "pencil_drawing", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "color", type: "hidden", default: "gray" }] },
+  { id: "vintagephoto", name: "Vintage Photo", slug: "vintage_photo", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Caption", placeholder: "Caption" }] },
+  { id: "watercolor", name: "Watercolor", slug: "watercolor", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "classicframe", name: "Classic Frame", slug: "classic_frame", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "Title", type: "text", label: "Title", placeholder: "My Photo" }] },
+  { id: "motivator", name: "Motivator", slug: "motivator", category: "lab", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "title", type: "text", label: "Title", placeholder: "Title" }, { name: "titlecolor", type: "hidden", default: "ffffff" }] },
+  { id: "faceswap", name: "Face Swap", slug: "face_swap", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Source Face" }, { name: "donor", type: "image", label: "Target Photo" }] },
+  { id: "filmeffect", name: "Film Effect", slug: "film_effect", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "type", type: "hidden", default: "Fading" }] },
+  { id: "engravement", name: "Engravement", slug: "engravement", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
 
   { id: "postersonthewall", name: "Posters on the Wall", slug: "posters-on-the-wall", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "posterwall", name: "Poster Wall", slug: "poster-wall", category: "posters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -354,12 +416,12 @@ function extractCookies(res: Response): string {
   return cookies.join("; ");
 }
 
-async function getPhotofuniaSession(effectSlug: string): Promise<string> {
+async function getPhotofuniaSession(effectSlug: string, effectCategory = "lab"): Promise<string> {
   try {
-    const res = await fetchWithTimeout(`https://photofunia.com/categories/all_effects`, {
+    const res = await fetchWithTimeout(`https://photofunia.com/categories/${effectCategory}/${effectSlug}`, {
       headers: {
         ...BROWSER_HEADERS,
-        "Referer": "https://photofunia.com/",
+        "Referer": `https://photofunia.com/categories/${effectCategory}`,
       },
     });
     const cookies = extractCookies(res);
@@ -377,7 +439,7 @@ async function getPhotofuniaSession(effectSlug: string): Promise<string> {
   }
 }
 
-async function uploadImageToPhotofunia(imageUrl: string, cookies: string, effectSlug: string): Promise<{ key: string | null; cookies: string; error?: string }> {
+async function uploadImageToPhotofunia(imageUrl: string, cookies: string, effectSlug: string, effectCategory = "lab"): Promise<{ key: string | null; cookies: string; error?: string }> {
   try {
     const imgRes = await fetchWithTimeout(imageUrl, {
       headers: {
@@ -418,7 +480,7 @@ async function uploadImageToPhotofunia(imageUrl: string, cookies: string, effect
         "Accept": "*/*",
         "Accept-Language": "en-US,en;q=0.9",
         "Content-Type": `multipart/form-data; boundary=${boundary}`,
-        "Referer": `https://photofunia.com/categories/all_effects`,
+        "Referer": `https://photofunia.com/categories/${effectCategory}`,
         "Origin": "https://photofunia.com",
         "sec-ch-ua": '"Not A(Brand";v="99", "Google Chrome";v="131", "Chromium";v="131"',
         "sec-ch-ua-mobile": "?0",
@@ -483,22 +545,43 @@ export async function generatePhotofunia(
   }
 
   try {
-    let sessionCookies = await getPhotofuniaSession(effect.slug);
-    let imageKey: string | null = null;
+    let sessionCookies = await getPhotofuniaSession(effect.slug, effect.category);
+    const imageKeys: Record<string, string> = {};
 
     if (needsImage && imageUrl) {
-      const uploadResult = await uploadImageToPhotofunia(imageUrl, sessionCookies, effect.slug);
-      imageKey = uploadResult.key;
-      sessionCookies = uploadResult.cookies;
-      if (!imageKey) {
+      const uploadResult = await uploadImageToPhotofunia(imageUrl, sessionCookies, effect.slug, effect.category);
+      if (!uploadResult.key) {
         return { success: false, creator: CREATOR, error: uploadResult.error || "Failed to upload image to PhotoFunia. Make sure the image URL is accessible and points to a valid image." };
+      }
+      sessionCookies = uploadResult.cookies;
+      const primaryKey = uploadResult.key;
+      // Upload extra image fields (image2, image3, image4, donor, etc.)
+      // For each image field, use a field-specific URL from textInputs if provided, else reuse primaryKey
+      for (const field of effect.fields) {
+        if (field.type !== "image") continue;
+        if (field.name === "image") {
+          imageKeys["image"] = primaryKey;
+        } else {
+          // e.g. donor, image2, image3, image4
+          const extraUrl = textInputs[`${field.name}Url`] || textInputs[field.name] || imageUrl;
+          if (extraUrl === imageUrl) {
+            imageKeys[field.name] = primaryKey;
+          } else {
+            const extraUpload = await uploadImageToPhotofunia(extraUrl, sessionCookies, effect.slug, effect.category);
+            if (!extraUpload.key) {
+              return { success: false, creator: CREATOR, error: extraUpload.error || `Failed to upload ${field.name} image.` };
+            }
+            sessionCookies = extraUpload.cookies;
+            imageKeys[field.name] = extraUpload.key;
+          }
+        }
       }
     }
 
     const boundary = "----WebKitFormBoundary" + Math.random().toString(36).slice(2);
     const parts: string[] = [];
 
-    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="current-category"\r\n\r\nall_effects`);
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="current-category"\r\n\r\n${effect.category}`);
 
     for (const field of effect.fields) {
       if (field.type === "hidden" && field.default) {
@@ -508,15 +591,15 @@ export async function generatePhotofunia(
         if (value) {
           parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${value}`);
         }
-      } else if (field.type === "image" && imageKey) {
-        parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${imageKey}`);
+      } else if (field.type === "image" && imageKeys[field.name]) {
+        parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${imageKeys[field.name]}`);
         parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}:crop"\r\n\r\n`);
       }
     }
 
     const bodyStr = parts.join("\r\n") + `\r\n--${boundary}--\r\n`;
 
-    const postUrl = `https://photofunia.com/categories/all_effects/${effect.slug}?server=1`;
+    const postUrl = `https://photofunia.com/categories/${effect.category}/${effect.slug}?server=1`;
     const postRes = await fetchWithTimeout(postUrl, {
       method: "POST",
       headers: {
@@ -524,7 +607,7 @@ export async function generatePhotofunia(
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
         "Content-Type": `multipart/form-data; boundary=${boundary}`,
-        "Referer": `https://photofunia.com/categories/all_effects`,
+        "Referer": `https://photofunia.com/categories/${effect.category}`,
         "Origin": "https://photofunia.com",
         "sec-ch-ua": '"Not A(Brand";v="99", "Google Chrome";v="131", "Chromium";v="131"',
         "sec-ch-ua-mobile": "?0",
