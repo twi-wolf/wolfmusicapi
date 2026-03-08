@@ -1,6 +1,9 @@
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
+const XFF_IPS = ["8.8.8.8", "1.1.1.1", "9.9.9.9", "208.67.222.222", "8.8.4.4", "4.2.2.2"];
+const getXffIp = () => XFF_IPS[Math.floor(Math.random() * XFF_IPS.length)];
+
 const BROWSER_HEADERS = {
   "User-Agent": USER_AGENT,
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -23,7 +26,7 @@ export interface PhotoFuniaEffect {
   slug: string;
   category: string;
   inputType: "txt" | "img" | "both";
-  fields: { name: string; type: "text" | "image"; label?: string; maxLength?: number; placeholder?: string }[];
+  fields: { name: string; type: "text" | "image" | "hidden"; label?: string; maxLength?: number; placeholder?: string; default?: string }[];
 }
 
 export interface PhotoFuniaResult {
@@ -66,7 +69,7 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
   { id: "yacht", name: "Yacht", slug: "yacht", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Name" }] },
   { id: "cloudyfilter", name: "Cloudy Filter", slug: "cloudy-filter", category: "filters", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
   { id: "lightgraffiti", name: "Light Graffiti", slug: "light-graffiti", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
-  { id: "chalkboard", name: "Chalkboard", slug: "blackboard", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Hello" }] },
+  { id: "chalkboard", name: "Chalkboard", slug: "chalkboard", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Title", placeholder: "Hello" }, { name: "symbol", type: "hidden", default: "star" }, { name: "text2", type: "text", label: "Body Text", placeholder: "Your message" }] },
   { id: "rustywriting", name: "Rusty Writing", slug: "rusty-writing", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Rusty" }] },
   { id: "streetsign", name: "Street Sign", slug: "street-sign", category: "lab", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Street" }] },
   { id: "floralwreath", name: "Floral Wreath", slug: "floral-wreath", category: "lab", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
@@ -301,6 +304,7 @@ async function uploadImageToPhotofunia(imageUrl: string, cookies: string, effect
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Dest": "empty",
         "X-Requested-With": "XMLHttpRequest",
+        "X-Forwarded-For": getXffIp(),
         ...(cookies ? { "Cookie": cookies } : {}),
       },
       body: body,
@@ -375,7 +379,9 @@ export async function generatePhotofunia(
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="current-category"\r\n\r\nall_effects`);
 
     for (const field of effect.fields) {
-      if (field.type === "text") {
+      if (field.type === "hidden" && field.default) {
+        parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${field.default}`);
+      } else if (field.type === "text") {
         const value = textInputs[field.name] || textInputs["text"] || "";
         if (value) {
           parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${value}`);
@@ -404,6 +410,7 @@ export async function generatePhotofunia(
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-User": "?1",
         "Sec-Fetch-Dest": "document",
+        "X-Forwarded-For": getXffIp(),
         ...(sessionCookies ? { "Cookie": sessionCookies } : {}),
       },
       body: bodyStr,
@@ -442,6 +449,7 @@ export async function generatePhotofunia(
     const resultRes = await fetchWithTimeout(resultPageUrl, {
       headers: {
         "User-Agent": USER_AGENT,
+        "X-Forwarded-For": getXffIp(),
         ...(sessionCookies ? { "Cookie": sessionCookies } : {}),
       },
     });

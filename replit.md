@@ -1,7 +1,7 @@
 # WolfApis
 
 ## Overview
-A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access to 35+ AI chat models (including WormGPT, Replit AI), AI tools (translate, summarize, code, AI scanner, humanizer), AI image endpoints (7 providers: Unsplash, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS, Bing Image Creator), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook, Twitter/X, Snapchat — combined into one "Social Media" category with 15 endpoints), Spotify search/download, Shazam music recognition, Ephoto360 text effect generation (60 effects), PhotoFunia image effects (154 effects), Text Effects (109 effects via CoolText), movie data (13 endpoints via OMDb/YTS), anime images (30 types), fun text content (37 categories), URL services (7 shorteners + ImgBB + Catbox image hosting), developer tools (21 utilities), security/ethical hacking tools (38 endpoints), sports data (24 endpoints via TheSportsDB), search APIs (10 endpoints), media converters (6 converter endpoints for WhatsApp bots), and audio effects (25 effects: bass, bassboost, robot, echo, nightcore, 8D, reverb, etc.). 630 total endpoints across 21 categories. Features a cyberpunk-themed sidebar navigation UI with popup-based API testing, search bar with autocomplete for effect categories, and a documentation page with clickable expandable endpoint docs.
+A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access to 35+ AI chat models (including WormGPT, Replit AI), AI tools (translate, summarize, code, AI scanner, humanizer), AI image endpoints (7 providers: Unsplash, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS, Bing Image Creator), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook, Twitter/X, Snapchat — combined into one "Social Media" category with 15 endpoints), Spotify search/download, Shazam music recognition, Ephoto360 text effect generation (108 effects across 13 categories), PhotoFunia image effects (154 effects, 19 text-only), Text Effects (109 effects via CoolText), movie data (13 endpoints via OMDb/YTS), anime images (30 types), fun text content (37 categories), URL services (7 shorteners + ImgBB + Catbox image hosting), developer tools (21 utilities), security/ethical hacking tools (38 endpoints), sports data (24 endpoints via TheSportsDB), search APIs (10 endpoints), media converters (6 converter endpoints for WhatsApp bots), and audio effects (25 effects: bass, bassboost, robot, echo, nightcore, 8D, reverb, etc.). 640+ total endpoints across 21 categories. Features a cyberpunk-themed sidebar navigation UI with popup-based API testing, search bar with autocomplete for effect categories, and a documentation page with clickable expandable endpoint docs.
 
 ## Architecture
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui components
@@ -12,7 +12,7 @@ A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access
 - **Snapchat Downloader**: `lib/downloaders/snapchat.ts` - Snapchat stories/spotlights/profiles via snapmate.io scraper
 - **Spotify**: `lib/downloaders/spotify.ts` - Search and download via spotdown.org API with iTunes fallback
 - **Shazam**: `lib/downloaders/shazam.ts` - Shazam search + song recognition via reverse-engineered API
-- **Ephoto360**: `lib/downloaders/ephoto360.ts` - 60 text/neon/3D effect generators via ephoto360.com
+- **Ephoto360**: `lib/downloaders/ephoto360.ts` - 108 text/neon/3D effect generators via ephoto360.com (13 categories: text-effects, 3d-effect, halloween, cover-facebook, game-effect, christmas, happy-birthday, fire-effects, love, animations, new-year, tattoo-effects, technology)
 - **PhotoFunia**: `lib/downloaders/photofunia.ts` - 154 photo effects via photofunia.com
 - **TextPro**: `lib/downloaders/textpro.ts` - 109 text effects via CoolText API (neon, 3D, chrome, fire, glitter, graffiti, etc.)
 - **Movie**: `lib/downloaders/movie.ts` - 13 movie data endpoints via OMDb/YTS APIs
@@ -58,8 +58,8 @@ Search and download via spotdown.org
 ### Shazam (3 endpoints)
 Search, recognize, track details
 
-### Ephoto360 (2 endpoints, 60 effects)
-List effects, generate text effect image - card grid view
+### Ephoto360 (2 endpoints, 108 effects)
+List effects, generate text effect image - card grid view. 13 categories: text-effects (44), 3d-effect (18), halloween (9), cover-facebook (7), happy-birthday (10), game-effect (6), christmas (5), fire-effects (2), love (3), animations (1), new-year (1), tattoo-effects (1), technology (1)
 
 ### PhotoFunia (2 endpoints, 154 effects)
 List effects, generate photo effect - card grid view
@@ -128,5 +128,6 @@ bass, bassboost, robot, chipmunk, deep, echo, reverb, nightcore, slowed, 8d, vap
 - 2026-03-01: Added WormGPT and Replit AI to AI Chat (now 35 models), Bing Image Creator to AI Image (now 7 endpoints), Converter category with 6 media conversion endpoints (image↔sticker, video↔sticker, video↔GIF) for WhatsApp bots.
 - 2026-03-01: Added Search category (10 endpoints: Wikipedia, GNews, GitHub, NPM, PyPI, StackOverflow, Reddit, Urban Dictionary, Emoji, Countries). Changed Ephoto360 & PhotoFunia from table view to card grid view. Made Docs page API Categories clickable/expandable showing endpoint docs with method, path, params, and example requests.
 - 2026-03-01: v4.0 major expansion - Added 5 new categories: Anime (30 endpoints via waifu.pics/nekos.best), Fun (37 text content endpoints), URL Shortener (7 services), Tools (21 utility endpoints), Security (38 ethical hacking endpoints).
+- 2026-03-08: Massive Ephoto360 expansion (60→108 effects): added text-effects (foilballoon3d, colorfulpaint3d, blackpinksignature, dragonballtext, glossysilver3d, typographyart, foggyglass, narutologo + more), halloween (8 horror effects), birthday (7 cake effects), love (3), cover-facebook (7), game-effect (4 more), technology (youtubebutton), animations (examcrank). Fixed listEphotoEffects() bug (was returning 0). PhotoFunia XFF bypass (getXffIp() rotation): all 19 text effects + all image effects now working. Fixed chalkboard slug (blackboard→chalkboard), added hidden symbol field + required text2 field.
 - 2026-03-01: v4.0 initial - Added PhotoFunia (154 effects), expanded Ephoto360 (60 effects), fixed lyrics endpoint, fixed AI model names, updated schema
 - 2026-03-01: Major v3.0 expansion - 33 AI chat models, Spotify rewrite (spotdown.org), Ephoto360 text effects, sidebar UI + popup tester

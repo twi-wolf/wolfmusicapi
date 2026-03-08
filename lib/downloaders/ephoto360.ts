@@ -117,18 +117,62 @@ export const EPHOTO_EFFECTS: EphotoEffect[] = [
   { id: "newyear-gold", name: "New Year Gold Text", slug: "christmas-and-new-year-glittering-3d-golden-text-effect-794", category: "new-year", params: [{ name: "text", type: "text", placeholder: "Happy New Year" }] },
 
   { id: "pubglogo", name: "PUBG Logo Maker", slug: "pubg-logo-maker-cute-character-online-617", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "pubglogo2", name: "PUBG Girl Logo Maker", slug: "free-pubg-logo-maker-online-609", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "pubgesports", name: "PUBG Esports Team Logo", slug: "pubg-mascot-logo-maker-for-an-esports-team-612", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Team name" }] },
+  { id: "warzonecover", name: "Call of Duty Warzone Banner", slug: "create-call-of-duty-warzone-youtube-banner-online-548", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Channel name" }] },
+  { id: "aovbanner", name: "Arena of Valor Banner", slug: "generate-banner-arena-of-valor-aov-with-name-440", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
   { id: "valorantbanner", name: "Valorant YouTube Banner", slug: "create-valorant-banner-youtube-online-588", category: "game-effect", params: [{ name: "text", type: "text", placeholder: "Channel name" }, { name: "text2", type: "text", placeholder: "Games" }, { name: "text3", type: "text", placeholder: "@handle" }] },
 
   { id: "birthday3d", name: "Birthday 3D Text", slug: "create-birthday-cards-by-3d-names-373", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Happy Birthday" }] },
   { id: "pubgbirthday", name: "PUBG Birthday Cake", slug: "write-name-on-pubg-birthday-cake-images-522", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
   { id: "flowerbirthday", name: "Flower Birthday Cake", slug: "write-name-on-flower-birthday-cake-pics-472", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "chocolatecake", name: "Chocolate Birthday Cake", slug: "chocolate-birthday-cake-with-candle-with-name-generator-461", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "rosecake", name: "Heart Rose Birthday Cake", slug: "heart-shaped-rose-birthday-cake-with-name-edit-469", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "amazingflowercake", name: "Amazing Flower Birthday Cake", slug: "amazing-flower-birthday-cake-with-name-generator-465", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "redrosebirthday", name: "Red Rose Birthday Cake", slug: "write-name-on-red-rose-birthday-cake-images-462", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "greetingcake", name: "Birthday Greeting Cake", slug: "write-a-greeting-on-the-birthday-cake-229", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "anniversarycake", name: "Anniversary Birthday Cake", slug: "romantic-anniversary-birthday-cake-with-name-edit-473", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "romanticflowercake", name: "Romantic Flower Birthday Cake", slug: "romantic-flower-heart-birthday-cake-by-name-edit-466", category: "happy-birthday", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
 
   { id: "fire", name: "Fire Text Effect", slug: "flame-lettering-effect-372", category: "fire-effects", params: [{ name: "text", type: "text", placeholder: "Fire text" }] },
   { id: "flamelettering", name: "Flame Lettering", slug: "flame-lettering-effect-372", category: "fire-effects", params: [{ name: "text", type: "text", placeholder: "Flame text" }] },
 
   { id: "horrorcemetery", name: "Horror Cemetery Name", slug: "write-your-name-on-horror-cemetery-gate-597", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "halloweentheme", name: "Halloween Theme Text", slug: "create-halloween-theme-text-321", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "bloodwall", name: "Blood Text on Wall", slug: "write-blood-text-on-the-wall-264", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "frankensteintext", name: "Frankenstein Horror Text", slug: "write-frankenstain-halloween-style-text-322", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "horrormetal", name: "Horror Letters on Metal", slug: "writing-horror-letters-on-metal-plates-265", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "halloweentext", name: "Halloween Text Effect", slug: "text-halloween-80", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "halloweeneffect", name: "Halloween Neon Text", slug: "text-effect-halloween-online-79", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "horrortext", name: "Horror Text Online", slug: "writing-horror-text-online-266", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "halloweencard", name: "Halloween Card Text", slug: "cards-halloween-online-81", category: "halloween", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+
+  { id: "foilballoon3d", name: "3D Foil Balloon Text", slug: "beautiful-3d-foil-balloon-effects-for-holidays-and-birthday-803", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "colorfulpaint3d", name: "3D Colorful Paint Text", slug: "create-3d-colorful-paint-text-effect-online-801", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your text" }] },
+  { id: "blackpinksignature", name: "Blackpink Signature Logo", slug: "create-a-blackpink-style-logo-with-members-signatures-810", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "dragonballtext", name: "Dragon Ball Text Effect", slug: "create-dragon-ball-style-text-effects-online-809", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "glossysilver3d", name: "Glossy Silver 3D Text", slug: "create-glossy-silver-3d-text-effect-online-802", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your text" }] },
+  { id: "typographyart", name: "Typography Art Layers", slug: "create-online-typography-art-effects-with-multiple-layers-811", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your text" }] },
+  { id: "foggyglass", name: "Handwritten Foggy Glass Text", slug: "handwritten-text-on-foggy-glass-online-680", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "narutologo", name: "Naruto Shippuden Logo Text", slug: "naruto-shippuden-logo-style-text-effect-online-808", category: "text-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
 
   { id: "nametattoo", name: "Name Tattoo Online", slug: "make-tattoos-online-by-your-name-309", category: "tattoo-effects", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+
+  { id: "sunlightshadow", name: "Sunlight Shadow Love Text", slug: "sunlight-shadow-text-204", category: "love", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "heartwinggif", name: "Heart Wings Name GIF", slug: "write-name-on-heart-with-wings-gifs-430", category: "love", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "loveballoons", name: "Love Balloons Card", slug: "create-love-balloons-cards-334", category: "love", params: [{ name: "text", type: "text", placeholder: "Name 1" }, { name: "text2", type: "text", placeholder: "Name 2" }] },
+
+  { id: "cfcover", name: "CrossFire Facebook Cover", slug: "create-a-cover-cf-under-your-name-300", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "lolcover", name: "League of Legends Cover", slug: "create-a-league-of-legends-cover-by-name-302", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "csgocover", name: "CS:GO Facebook Cover", slug: "create-cs-go-cover-with-name-233", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "dota2cover", name: "Dota 2 Facebook Cover", slug: "create-dota-2-cover-with-name-238", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "overwatchcover", name: "Overwatch Facebook Cover", slug: "create-overwatch-cover-by-name-292", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "onepiececover", name: "One Piece Facebook Cover", slug: "create-one-piece-facebook-cover-online-553", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+  { id: "dragonballcover", name: "Dragon Ball Facebook Cover", slug: "free-online-dragon-ball-facebook-cover-photos-maker-443", category: "cover-facebook", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
+
+  { id: "youtubebutton", name: "YouTube Gold Play Button", slug: "create-silver-button-gold-button-social-network-online-450", category: "technology", params: [{ name: "text", type: "text", placeholder: "Channel name" }] },
+
+  { id: "examcrank", name: "Exam Crank 3D Animation", slug: "animate-general-exam-crank-149", category: "animations", params: [{ name: "text", type: "text", placeholder: "Your name" }] },
 ];
 
 export async function generateEphoto(effectSlug: string, texts: string[]): Promise<EphotoResult> {
@@ -275,12 +319,14 @@ export async function generateEphoto(effectSlug: string, texts: string[]): Promi
 }
 
 export function listEphotoEffects() {
-  return EPHOTO_EFFECTS.map(e => ({
-    id: e.id,
-    name: e.name,
-    slug: e.slug,
-    category: e.category,
-    endpoint: `/api/ephoto/${e.slug}`,
-    params: e.params.map(p => ({ name: p.name, type: p.type, placeholder: p.placeholder })),
-  }));
+  return EPHOTO_EFFECTS
+    .filter(e => e.slug && e.params)
+    .map(e => ({
+      id: e.id,
+      name: e.name,
+      slug: e.slug,
+      category: e.category,
+      endpoint: `/api/ephoto/${e.id}`,
+      params: e.params!.map(p => ({ name: p.name, type: p.type, placeholder: p.placeholder })),
+    }));
 }
