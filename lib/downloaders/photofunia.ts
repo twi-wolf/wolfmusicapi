@@ -212,6 +212,13 @@ export const PHOTOFUNIA_EFFECTS: PhotoFuniaEffect[] = [
 
   { id: "eastercard", name: "Easter Card", slug: "easter-card", category: "easter", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Happy Easter" }] },
   { id: "bunnies", name: "Bunnies", slug: "bunnies", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "easterflowers", name: "Easter Flowers", slug: "easter-flowers", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "easterframe", name: "Easter Frame", slug: "easter-frame", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "easternest", name: "Easter Nest", slug: "easter-nest", category: "easter", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Happy Easter" }] },
+  { id: "easteregg", name: "Easter Egg", slug: "easter_egg", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "colour", type: "hidden", default: "blue" }, { name: "style", type: "hidden", default: "style1" }] },
+  { id: "easterpostcard", name: "Easter Postcard", slug: "easter_postcard", category: "easter", inputType: "both", fields: [{ name: "image", type: "image", label: "Photo" }, { name: "text", type: "text", label: "Text", placeholder: "Happy Easter" }] },
+  { id: "bunnyears", name: "Bunny Ears", slug: "bunny_ears", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
+  { id: "eastereffect", name: "Easter", slug: "easter", category: "easter", inputType: "img", fields: [{ name: "image", type: "image", label: "Photo" }] },
 
   { id: "snowsign", name: "Snow Sign", slug: "snow-sign", category: "christmas", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Merry Christmas" }] },
   { id: "christmaswriting", name: "Christmas Writing", slug: "christmas-writing", category: "christmas", inputType: "txt", fields: [{ name: "text", type: "text", label: "Text", placeholder: "Merry Christmas" }] },
