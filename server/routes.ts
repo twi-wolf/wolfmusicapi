@@ -663,7 +663,12 @@ export async function registerRoutes(
       if (!text) {
         return res.status(400).json({ success: false, error: "Query parameter 'text' is required." });
       }
-      const result = await generateEphoto(effectId, [text]);
+      const texts: string[] = [text];
+      for (let i = 2; i <= 10; i++) {
+        const extra = req.query[`text${i}`] as string;
+        if (extra) texts.push(extra);
+      }
+      const result = await generateEphoto(effectId, texts);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "Ephoto generation failed" });
