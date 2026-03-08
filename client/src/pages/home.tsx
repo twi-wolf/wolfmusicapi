@@ -47,8 +47,9 @@ import {
   RefreshCw,
   Headphones,
   Share2,
+  ChevronDown,
 } from "lucide-react";
-import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, AUDIO_EFFECTS_LIST, type ApiEndpoint } from "@shared/schema";
+import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, AUDIO_EFFECTS_LIST, EPHOTO_SUBCATEGORIES, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
 
 const categoryIcons: Record<string, typeof MessageSquare> = {
@@ -1251,8 +1252,10 @@ export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [effectSearch, setEffectSearch] = useState("");
   const [copiedAllEndpoints, setCopiedAllEndpoints] = useState(false);
+  const [ephotoExpanded, setEphotoExpanded] = useState(false);
+  const [ephotoSubCategory, setEphotoSubCategory] = useState<string | null>(null);
 
-  const comingSoonCategories = ["photofunia", "ephoto", "security", "movie", "urlshortener"];
+  const comingSoonCategories = ["photofunia", "security", "movie", "urlshortener"];
   const displayCategories = apiCategories.filter(cat => !comingSoonCategories.includes(cat.id));
   const soonCategories = apiCategories.filter(cat => comingSoonCategories.includes(cat.id));
 
@@ -1276,7 +1279,15 @@ export default function Home() {
     });
   };
 
-  const filteredEndpoints = activeCategory ? allEndpoints.filter((e) => e.category === activeCategory) : [];
+  const filteredEndpoints = activeCategory
+    ? allEndpoints.filter((e) => {
+        if (e.category !== activeCategory) return false;
+        if (activeCategory === "ephoto" && ephotoSubCategory) {
+          return e.subcategory === ephotoSubCategory;
+        }
+        return true;
+      })
+    : [];
   const displayedEndpoints = effectSearch
     ? filteredEndpoints.filter((ep) => {
         const lower = effectSearch.toLowerCase();
@@ -1396,6 +1407,74 @@ export default function Home() {
           {displayCategories.map((cat) => {
             const Icon = categoryIcons[cat.id] || Code2;
             const isActive = activeCategory === cat.id;
+
+            if (cat.id === "ephoto") {
+              return (
+                <div key={cat.id}>
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all"
+                    style={{ color: isActive ? "#00ff00" : "rgba(255,255,255,0.5)" }}
+                    onClick={() => {
+                      setActiveCategory("ephoto");
+                      setEphotoSubCategory(null);
+                      setEphotoExpanded(!ephotoExpanded);
+                      setEffectSearch("");
+                      setSidebarOpen(false);
+                    }}
+                    data-testid="nav-ephoto"
+                    title={cat.name}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="text-[13px] font-medium flex-1 truncate">{cat.name}</span>
+                        <ChevronDown
+                          className="w-3.5 h-3.5 flex-shrink-0 transition-transform"
+                          style={{ transform: ephotoExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                        />
+                      </>
+                    )}
+                  </button>
+                  {ephotoExpanded && !sidebarCollapsed && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 pb-0.5">
+                      {EPHOTO_SUBCATEGORIES.map((sub) => {
+                        const subActive = isActive && ephotoSubCategory === sub.id;
+                        const hasEndpoints = allEndpoints.some(e => e.category === "ephoto" && e.subcategory === sub.id);
+                        return (
+                          <button
+                            key={sub.id}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-left transition-all"
+                            style={{
+                              color: subActive ? "#00ff00" : hasEndpoints ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.2)",
+                              cursor: hasEndpoints ? "pointer" : "default",
+                            }}
+                            onClick={() => {
+                              if (!hasEndpoints) return;
+                              setActiveCategory("ephoto");
+                              setEphotoSubCategory(sub.id);
+                              setEffectSearch("");
+                              setSidebarOpen(false);
+                            }}
+                            data-testid={`nav-ephoto-${sub.id}`}
+                            title={sub.name + (hasEndpoints ? "" : " (Coming Soon)")}
+                          >
+                            <div
+                              className="w-1 h-1 rounded-full flex-shrink-0"
+                              style={{ background: subActive ? "#00ff00" : hasEndpoints ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)" }}
+                            />
+                            <span className="text-[11px] font-medium flex-1 truncate">{sub.name}</span>
+                            {!hasEndpoints && (
+                              <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.2)" }}>soon</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <button
                 key={cat.id}
