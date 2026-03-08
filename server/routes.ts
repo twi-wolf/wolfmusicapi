@@ -10,7 +10,7 @@ import { downloadFacebook } from "../lib/downloaders/facebook";
 import { downloadTwitter } from "../lib/downloaders/twitter";
 import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
-import { generateEphoto, listEphotoEffects } from "../lib/downloaders/ephoto360";
+import { generateEphoto, listEphotoEffects, EPHOTO_EFFECTS } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
 import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, waChannelStalk } from "../lib/downloaders/stalker";
 import { fetchAnimeImage } from "../lib/downloaders/anime";
@@ -667,6 +667,11 @@ export async function registerRoutes(
       for (let i = 2; i <= 10; i++) {
         const extra = req.query[`text${i}`] as string;
         if (extra) texts.push(extra);
+      }
+      const effect = EPHOTO_EFFECTS.find(e => e.id === effectId || e.slug === effectId);
+      const expectedTextCount = effect ? effect.params.filter(p => p.type === "text").length : 1;
+      while (texts.length < expectedTextCount) {
+        texts.push(texts[0]);
       }
       const result = await generateEphoto(effectId, texts);
       return res.json(result);
