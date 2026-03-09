@@ -18,12 +18,12 @@ async function fetchJSON(url: string, headers: Record<string, string> = {}): Pro
   }
 }
 
-async function fetchHTML(url: string): Promise<string | null> {
+async function fetchHTML(url: string, headers: Record<string, string> = {}): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT },
+      headers: { "User-Agent": USER_AGENT, ...headers },
       signal: controller.signal,
     });
     if (!res.ok) return null;
@@ -178,9 +178,23 @@ export async function tiktokStalk(username: string) {
 
 export async function instagramStalk(username: string) {
   const cleanUsername = username.replace(/^@/, "");
-  const html = await fetchHTML(`https://www.instagram.com/${encodeURIComponent(cleanUsername)}/`);
+
+  const html = await fetchHTML(`https://www.instagram.com/${encodeURIComponent(cleanUsername)}/`, {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/",
+    "Cache-Control": "no-cache",
+  });
+
   if (!html) {
-    return { success: false, creator: CREATOR, error: `Could not fetch Instagram profile for "${cleanUsername}"` };
+    return {
+      success: false,
+      creator: CREATOR,
+      platform: "Instagram",
+      username: cleanUsername,
+      profileUrl: `https://www.instagram.com/${cleanUsername}/`,
+      error: `Instagram is currently blocking automated lookups for "${cleanUsername}". Visit the profile URL directly.`,
+    };
   }
 
   const descMatch = html.match(/<meta\s+(?:property="og:description"|name="description")\s+content="([^"]*?)"/i);
@@ -216,59 +230,130 @@ export async function instagramStalk(username: string) {
     };
   }
 
-  return { success: false, creator: CREATOR, error: `Could not extract Instagram profile data for "${cleanUsername}". The profile may be private or doesn't exist.` };
+  return {
+    success: false,
+    creator: CREATOR,
+    platform: "Instagram",
+    username: cleanUsername,
+    profileUrl: `https://www.instagram.com/${cleanUsername}/`,
+    error: `Instagram is blocking automated lookups. Visit the profile URL directly to view this account.`,
+  };
 }
 
 export async function twitterStalk(username: string) {
   const cleanUsername = username.replace(/^@/, "");
 
-  const instances = ["https://nitter.net", "https://nitter.privacydev.net"];
-  for (const instance of instances) {
-    const html = await fetchHTML(`${instance}/${encodeURIComponent(cleanUsername)}`);
-    if (html && !html.includes("User \"") && !html.includes("not found")) {
-      const nameMatch = html.match(/<a[^>]*class="profile-card-fullname"[^>]*>([^<]+)</);
-      const bioMatch = html.match(/<p[^>]*class="profile-bio"[^>]*>([\s\S]*?)<\/p>/);
-      const statsMatch = html.match(/<li[^>]*class="posts"[^>]*>[\s\S]*?<span[^>]*class="profile-stat-num"[^>]*>([\s\S]*?)<\/span>/);
-      const followingMatch = html.match(/<li[^>]*class="following"[^>]*>[\s\S]*?<span[^>]*class="profile-stat-num"[^>]*>([\s\S]*?)<\/span>/);
-      const followersMatch = html.match(/<li[^>]*class="followers"[^>]*>[\s\S]*?<span[^>]*class="profile-stat-num"[^>]*>([\s\S]*?)<\/span>/);
-      const avatarMatch = html.match(/<a[^>]*class="profile-card-avatar"[^>]*>\s*<img[^>]*src="([^"]+)"/);
+  const data = await fetchJSON(`https://api.fxtwitter.com/${encodeURIComponent(cleanUsername)}`);
 
-      if (nameMatch) {
-        return {
-          success: true,
-          creator: CREATOR,
-          platform: "Twitter/X",
-          username: cleanUsername,
-          name: nameMatch[1].trim(),
-          bio: bioMatch?.[1]?.replace(/<[^>]+>/g, "").trim() || null,
-          avatar: avatarMatch?.[1] || null,
-          tweets: statsMatch?.[1]?.trim().replace(/,/g, "") || null,
-          following: followingMatch?.[1]?.trim().replace(/,/g, "") || null,
-          followers: followersMatch?.[1]?.trim().replace(/,/g, "") || null,
-          profileUrl: `https://twitter.com/${cleanUsername}`,
-        };
-      }
-    }
+  if (data?.code === 200 && data?.user) {
+    const u = data.user;
+    return {
+      success: true,
+      creator: CREATOR,
+      platform: "Twitter/X",
+      username: u.screen_name,
+      name: u.name,
+      bio: u.description || null,
+      avatar: u.avatar_url?.replace("_normal.", "_400x400.") || null,
+      banner: u.banner_url || null,
+      location: u.location || null,
+      website: u.website || null,
+      verified: u.verification?.verified || false,
+      verifiedType: u.verification?.type || null,
+      followers: u.followers,
+      following: u.following,
+      tweets: u.tweets,
+      likes: u.likes,
+      mediaCount: u.media_count,
+      joinedAt: u.joined || null,
+      profileUrl: `https://twitter.com/${u.screen_name}`,
+    };
+  }
+
+  if (data?.code === 404) {
+    return { success: false, creator: CREATOR, error: `Twitter/X user "${cleanUsername}" not found` };
   }
 
   return {
-    success: true,
+    success: false,
     creator: CREATOR,
     platform: "Twitter/X",
     username: cleanUsername,
     profileUrl: `https://twitter.com/${cleanUsername}`,
-    note: "Twitter/X profile scraping is limited. Visit the profile URL directly for full details.",
+    error: `Could not retrieve Twitter/X profile for "${cleanUsername}". The account may be suspended or protected.`,
   };
 }
 
-export async function waChannelStalk(query: string) {
+export async function telegramStalk(username: string) {
+  const cleanUsername = username.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "");
+
+  const html = await fetchHTML(`https://t.me/${encodeURIComponent(cleanUsername)}`, {
+    "Accept": "text/html,application/xhtml+xml",
+    "Accept-Language": "en-US,en;q=0.9",
+  });
+
+  if (!html) {
+    return { success: false, creator: CREATOR, error: `Could not fetch Telegram profile for "${cleanUsername}"` };
+  }
+
+  const nameMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
+  const descMatch = html.match(/<meta property="og:description" content="([^"]*)"/);
+  const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+  const extraMatch = html.match(/<div class="tgme_page_extra">([^<]+)<\/div>/);
+  const extra = extraMatch?.[1]?.trim() || "";
+
+  let subscribers: string | null = null;
+  let members: string | null = null;
+  let isChannel = false;
+  let isGroup = false;
+  let isBot = false;
+
+  const subMatch = extra.match(/([\d\s,]+)\s*subscribers/i);
+  const memMatch = extra.match(/([\d\s,]+)\s*members/i);
+  if (subMatch) {
+    subscribers = subMatch[1].replace(/\s/g, "").replace(/,/g, "");
+    isChannel = true;
+  }
+  if (memMatch) {
+    members = memMatch[1].replace(/\s/g, "").replace(/,/g, "");
+    isGroup = true;
+  }
+
+  const verifiedMatch = html.match(/verified-icon/);
+  const botMatch = html.match(/tgme_page_extra[^>]*>[^<]*bot/i) || html.match(/<\/i>\s*bot\s*<\/div>/i);
+  if (botMatch) isBot = true;
+
+  const name = nameMatch?.[1]?.trim() || null;
+  const bio = descMatch?.[1]?.trim() || null;
+  const avatar = imageMatch?.[1] || null;
+
+  if (!name && !bio) {
+    return {
+      success: false,
+      creator: CREATOR,
+      platform: "Telegram",
+      username: cleanUsername,
+      profileUrl: `https://t.me/${cleanUsername}`,
+      error: `Telegram user/channel "${cleanUsername}" not found or has no public profile.`,
+    };
+  }
+
+  const type = isBot ? "bot" : isChannel ? "channel" : isGroup ? "group" : "user";
+
   return {
     success: true,
     creator: CREATOR,
-    platform: "WhatsApp Channel",
-    query,
-    note: "WhatsApp Channel lookup requires the full channel URL. WhatsApp does not provide a public search API.",
-    searchUrl: `https://www.whatsapp.com/channel`,
-    tip: "Share your WhatsApp Channel link and we can extract its metadata.",
+    platform: "Telegram",
+    username: cleanUsername,
+    name,
+    bio,
+    avatar,
+    subscribers: subscribers ? parseInt(subscribers) : null,
+    members: members ? parseInt(members) : null,
+    verified: !!verifiedMatch,
+    type,
+    profileUrl: `https://t.me/${cleanUsername}`,
+    deepLink: `tg://resolve?domain=${cleanUsername}`,
   };
 }

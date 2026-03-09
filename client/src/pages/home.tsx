@@ -226,11 +226,17 @@ function TestPopup({
   baseUrl: string;
   onClose: () => void;
 }) {
-  const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [inputs, setInputs] = useState<Record<string, string>>(() => {
+    const defaults: Record<string, string> = {};
+    endpoint.params.forEach((p) => { if (p.default) defaults[p.name] = p.default; });
+    return defaults;
+  });
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const isAiChat = endpoint.category === "ai-chat";
+
+  const getInputValue = (name: string) => inputs[name] ?? "";
 
   const updateInput = (name: string, value: string) => {
     setInputs((prev) => ({ ...prev, [name]: value }));
@@ -393,9 +399,9 @@ function TestPopup({
                     </div>
                     <input
                       type="text"
-                      value={inputs[p.name] || ""}
+                      value={getInputValue(p.name)}
                       onChange={(e) => updateInput(p.name, e.target.value)}
-                      placeholder={p.description}
+                      placeholder={p.default || p.description}
                       className="w-full px-3 py-2 rounded-lg text-sm font-mono outline-none transition-colors"
                       style={{
                         background: "#0a0a0a",

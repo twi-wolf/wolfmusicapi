@@ -12,7 +12,7 @@ import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
 import { generateEphoto, listEphotoEffects, EPHOTO_EFFECTS } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
-import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, waChannelStalk } from "../lib/downloaders/stalker";
+import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, telegramStalk } from "../lib/downloaders/stalker";
 import { fetchAnimeImage } from "../lib/downloaders/anime";
 import { getFunContent, funTypes } from "../lib/downloaders/fun";
 import { shortenUrl, shortenerServices } from "../lib/downloaders/urlshortener";
@@ -770,11 +770,11 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stalk/whatsapp", async (req, res) => {
+  app.get("/api/stalk/telegram", async (req, res) => {
     try {
-      const query = req.query.query as string;
-      if (!query) return res.status(400).json({ success: false, error: "Query parameter 'query' is required." });
-      const result = await waChannelStalk(query.trim());
+      const username = req.query.username as string;
+      if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
+      const result = await telegramStalk(username.trim());
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
