@@ -13,7 +13,7 @@ A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access
 - **Spotify**: `lib/downloaders/spotify.ts` - Search and download via spotdown.org API with iTunes fallback
 - **Shazam**: `lib/downloaders/shazam.ts` - Shazam search + song recognition via reverse-engineered API
 - **Ephoto360**: `lib/downloaders/ephoto360.ts` - 108 text/neon/3D effect generators via ephoto360.com (13 categories: text-effects, 3d-effect, halloween, cover-facebook, game-effect, christmas, happy-birthday, fire-effects, love, animations, new-year, tattoo-effects, technology)
-- **PhotoFunia**: `lib/downloaders/photofunia.ts` - 338 photo effects via photofunia.com (18 categories: filters 31, billboards 62, lab 88, christmas 33, halloween 21, easter 9, valentine 6, faces 15, misc 16, posters 16, galleries 9, drawings 8, magazines 6, frames 5, celebrities 4, photography 3, vintage 2, tv 1, books 3)
+- **PhotoFunia**: `lib/downloaders/photofunia.ts` - 342 photo effects via photofunia.com (19 categories: filters 31, billboards 62, lab 88, christmas 33, halloween 21, easter 9, valentine 6, faces 15, misc 16, posters 16, galleries 9, drawings 8, magazines 6, frames 5, celebrities 4, photography 3, vintage 2, books 3, cards 5)
 - **TextPro**: `lib/downloaders/textpro.ts` - 109 text effects via CoolText API (neon, 3D, chrome, fire, glitter, graffiti, etc.)
 - **Movie**: `lib/downloaders/movie.ts` - 13 movie data endpoints via OMDb/YTS APIs
 - **Anime**: `lib/downloaders/anime.ts` - 30 anime image types via waifu.pics & nekos.best

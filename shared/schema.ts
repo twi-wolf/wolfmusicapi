@@ -201,9 +201,8 @@ export const PHOTOFUNIA_SUBCATEGORIES = [
   { id: "misc", name: "Misc" },
   { id: "magazines", name: "Magazines" },
   { id: "professions", name: "Professions" },
-  { id: "movies", name: "Movies" },
-  { id: "tv", name: "TV" },
   { id: "books", name: "Books" },
+  { id: "cards", name: "Cards" },
 ];
 
 export const EPHOTO_SUBCATEGORIES = [
@@ -629,10 +628,14 @@ export const photofuniaEffectsList: EffectEntry[] = [
   { id: "reading", name: "Reading", category: "magazines", inputType: "img", required: "imageUrl" },
   { id: "esquire", name: "Esquire", category: "magazines", inputType: "img", required: "imageUrl" },
   { id: "vogue", name: "Vogue", category: "magazines", inputType: "img", required: "imageUrl" },
-  { id: "analoguetv", name: "Analogue TV", category: "tv", inputType: "img", required: "imageUrl" },
   { id: "festivereading", name: "Festive Reading", category: "books", inputType: "both", required: "imageUrl, text" },
   { id: "thebook", name: "The Book", category: "books", inputType: "both", required: "imageUrl, text" },
   { id: "veryoldbook", name: "Very Old Book", category: "books", inputType: "both", required: "imageUrl, text" },
+  { id: "cardwithlaces", name: "Card with Laces", category: "cards", inputType: "both", required: "imageUrl, text, message" },
+  { id: "christmastreepostcard", name: "Christmas Tree Postcard", category: "cards", inputType: "both", required: "imageUrl, message, text" },
+  { id: "festivesweets", name: "Festive Sweets", category: "cards", inputType: "both", required: "imageUrl, text, message" },
+  { id: "easterpostcard", name: "Easter Postcard", category: "cards", inputType: "both", required: "imageUrl, text" },
+  { id: "frenchpostcard", name: "French Postcard", category: "cards", inputType: "both", required: "imageUrl, text" },
   { id: "rosevine", name: "Rose Vine", category: "valentine", inputType: "both", required: "imageUrl, text" },
   { id: "loveletter", name: "Love Letter", category: "valentine", inputType: "img", required: "imageUrl" },
   { id: "lovelock", name: "Love Lock", category: "valentine", inputType: "txt", required: "text" },
