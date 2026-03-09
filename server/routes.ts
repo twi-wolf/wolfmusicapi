@@ -12,7 +12,7 @@ import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
 import { generateEphoto, listEphotoEffects, EPHOTO_EFFECTS } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
-import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, telegramStalk } from "../lib/downloaders/stalker";
+import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, telegramStalk, numberPlateStalk } from "../lib/downloaders/stalker";
 import { fetchAnimeImage } from "../lib/downloaders/anime";
 import { getFunContent, funTypes } from "../lib/downloaders/fun";
 import { shortenUrl, shortenerServices } from "../lib/downloaders/urlshortener";
@@ -775,6 +775,17 @@ export async function registerRoutes(
       const username = req.query.username as string;
       if (!username) return res.status(400).json({ success: false, error: "Query parameter 'username' is required." });
       const result = await telegramStalk(username.trim());
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
+    }
+  });
+
+  app.get("/api/stalk/numberplate", async (req, res) => {
+    try {
+      const plate = req.query.plate as string;
+      if (!plate) return res.status(400).json({ success: false, error: "Query parameter 'plate' is required." });
+      const result = await numberPlateStalk(plate.trim());
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });

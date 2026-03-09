@@ -725,13 +725,14 @@ const photofuniaEndpoints: ApiEndpoint[] = photofuniaEffectsList.map(e => {
 });
 
 const stalkerEndpoints: ApiEndpoint[] = [
-  { path: "/api/stalk/github", method: "GET", description: "Lookup GitHub user profile, repos, followers and stats", params: [{ name: "username", type: "string", required: true, description: "GitHub username", default: "torvalds" }], format: "json", category: "stalker", provider: "GitHub" },
+  { path: "/api/stalk/github", method: "GET", description: "Lookup GitHub user profile, repos, followers and stats", params: [{ name: "username", type: "string", required: true, description: "GitHub username", default: "7silent-wolf" }], format: "json", category: "stalker", provider: "GitHub" },
   { path: "/api/stalk/ip", method: "GET", description: "Lookup IP address geolocation, ISP, timezone and ASN info", params: [{ name: "ip", type: "string", required: true, description: "IP address to lookup", default: "8.8.8.8" }], format: "json", category: "stalker", provider: "IP-API" },
   { path: "/api/stalk/npm", method: "GET", description: "Lookup NPM package details, version, author and stats", params: [{ name: "package", type: "string", required: true, description: "NPM package name", default: "axios" }], format: "json", category: "stalker", provider: "NPM Registry" },
   { path: "/api/stalk/tiktok", method: "GET", description: "Lookup TikTok user profile, followers, likes and video count", params: [{ name: "username", type: "string", required: true, description: "TikTok username (with or without @)", default: "charlidamelio" }], format: "json", category: "stalker", provider: "TikTok" },
   { path: "/api/stalk/instagram", method: "GET", description: "Lookup Instagram user profile info and stats", params: [{ name: "username", type: "string", required: true, description: "Instagram username", default: "instagram" }], format: "json", category: "stalker", provider: "Instagram" },
   { path: "/api/stalk/twitter", method: "GET", description: "Lookup Twitter/X user profile, followers, tweets and verification status", params: [{ name: "username", type: "string", required: true, description: "Twitter/X username (with or without @)", default: "elonmusk" }], format: "json", category: "stalker", provider: "fxTwitter" },
   { path: "/api/stalk/telegram", method: "GET", description: "Lookup Telegram user, channel or group profile and subscriber count", params: [{ name: "username", type: "string", required: true, description: "Telegram username or channel handle (with or without @)", default: "durov" }], format: "json", category: "stalker", provider: "Telegram" },
+  { path: "/api/stalk/numberplate", method: "GET", description: "Lookup vehicle information by UK number plate — make, model, colour, fuel type, engine size, MOT and tax status", params: [{ name: "plate", type: "string", required: true, description: "UK vehicle number plate (e.g. AB12CDE)", default: "LK68HPE" }], format: "json", category: "stalker", provider: "CheckCarDetails" },
 ];
 
 const animeEndpoints: ApiEndpoint[] = [

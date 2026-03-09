@@ -284,6 +284,75 @@ export async function twitterStalk(username: string) {
   };
 }
 
+export async function numberPlateStalk(plate: string) {
+  const cleanPlate = plate.replace(/\s+/g, "").toUpperCase();
+  const apiKey = process.env.DVLA_API_KEY;
+
+  if (!apiKey) {
+    return {
+      success: false,
+      creator: CREATOR,
+      error: "DVLA_API_KEY environment variable is not set. Get a free key at https://developer-portal.driver-vehicle-licensing.api.gov.uk/ and add it as DVLA_API_KEY.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch("https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+      },
+      body: JSON.stringify({ registrationNumber: cleanPlate }),
+      signal: controller.signal,
+    });
+
+    if (res.status === 404) {
+      return { success: false, creator: CREATOR, error: `No vehicle found for plate "${cleanPlate}". Make sure it is a valid UK number plate.` };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return { success: false, creator: CREATOR, error: "Invalid or expired DVLA API key. Please update your DVLA_API_KEY." };
+    }
+    if (!res.ok) {
+      return { success: false, creator: CREATOR, error: `DVLA API returned status ${res.status}` };
+    }
+
+    const data = await res.json();
+
+    return {
+      success: true,
+      creator: CREATOR,
+      platform: "DVLA UK Vehicle Enquiry",
+      plate: cleanPlate,
+      make: data.make || null,
+      colour: data.colour || null,
+      fuelType: data.fuelType || null,
+      engineCapacityCC: data.engineCapacity || null,
+      yearOfManufacture: data.yearOfManufacture || null,
+      monthOfFirstRegistration: data.monthOfFirstRegistration || null,
+      co2Emissions: data.co2Emissions != null ? `${data.co2Emissions} g/km` : null,
+      motStatus: data.motStatus || null,
+      motExpiryDate: data.motExpiryDate || null,
+      taxStatus: data.taxStatus || null,
+      taxDueDate: data.taxDueDate || null,
+      typeApproval: data.typeApproval || null,
+      wheelplan: data.wheelplan || null,
+      revenueWeight: data.revenueWeight || null,
+      realDrivingEmissions: data.realDrivingEmissions || null,
+      euroStatus: data.euroStatus || null,
+      markedForExport: data.markedForExport ?? null,
+      dateOfLastV5CIssued: data.dateOfLastV5CIssued || null,
+    };
+  } catch (err: any) {
+    return { success: false, creator: CREATOR, error: err?.name === "AbortError" ? "DVLA API request timed out" : `Request failed: ${err?.message}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function telegramStalk(username: string) {
   const cleanUsername = username.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "");
 
