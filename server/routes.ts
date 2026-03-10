@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { type Server } from "http";
-import { searchSongs, getDownloadInfo, extractVideoId } from "./scraper";
+import { exec } from "child_process";
+import { promisify } from "util";
+import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies } from "./scraper";
+const execAsync = promisify(exec);
 import { registerAIRoutes } from "./ai-routes";
 import { downloadTikTok } from "../lib/downloaders/tiktok";
 import { downloadSnapchat } from "../lib/downloaders/snapchat";
@@ -2107,6 +2110,43 @@ export async function registerRoutes(
       totalEndpoints: schemaEndpoints.length,
       categories: schemaCategories,
       endpoints: schemaEndpoints,
+    });
+  });
+
+  app.get("/api/admin/update-ytdlp", async (req, res) => {
+    try {
+      const { stdout, stderr } = await execAsync("yt-dlp --update-to stable 2>&1", { timeout: 60000 });
+      const output = (stdout + stderr).trim();
+      reloadCookies();
+      return res.json({
+        success: true,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        message: output || "yt-dlp is already up to date",
+      });
+    } catch (e: any) {
+      return res.status(500).json({
+        success: false,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        error: `yt-dlp update failed: ${e.message}`,
+      });
+    }
+  });
+
+  app.get("/api/admin/reload-cookies", (req, res) => {
+    reloadCookies();
+    return res.json({
+      success: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      message: "Cookie cache cleared. Next download will reload cookies from disk.",
+    });
+  });
+
+  app.get("/api/admin/provider-health", (_req, res) => {
+    return res.json({
+      success: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      providers: ["innertube", "piped", "ytdlp", "cobalt", "y2mate", "vevioz", "savefrom", "cnvmp3"],
+      note: "Providers are tried in order. Failed providers are skipped for 5 minutes then retried. Use server logs for real-time health details.",
     });
   });
 

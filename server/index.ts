@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { exec } from "child_process";
 import {
   securityHeaders,
   antiScraping,
@@ -9,6 +10,17 @@ import {
   responseFingerprint,
   blockDirectSourceAccess,
 } from "./security";
+
+function autoUpdateYtDlp() {
+  exec("yt-dlp --update-to stable 2>&1", { timeout: 60000 }, (err, stdout) => {
+    if (err) {
+      console.log(`[yt-dlp] Auto-update skipped (not installed or no permission): ${err.message.substring(0, 100)}`);
+      return;
+    }
+    const msg = stdout.trim().split("\n")[0] || "done";
+    console.log(`[yt-dlp] Auto-update: ${msg}`);
+  });
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -92,6 +104,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  autoUpdateYtDlp();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

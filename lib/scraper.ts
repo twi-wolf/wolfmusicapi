@@ -140,12 +140,164 @@ function recordProviderSuccess(name: string): void {
   providerHealth.delete(name);
 }
 
+// ─── INNERTUBE API (YouTube's own internal API — most reliable) ───────────────
+// Uses TV/embedded clients that don't require PO tokens (YouTube's new auth)
+
+const INNERTUBE_CLIENTS = [
+  {
+    name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+    clientNameId: "85",
+    clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+    clientVersion: "2.0",
+    userAgent: USER_AGENT,
+    apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+    thirdParty: { embedUrl: "https://www.youtube.com/" },
+  },
+  {
+    name: "WEB_EMBEDDED_PLAYER",
+    clientNameId: "56",
+    clientName: "WEB_EMBEDDED_PLAYER",
+    clientVersion: "2.20250101.00.00",
+    userAgent: USER_AGENT,
+    apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+    thirdParty: { embedUrl: "https://www.youtube.com/" },
+  },
+  {
+    name: "TVHTML5",
+    clientNameId: "7",
+    clientName: "TVHTML5",
+    clientVersion: "7.20250101.14.00",
+    userAgent: "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1",
+    apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+  },
+];
+
+async function innertubeConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
+  downloadUrl: string;
+  title: string;
+}> {
+  const errors: string[] = [];
+
+  for (const client of INNERTUBE_CLIENTS) {
+    try {
+      const context: any = {
+        client: {
+          clientName: client.clientName,
+          clientVersion: client.clientVersion,
+          hl: "en",
+          gl: "US",
+          utcOffsetMinutes: 0,
+        },
+      };
+
+      if (client.thirdParty) {
+        context.thirdParty = client.thirdParty;
+      }
+
+      const body: any = {
+        videoId,
+        context,
+        contentCheckOk: true,
+        racyCheckOk: true,
+      };
+
+      const res = await fetchWithTimeout(
+        `https://www.youtube.com/youtubei/v1/player?key=${client.apiKey}&prettyPrint=false`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": client.userAgent,
+            "X-Youtube-Client-Name": client.clientNameId,
+            "X-Youtube-Client-Version": client.clientVersion,
+            "Origin": "https://www.youtube.com",
+            "Referer": "https://www.youtube.com/",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+        15000
+      );
+
+      if (!res.ok) {
+        errors.push(`InnerTube(${client.name}): HTTP ${res.status}`);
+        continue;
+      }
+
+      const data = await safeJsonParse(res, `InnerTube(${client.name})`);
+
+      const playabilityStatus = data?.playabilityStatus?.status;
+      if (playabilityStatus && playabilityStatus !== "OK") {
+        errors.push(`InnerTube(${client.name}): playabilityStatus=${playabilityStatus} - ${data?.playabilityStatus?.reason || ""}`);
+        continue;
+      }
+
+      const streamingData = data?.streamingData;
+      if (!streamingData) {
+        errors.push(`InnerTube(${client.name}): no streamingData`);
+        continue;
+      }
+
+      const title = data?.videoDetails?.title || `video_${videoId}`;
+
+      if (format === "mp3") {
+        const adaptiveFormats: any[] = streamingData.adaptiveFormats || [];
+        const audioFormats = adaptiveFormats
+          .filter((f: any) => f.mimeType?.startsWith("audio/") && f.url)
+          .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
+
+        if (audioFormats.length > 0) {
+          return { downloadUrl: audioFormats[0].url, title };
+        }
+
+        const allFormats: any[] = [...(streamingData.formats || []), ...adaptiveFormats];
+        const anyAudio = allFormats.find((f: any) => f.mimeType?.includes("audio") && f.url);
+        if (anyAudio) return { downloadUrl: anyAudio.url, title };
+      } else {
+        const formats: any[] = [
+          ...(streamingData.formats || []),
+          ...(streamingData.adaptiveFormats || []),
+        ];
+
+        const videoFormats = formats
+          .filter((f: any) =>
+            f.mimeType?.startsWith("video/mp4") &&
+            f.url &&
+            f.height &&
+            f.height <= 480
+          )
+          .sort((a: any, b: any) => (b.height || 0) - (a.height || 0));
+
+        if (videoFormats.length > 0) {
+          return { downloadUrl: videoFormats[0].url, title };
+        }
+
+        const anyVideo = formats
+          .filter((f: any) => f.mimeType?.startsWith("video/") && f.url)
+          .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
+
+        if (anyVideo.length > 0) {
+          return { downloadUrl: anyVideo[0].url, title };
+        }
+      }
+
+      errors.push(`InnerTube(${client.name}): no suitable stream found in response`);
+    } catch (e: any) {
+      errors.push(`InnerTube(${client.name}): ${e.message}`);
+    }
+  }
+
+  throw new Error(`InnerTube: all clients failed: ${errors.join("; ")}`);
+}
+
+// ─── YT-DLP ──────────────────────────────────────────────────────────────────
+
 async function ytdlpSearch(query: string): Promise<{ query: string; items: any[] }> {
   try {
     const sanitized = query.replace(/[^a-zA-Z0-9\s\-_.,'&!?()]/g, "").substring(0, 200);
     const cookies = ytdlpCookies();
     const { stdout } = await execAsync(
-      `yt-dlp ${cookies} --no-warnings --flat-playlist --dump-json 'ytsearch10:${sanitized.replace(/'/g, "'\\''")}' 2>/dev/null`,
+      `yt-dlp ${cookies} --no-warnings --flat-playlist --dump-json 'ytsearch10:${sanitized.replace(/'/g, "'\\''")}' 2>&1`,
       { timeout: 20000, maxBuffer: 1024 * 1024 }
     );
 
@@ -274,7 +426,7 @@ export async function checkVideo(videoId: string) {
 
   try {
     const { stdout } = await execAsync(
-      `yt-dlp ${ytdlpCookies()} --no-warnings --dump-json --skip-download "https://www.youtube.com/watch?v=${videoId}" 2>/dev/null`,
+      `yt-dlp ${ytdlpCookies()} --no-warnings --dump-json --skip-download "https://www.youtube.com/watch?v=${videoId}" 2>&1`,
       { timeout: 15000, maxBuffer: 1024 * 1024 }
     );
 
@@ -302,29 +454,38 @@ async function ytdlpConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   const formatArg = format === "mp3"
-    ? "bestaudio[ext=m4a]/bestaudio"
+    ? "bestaudio[ext=m4a]/bestaudio/best"
     : "best[height<=480][ext=mp4]/best[ext=mp4]/best";
 
-  const { stdout } = await execAsync(
-    `yt-dlp ${ytdlpCookies()} --no-warnings --print title -f "${formatArg}" -g "${youtubeUrl}" 2>/dev/null`,
-    { timeout: 30000 }
-  );
+  const cookiesArg = ytdlpCookies();
+  const cmd = `yt-dlp ${cookiesArg} --no-warnings --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
+
+  let stdout: string;
+  try {
+    const result = await execAsync(cmd, { timeout: 30000 });
+    stdout = result.stdout;
+  } catch (e: any) {
+    const stderr = e.stderr || e.stdout || e.message || "unknown error";
+    throw new Error(`yt-dlp: Command failed: ${stderr.substring(0, 300)}`);
+  }
 
   const lines = stdout.trim().split("\n").filter(l => l.trim());
 
   if (lines.length < 2) {
-    throw new Error("yt-dlp: Could not extract download URL");
+    throw new Error(`yt-dlp: Could not extract URL (output: ${lines.join(" | ").substring(0, 200)})`);
   }
 
   const title = lines[0] || `video_${videoId}`;
-  const downloadUrl = lines[1];
+  const downloadUrl = lines[lines.length - 1];
 
   if (!downloadUrl || !downloadUrl.startsWith("http")) {
-    throw new Error("yt-dlp: No valid download URL returned");
+    throw new Error(`yt-dlp: No valid URL returned (got: ${downloadUrl?.substring(0, 100)})`);
   }
 
   return { downloadUrl, title };
 }
+
+// ─── Y2MATE ───────────────────────────────────────────────────────────────────
 
 let y2mateAuthCache: { auth: string; paramChar: string; expiresAt: number } | null = null;
 
@@ -428,59 +589,156 @@ async function y2mateConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   throw new Error("y2mate: no download URL found in response");
 }
 
-async function veviozConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
+// ─── PIPED (open-source YouTube proxy with direct stream URLs) ────────────────
+
+const PIPED_FALLBACK_INSTANCES = [
+  "https://api.piped.private.coffee",
+  "https://pipedapi.kavin.rocks",
+  "https://piped-api.privacy.com.de",
+  "https://api.piped.yt",
+  "https://piped.video/api",
+];
+
+let pipedInstancesCache: { instances: string[]; expiresAt: number } | null = null;
+
+async function getPipedInstances(): Promise<string[]> {
+  if (pipedInstancesCache && Date.now() < pipedInstancesCache.expiresAt) {
+    return pipedInstancesCache.instances;
+  }
+
+  try {
+    const res = await fetchWithTimeout("https://piped-instances.kavin.rocks/", {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    }, 8000);
+
+    if (!res.ok) throw new Error(`status ${res.status}`);
+
+    const data = await res.json() as any[];
+
+    const instances = data
+      .filter((inst: any) => inst.api_url && (inst.uptime_24h ?? 100) >= 80)
+      .sort((a: any, b: any) => (b.uptime_24h ?? 0) - (a.uptime_24h ?? 0))
+      .slice(0, 6)
+      .map((inst: any) => inst.api_url as string);
+
+    if (instances.length > 0) {
+      pipedInstancesCache = { instances, expiresAt: Date.now() + 30 * 60 * 1000 };
+      console.log(`[piped] Loaded ${instances.length} dynamic instances`);
+      return instances;
+    }
+  } catch (e: any) {
+    console.log(`[piped] Failed to fetch dynamic instances: ${e.message} — using fallback list`);
+  }
+
+  pipedInstancesCache = { instances: PIPED_FALLBACK_INSTANCES, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return PIPED_FALLBACK_INSTANCES;
+}
+
+async function pipedConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   downloadUrl: string;
   title: string;
 }> {
-  const endpoints = [
-    format === "mp3"
-      ? `https://api.vevioz.com/api/button/mp3/${videoId}`
-      : `https://api.vevioz.com/api/button/mp4/${videoId}`,
-    format === "mp3"
-      ? `https://api.vevioz.com/api/widget/mp3/${videoId}`
-      : `https://api.vevioz.com/api/widget/mp4/${videoId}`,
-  ];
+  const instances = await getPipedInstances();
+  const errors: string[] = [];
 
-  for (const endpoint of endpoints) {
+  for (const instance of instances) {
     try {
-      const res = await fetchWithTimeout(endpoint, {
+      const res = await fetchWithTimeout(`${instance}/streams/${videoId}`, {
         headers: {
           "User-Agent": USER_AGENT,
-          "Accept": "text/html",
+          Accept: "application/json",
         },
       }, 12000);
 
-      if (!res.ok) continue;
+      if (!res.ok) {
+        errors.push(`piped(${instance}): HTTP ${res.status}`);
+        continue;
+      }
 
-      const html = await res.text();
+      const data = await safeJsonParse(res, `piped(${instance})`);
 
-      const urlMatch = html.match(/href="(https?:\/\/[^"]+\.(?:mp3|mp4|m4a)[^"]*)"/i)
-        || html.match(/href="(https?:\/\/dl[^"]+)"/i)
-        || html.match(/href="(https?:\/\/[^"]*download[^"]*)"/i);
+      if (data.error) {
+        errors.push(`piped(${instance}): ${data.error}`);
+        continue;
+      }
 
-      if (!urlMatch) continue;
+      const title = data.title || `video_${videoId}`;
 
-      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-      const title = titleMatch ? titleMatch[1].replace(/\s*-\s*vevioz.*$/i, "").trim() : `video_${videoId}`;
+      if (format === "mp3") {
+        const audioStreams: any[] = data.audioStreams || [];
+        const best = audioStreams
+          .filter((s: any) => s.url && s.bitrate)
+          .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+        if (best) return { downloadUrl: best.url, title };
+      } else {
+        const videoStreams: any[] = data.videoStreams || [];
+        const best = videoStreams
+          .filter((s: any) => s.url && s.resolution && parseInt(s.resolution) <= 480)
+          .sort((a: any, b: any) => parseInt(b.resolution || "0") - parseInt(a.resolution || "0"))[0]
+          || videoStreams.filter((s: any) => s.url)[0];
+        if (best) return { downloadUrl: best.url, title };
+      }
 
-      return {
-        downloadUrl: urlMatch[1],
-        title,
-      };
-    } catch {
-      continue;
+      errors.push(`piped(${instance}): no suitable stream in response`);
+    } catch (e: any) {
+      errors.push(`piped(${instance}): ${e.message}`);
     }
   }
 
-  throw new Error("Vevioz: All endpoints failed");
+  pipedInstancesCache = null;
+  throw new Error(`Piped: all instances failed: ${errors.join("; ")}`);
 }
 
-const COBALT_INSTANCES = [
+// ─── COBALT (dynamic instances) ───────────────────────────────────────────────
+
+let cobaltInstancesCache: { instances: string[]; expiresAt: number } | null = null;
+
+const COBALT_FALLBACK_INSTANCES = [
+  "https://cobalt-api.meowing.de",
   "https://cobalt-backend.canine.tools",
-  "https://cobalt-api.kwiatekmiki.com",
-  "https://co.eepy.today",
   "https://cobalt.dark-dragon.digital",
+  "https://co.eepy.today",
+  "https://cobalt-api.kwiatekmiki.com",
 ];
+
+async function getCobaltInstances(): Promise<string[]> {
+  if (cobaltInstancesCache && Date.now() < cobaltInstancesCache.expiresAt) {
+    return cobaltInstancesCache.instances;
+  }
+
+  try {
+    const res = await fetchWithTimeout("https://instances.cobalt.best/api/instances.json", {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    }, 8000);
+
+    if (!res.ok) throw new Error(`status ${res.status}`);
+
+    const data = await res.json() as any[];
+
+    const ytInstances = data
+      .filter((inst: any) =>
+        inst.online === true &&
+        inst.services?.youtube === true &&
+        inst.cors === true &&
+        inst.api &&
+        inst.score >= 70
+      )
+      .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
+      .slice(0, 8)
+      .map((inst: any) => `https://${inst.api}`);
+
+    if (ytInstances.length > 0) {
+      cobaltInstancesCache = { instances: ytInstances, expiresAt: Date.now() + 30 * 60 * 1000 };
+      console.log(`[cobalt] Loaded ${ytInstances.length} dynamic instances`);
+      return ytInstances;
+    }
+  } catch (e: any) {
+    console.log(`[cobalt] Failed to fetch dynamic instances: ${e.message} — using fallback list`);
+  }
+
+  cobaltInstancesCache = { instances: COBALT_FALLBACK_INSTANCES, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return COBALT_FALLBACK_INSTANCES;
+}
 
 async function cobaltConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   downloadUrl: string;
@@ -489,11 +747,11 @@ async function cobaltConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
   const errors: string[] = [];
 
-  for (const instance of COBALT_INSTANCES) {
+  const instances = await getCobaltInstances();
+
+  for (const instance of instances) {
     try {
-      const body: any = {
-        url: youtubeUrl,
-      };
+      const body: any = { url: youtubeUrl };
       if (format === "mp3") {
         body.downloadMode = "audio";
         body.audioFormat = "mp3";
@@ -522,7 +780,7 @@ async function cobaltConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
         continue;
       }
 
-      const data = await safeJsonParse(res, `cobalt (${instance})`);
+      const data = await safeJsonParse(res, `cobalt(${instance})`);
 
       if (data.status === "error" || data.status === "rate-limit") {
         errors.push(`${instance}: ${data.error?.code || data.text || "error"}`);
@@ -531,34 +789,67 @@ async function cobaltConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
 
       const dlUrl = data.url || data.audio;
       if (dlUrl) {
-        return {
-          downloadUrl: dlUrl,
-          title: data.filename || `video_${videoId}`,
-        };
+        return { downloadUrl: dlUrl, title: data.filename || `video_${videoId}` };
       }
 
-      if (data.status === "tunnel" && data.url) {
-        return {
-          downloadUrl: data.url,
-          title: data.filename || `video_${videoId}`,
-        };
+      if ((data.status === "tunnel" || data.status === "redirect") && data.url) {
+        return { downloadUrl: data.url, title: data.filename || `video_${videoId}` };
       }
 
-      if (data.status === "redirect" && data.url) {
-        return {
-          downloadUrl: data.url,
-          title: data.filename || `video_${videoId}`,
-        };
-      }
-
-      errors.push(`${instance}: No download URL in response`);
+      errors.push(`${instance}: no download URL in response`);
     } catch (e: any) {
       errors.push(`${instance}: ${e.message}`);
     }
   }
 
+  cobaltInstancesCache = null;
   throw new Error(`All Cobalt instances failed: ${errors.join("; ")}`);
 }
+
+// ─── VEVIOZ ───────────────────────────────────────────────────────────────────
+
+async function veviozConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
+  downloadUrl: string;
+  title: string;
+}> {
+  const endpoints = [
+    format === "mp3"
+      ? `https://api.vevioz.com/api/button/mp3/${videoId}`
+      : `https://api.vevioz.com/api/button/mp4/${videoId}`,
+    format === "mp3"
+      ? `https://api.vevioz.com/api/widget/mp3/${videoId}`
+      : `https://api.vevioz.com/api/widget/mp4/${videoId}`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetchWithTimeout(endpoint, {
+        headers: { "User-Agent": USER_AGENT, Accept: "text/html" },
+      }, 12000);
+
+      if (!res.ok) continue;
+
+      const html = await res.text();
+
+      const urlMatch = html.match(/href="(https?:\/\/[^"]+\.(?:mp3|mp4|m4a)[^"]*)"/i)
+        || html.match(/href="(https?:\/\/dl[^"]+)"/i)
+        || html.match(/href="(https?:\/\/[^"]*download[^"]*)"/i);
+
+      if (!urlMatch) continue;
+
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].replace(/\s*-\s*vevioz.*$/i, "").trim() : `video_${videoId}`;
+
+      return { downloadUrl: urlMatch[1], title };
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error("Vevioz: All endpoints failed");
+}
+
+// ─── SAVEFROM ─────────────────────────────────────────────────────────────────
 
 async function saveFromConvert(videoId: string, format: "mp3" | "mp4"): Promise<{
   downloadUrl: string;
@@ -590,42 +881,29 @@ async function saveFromConvert(videoId: string, format: "mp3" | "mp4"): Promise<
   }, 15000);
 
   const text = await res.text();
-  if (!text || text.trim().length === 0) {
-    throw new Error("SaveFrom: empty response");
-  }
+  if (!text || text.trim().length === 0) throw new Error("SaveFrom: empty response");
 
   let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("SaveFrom: invalid JSON");
-  }
+  try { data = JSON.parse(text); } catch { throw new Error("SaveFrom: invalid JSON"); }
 
   if (Array.isArray(data) && data.length > 0) {
     const item = data[0];
     if (item.url) {
       const title = item.meta?.title || item.title || `video_${videoId}`;
-
-      if (format === "mp3" && item.url_audio) {
-        return { downloadUrl: item.url_audio, title };
-      }
-
-      if (item.url) {
-        return { downloadUrl: item.url, title };
-      }
+      if (format === "mp3" && item.url_audio) return { downloadUrl: item.url_audio, title };
+      return { downloadUrl: item.url, title };
     }
-
     if (item.hosting === "youtube" && item.sd?.url) {
       return { downloadUrl: format === "mp3" && item.audio?.url ? item.audio.url : item.sd.url, title: item.meta?.title || `video_${videoId}` };
     }
   }
 
-  if (data.url) {
-    return { downloadUrl: data.url, title: data.meta?.title || `video_${videoId}` };
-  }
+  if (data.url) return { downloadUrl: data.url, title: data.meta?.title || `video_${videoId}` };
 
   throw new Error("SaveFrom: no download URL found");
 }
+
+// ─── CNVMP3 ───────────────────────────────────────────────────────────────────
 
 async function cnvmp3Convert(videoId: string, format: "mp3" | "mp4"): Promise<{
   downloadUrl: string;
@@ -642,15 +920,11 @@ async function cnvmp3Convert(videoId: string, format: "mp3" | "mp4"): Promise<{
     },
   }, 15000);
 
-  if (!res.ok) {
-    throw new Error(`cnvmp3: status ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`cnvmp3: status ${res.status}`);
 
   const data = await safeJsonParse(res, "cnvmp3");
 
-  if (data.error) {
-    throw new Error(`cnvmp3: ${data.error}`);
-  }
+  if (data.error) throw new Error(`cnvmp3: ${data.error}`);
 
   const title = data.title || data.meta?.title || `video_${videoId}`;
 
@@ -660,12 +934,12 @@ async function cnvmp3Convert(videoId: string, format: "mp3" | "mp4"): Promise<{
   }
 
   const videoUrl = data.video_url || data.url?.video || data.links?.video || data.url;
-  if (videoUrl && typeof videoUrl === "string") {
-    return { downloadUrl: videoUrl, title };
-  }
+  if (videoUrl && typeof videoUrl === "string") return { downloadUrl: videoUrl, title };
 
   throw new Error("cnvmp3: no download URL in response");
 }
+
+// ─── PROVIDER CHAIN ───────────────────────────────────────────────────────────
 
 type ConvertProvider = {
   name: string;
@@ -673,9 +947,11 @@ type ConvertProvider = {
 };
 
 const providers: ConvertProvider[] = [
+  { name: "innertube", fn: innertubeConvert },
+  { name: "piped", fn: pipedConvert },
   { name: "ytdlp", fn: ytdlpConvert },
-  { name: "y2mate", fn: y2mateConvert },
   { name: "cobalt", fn: cobaltConvert },
+  { name: "y2mate", fn: y2mateConvert },
   { name: "vevioz", fn: veviozConvert },
   { name: "savefrom", fn: saveFromConvert },
   { name: "cnvmp3", fn: cnvmp3Convert },
