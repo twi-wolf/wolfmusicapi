@@ -2145,9 +2145,103 @@ export async function registerRoutes(
     return res.json({
       success: true,
       creator: "APIs by Silent Wolf | A tech explorer",
-      providers: ["innertube", "piped", "ytdlp", "cobalt", "y2mate", "vevioz", "savefrom", "cnvmp3"],
-      note: "Providers are tried in order. Failed providers are skipped for 5 minutes then retried. Use server logs for real-time health details.",
+      providers: ["ytdlp", "fabdl", "cobalt", "piped", "y2mate"],
+      note: "Providers are tried in order. Failed providers are on 5-minute cooldown then retried.",
     });
+  });
+
+  // ─── Media/Music Provider Status ──────────────────────────────────────────
+  // Quick lightweight probes — cached 2 minutes. Used by the UI status dots.
+
+  let statusCache: { data: any; expiresAt: number } | null = null;
+
+  async function probeUrl(url: string, opts: RequestInit = {}, timeoutMs = 6000): Promise<boolean> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...opts, signal: controller.signal });
+      return res.status < 500;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  app.get("/api/media/status", async (_req, res) => {
+    if (statusCache && Date.now() < statusCache.expiresAt) {
+      return res.json(statusCache.data);
+    }
+
+    const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+    const [ytdlp, fabdl, cobalt, piped, y2mate, tiktok, igraphql, spotify, shazam] =
+      await Promise.all([
+        // ytdlp — check binary exists
+        (async () => {
+          try {
+            const { exec } = await import("child_process");
+            const { promisify } = await import("util");
+            const execA = promisify(exec);
+            await execA("yt-dlp --version", { timeout: 4000 });
+            return true;
+          } catch { return false; }
+        })(),
+        // fabdl — check API responds
+        probeUrl("https://api.fabdl.com/youtube/get?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ&type=mp3", { headers: { "User-Agent": UA } }),
+        // cobalt — check instances registry
+        probeUrl("https://instances.cobalt.best/api/instances.json", { headers: { "User-Agent": UA } }),
+        // piped — check instances registry
+        probeUrl("https://piped-instances.kavin.rocks/", { headers: { "User-Agent": UA } }),
+        // y2mate — check auth page
+        probeUrl("https://v1.y2mate.nu/", { headers: { "User-Agent": UA } }),
+        // tiktok (ssstik) — check API
+        probeUrl("https://ssstik.io/", { headers: { "User-Agent": UA } }),
+        // instagram graphql — quick check
+        probeUrl("https://www.instagram.com/", { headers: { "User-Agent": UA } }),
+        // spotify (spotdown)
+        probeUrl("https://spotdown.org/", { headers: { "User-Agent": UA } }),
+        // shazam
+        probeUrl("https://www.shazam.com/", { headers: { "User-Agent": UA } }),
+      ]);
+
+    const data = {
+      success: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      checkedAt: new Date().toISOString(),
+      categories: {
+        music: {
+          providers: {
+            ytdlp: { active: ytdlp, label: "yt-dlp" },
+            fabdl: { active: fabdl, label: "FabDL" },
+            cobalt: { active: cobalt, label: "Cobalt" },
+            piped: { active: piped, label: "Piped" },
+            y2mate: { active: y2mate, label: "Y2Mate" },
+          },
+        },
+        "social-media": {
+          providers: {
+            tiktok: { active: tiktok, label: "TikTok (ssstik)" },
+            instagram: { active: igraphql, label: "Instagram" },
+            cobalt: { active: cobalt, label: "Cobalt" },
+            ytdlp: { active: ytdlp, label: "yt-dlp" },
+          },
+        },
+        spotify: {
+          providers: {
+            spotdown: { active: spotify, label: "Spotdown" },
+          },
+        },
+        shazam: {
+          providers: {
+            shazam: { active: shazam, label: "Shazam" },
+          },
+        },
+      },
+    };
+
+    statusCache = { data, expiresAt: Date.now() + 2 * 60 * 1000 };
+    return res.json(data);
   });
 
   return httpServer;

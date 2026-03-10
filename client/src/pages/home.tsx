@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Music,
@@ -51,6 +52,49 @@ import {
 } from "lucide-react";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, AUDIO_EFFECTS_LIST, EPHOTO_SUBCATEGORIES, PHOTOFUNIA_SUBCATEGORIES, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
+
+type ProviderInfo = { active: boolean; label: string };
+type MediaStatusData = {
+  categories: Record<string, { providers: Record<string, ProviderInfo> }>;
+};
+
+const MEDIA_STATUS_CATEGORIES = ["music", "social-media", "spotify", "shazam"];
+
+function getCategoryOverallStatus(catStatus?: { providers: Record<string, ProviderInfo> }): "green" | "yellow" | "red" | null {
+  if (!catStatus) return null;
+  const all = Object.values(catStatus.providers);
+  const activeCount = all.filter((p) => p.active).length;
+  if (activeCount === all.length) return "green";
+  if (activeCount > 0) return "yellow";
+  return "red";
+}
+
+function ProviderDots({ categoryId, status }: { categoryId: string; status?: MediaStatusData }) {
+  const catStatus = status?.categories?.[categoryId];
+  if (!catStatus) return null;
+  const providers = Object.entries(catStatus.providers);
+  return (
+    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+      {providers.map(([key, p]) => (
+        <div
+          key={key}
+          title={`${p.label}: ${p.active ? "Online" : "Offline"}`}
+          data-testid={`status-dot-${categoryId}-${key}`}
+          className="flex items-center gap-0.5"
+        >
+          <div
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            style={{
+              background: p.active ? "#00ff00" : "#ff4444",
+              boxShadow: p.active ? "0 0 5px rgba(0,255,0,0.7)" : "none",
+            }}
+          />
+          <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>{p.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const categoryIcons: Record<string, typeof MessageSquare> = {
   "ai-chat": MessageSquare,
@@ -671,7 +715,7 @@ function EffectTable({
   );
 }
 
-function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id: string) => void; onTryEndpoint: (ep: ApiEndpoint) => void }) {
+function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCategoryClick: (id: string) => void; onTryEndpoint: (ep: ApiEndpoint) => void; mediaStatus?: MediaStatusData }) {
   const [globalSearch, setGlobalSearch] = useState("");
   const stats = [
     { label: "TOTAL ENDPOINTS", value: allEndpoints.length.toString(), icon: Globe, desc: "Across all categories" },
@@ -796,6 +840,9 @@ function WelcomePage({ onCategoryClick, onTryEndpoint }: { onCategoryClick: (id:
                   <span className="text-[11px] block mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.3)" }}>
                     {cat.description}
                   </span>
+                  {MEDIA_STATUS_CATEGORIES.includes(cat.id) && (
+                    <ProviderDots categoryId={cat.id} status={mediaStatus} />
+                  )}
                 </div>
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded absolute bottom-2.5 right-2.5"
@@ -1263,6 +1310,12 @@ export default function Home() {
   const [photofuniaExpanded, setPhotofuniaExpanded] = useState(false);
   const [photofuniaSubCategory, setPhotofuniaSubCategory] = useState<string | null>(null);
 
+  const { data: mediaStatus } = useQuery<MediaStatusData>({
+    queryKey: ["/api/media/status"],
+    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+  });
+
   const comingSoonCategories = ["security", "movie", "urlshortener"];
   const displayCategories = apiCategories.filter(cat => !comingSoonCategories.includes(cat.id));
   const soonCategories = apiCategories.filter(cat => comingSoonCategories.includes(cat.id));
@@ -1573,7 +1626,24 @@ export default function Home() {
                 {!sidebarCollapsed && (
                   <>
                     <span className="text-[13px] font-medium flex-1 truncate">{cat.name}</span>
-                    {isActive && (
+                    {MEDIA_STATUS_CATEGORIES.includes(cat.id) ? (() => {
+                      const overallStatus = getCategoryOverallStatus(mediaStatus?.categories?.[cat.id]);
+                      const dotColor = isActive
+                        ? "#00ff00"
+                        : overallStatus === "green" ? "#00ff00"
+                        : overallStatus === "yellow" ? "#f59e0b"
+                        : overallStatus === "red" ? "#ff4444"
+                        : "rgba(255,255,255,0.15)";
+                      const dotGlow = overallStatus === "green" || isActive ? "0 0 5px rgba(0,255,0,0.6)" : "none";
+                      return (
+                        <div
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: dotColor, boxShadow: dotGlow }}
+                          title={overallStatus === "green" ? "All providers online" : overallStatus === "yellow" ? "Some providers offline" : overallStatus === "red" ? "All providers offline" : "Checking..."}
+                          data-testid={`status-sidebar-${cat.id}`}
+                        />
+                      );
+                    })() : isActive && (
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#00ff00" }} />
                     )}
                   </>
@@ -1755,7 +1825,7 @@ export default function Home() {
         </header>
 
         {activeCategory === null ? (
-          <WelcomePage onCategoryClick={handleCategoryClick} onTryEndpoint={handleTry} />
+          <WelcomePage onCategoryClick={handleCategoryClick} onTryEndpoint={handleTry} mediaStatus={mediaStatus} />
         ) : activeCategory === "docs" ? (
           <DocumentationPage onNavigateToCategory={(catId) => { setActiveCategory(catId); }} />
         ) : (

@@ -27,6 +27,7 @@ A multi-provider API hub (branded as WOLFAPIS v4.0) that provides unified access
 - **Converter**: `lib/downloaders/converter.ts` - 6 media converter endpoints for WhatsApp bots (image↔sticker, video↔sticker, video↔GIF)
 - **Lyrics**: Uses lrclib.net API for song lyrics (with synced lyrics support)
 - **Provider Health System**: Automatic tracking of provider failures with cooldown periods
+- **Media Provider Status API**: `/api/media/status` — lightweight live probes on all music/media providers (ytdlp, fabdl, cobalt, piped, y2mate, tiktok/ssstik, instagram, spotdown, shazam). Results cached 2 minutes. Used by the frontend to show green/red status dots on music, social-media, spotify, shazam category cards and sidebar items. Auto-refreshes every 60 seconds in the UI.
 - **Stalker**: `lib/downloaders/stalker.ts` - OSINT profile lookup tools (GitHub, IP, NPM, TikTok, Instagram, Twitter, WhatsApp)
 
 ## Key Files
