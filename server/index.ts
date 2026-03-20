@@ -31,6 +31,7 @@ declare module "http" {
 }
 
 app.set("trust proxy", 1);
+app.set("query parser", "extended"); // Use qs parser — Express 5 default changed to "simple" which breaks + decoding
 
 app.use(securityHeaders());
 app.use(blockDirectSourceAccess);
