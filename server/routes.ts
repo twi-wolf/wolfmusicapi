@@ -2245,42 +2245,45 @@ export async function registerRoutes(
   });
 
   app.get("/stream", async (req, res) => {
+    const { spawn } = await import("child_process");
     const q = (req.query.q || req.query.url) as string;
     const type = ((req.query.type as string) || "mp3").toLowerCase() === "mp4" ? "mp4" : "mp3";
     if (!q) return res.status(400).json({ error: "Missing q or url param" });
     try {
       let videoUrl = q;
+      let title = "download";
       if (!isYouTubeUrl(q)) {
         const searchResults = await searchSongs(q.trim());
         if (!searchResults.items || searchResults.items.length === 0) {
           return res.status(404).json({ error: `No results found for "${q}"` });
         }
-        videoUrl = `https://www.youtube.com/watch?v=${searchResults.items[0].id}`;
+        const top = searchResults.items[0];
+        videoUrl = `https://www.youtube.com/watch?v=${top.id}`;
+        title = top.title || "download";
       }
-      const { downloadUrl, title } = await getDownloadInfo(videoUrl, type as "mp3" | "mp4");
-      if (!downloadUrl) return res.status(500).json({ error: "No download URL returned" });
-      const fileRes = await fetch(downloadUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "*/*",
-          "Referer": "https://www.youtube.com/",
-        },
-        redirect: "follow",
-      });
-      if (!fileRes.ok) {
-        return res.status(fileRes.status).json({ error: `CDN returned ${fileRes.status}` });
-      }
-      const contentType = fileRes.headers.get("content-type") || (type === "mp4" ? "video/mp4" : "audio/mpeg");
-      const contentLength = fileRes.headers.get("content-length");
-      const safeName = (title || "download").replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
-      res.setHeader("Content-Type", contentType);
+      const formatArg = type === "mp4" ? "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" : "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio";
+      const safeName = title.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
+      res.setHeader("Content-Type", type === "mp4" ? "video/mp4" : "audio/mpeg");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}.${type}"`);
-      if (contentLength) res.setHeader("Content-Length", contentLength);
-      if (!fileRes.body) return res.status(502).json({ error: "No response body from CDN" });
-      const { Readable } = await import("stream");
-      const nodeStream = Readable.fromWeb(fileRes.body as import("stream/web").ReadableStream);
-      nodeStream.pipe(res);
-      nodeStream.on("error", (err) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
+      res.setHeader("Cache-Control", "no-cache");
+      const args = [
+        "--no-warnings",
+        "-f", formatArg,
+        "-o", "-",
+        videoUrl,
+      ];
+      const ytdlp = spawn("yt-dlp", args);
+      ytdlp.stdout.pipe(res);
+      let stderr = "";
+      ytdlp.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+      ytdlp.on("error", (err) => {
+        console.error("[stream] yt-dlp spawn error:", err.message);
+        if (!res.headersSent) res.status(500).json({ error: "yt-dlp not available" });
+      });
+      ytdlp.on("close", (code) => {
+        if (code !== 0) console.error(`[stream] yt-dlp exited ${code}: ${stderr.slice(-200)}`);
+      });
+      req.on("close", () => ytdlp.kill());
     } catch (err: any) {
       if (!res.headersSent) res.status(500).json({ error: err.message });
     }
