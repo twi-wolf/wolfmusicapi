@@ -177,10 +177,11 @@ async function ytdlpConvert(
     throw new Error("yt-dlp: invalid video ID");
 
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  // For -g (URL only, no merge), only request pre-merged formats — the + operator returns two URLs
   const formatArg =
     format === "mp3"
       ? "bestaudio[ext=m4a]/bestaudio/best"
-      : "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best";
+      : "best[height<=720][ext=mp4]/best[height<=720][vcodec!=none][acodec!=none]/best[ext=mp4]/best";
 
   const cookiesArg = ytdlpCookies();
   const cmd = `yt-dlp ${cookiesArg} --no-warnings --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
@@ -721,15 +722,18 @@ async function ytdlpFileConvert(
   const outTemplate = path.join(TEMP_DIR, `${uuid}.%(ext)s`);
   const cookiesArg = ytdlpCookies();
 
+  // ytdlpFile downloads the full file and merges streams with ffmpeg.
+  // --no-simulate is required because --print would otherwise skip the actual download.
   const formatArg =
     format === "mp3"
       ? "bestaudio[ext=m4a]/bestaudio/best"
-      : "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best";
+      : "bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best";
 
   const cmd = [
     `yt-dlp`,
     cookiesArg,
     `--no-warnings`,
+    `--no-simulate`,
     `-f "${formatArg}"`,
     format === "mp3" ? `--extract-audio --audio-format mp3 --audio-quality 0` : `--merge-output-format mp4`,
     `--print title`,
@@ -781,13 +785,26 @@ type ConvertProvider = {
   fn: (videoId: string, format: "mp3" | "mp4") => Promise<{ downloadUrl: string; title: string }>;
 };
 
-const providers: ConvertProvider[] = [
+const mp3Providers: ConvertProvider[] = [
   { name: "ytdlp",     fn: ytdlpConvert },
   { name: "fabdl",     fn: fabdlConvert },
   { name: "cobalt",    fn: cobaltConvert },
   { name: "piped",     fn: pipedConvert },
   { name: "y2mate",    fn: y2mateConvert },
   { name: "ytdlpFile", fn: ytdlpFileConvert },
+];
+
+// MP4 puts ytdlpFile first — it downloads the actual file server-side,
+// returning a /files/ URL that is never IP-locked.
+// fabdl/cobalt/piped return YouTube CDN URLs locked to their own servers' IPs,
+// so the proxy cannot re-serve them. ytdlpFile avoids this entirely.
+const mp4Providers: ConvertProvider[] = [
+  { name: "ytdlpFile", fn: ytdlpFileConvert },
+  { name: "ytdlp",     fn: ytdlpConvert },
+  { name: "cobalt",    fn: cobaltConvert },
+  { name: "piped",     fn: pipedConvert },
+  { name: "fabdl",     fn: fabdlConvert },
+  { name: "y2mate",    fn: y2mateConvert },
 ];
 
 export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3") {
@@ -806,12 +823,13 @@ export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3"
 
   const titlePromise = fetchRealTitle(videoId);
 
-  const healthyProviders = providers.filter((p) => isProviderHealthy(p.name));
-  const unhealthy = providers.filter((p) => !isProviderHealthy(p.name));
+  const allProviders = format === "mp4" ? mp4Providers : mp3Providers;
+  const healthyProviders = allProviders.filter((p) => isProviderHealthy(p.name));
+  const unhealthy = allProviders.filter((p) => !isProviderHealthy(p.name));
   if (unhealthy.length > 0)
     console.log(`[scraper] Skipping unhealthy: ${unhealthy.map((p) => p.name).join(", ")}`);
 
-  const orderedProviders = healthyProviders.length > 0 ? healthyProviders : providers;
+  const orderedProviders = healthyProviders.length > 0 ? healthyProviders : allProviders;
 
   for (const provider of orderedProviders) {
     try {
