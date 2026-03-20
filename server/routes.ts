@@ -2245,80 +2245,53 @@ export async function registerRoutes(
   });
 
   app.get("/stream", async (req, res) => {
-    const { spawn } = await import("child_process");
-    const fs = await import("fs");
-    const path = await import("path");
-    const os = await import("os");
     const q = (req.query.q || req.query.url) as string;
     const type = ((req.query.type as string) || "mp3").toLowerCase() === "mp4" ? "mp4" : "mp3";
     if (!q) return res.status(400).json({ error: "Missing q or url param" });
-
-    const tmpFile = path.join(os.tmpdir(), `wolfstream_${Date.now()}_${Math.random().toString(36).slice(2)}.${type}`);
-
-    const cleanup = () => { try { fs.unlinkSync(tmpFile); } catch {} };
-
     try {
       let videoUrl = q;
-      let title = "download";
       if (!isYouTubeUrl(q)) {
         const searchResults = await searchSongs(q.trim());
         if (!searchResults.items || searchResults.items.length === 0) {
           return res.status(404).json({ error: `No results found for "${q}"` });
         }
-        const top = searchResults.items[0];
-        videoUrl = `https://www.youtube.com/watch?v=${top.id}`;
-        title = top.title || "download";
+        videoUrl = `https://www.youtube.com/watch?v=${searchResults.items[0].id}`;
       }
 
-      const safeName = title.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
+      const info = await getDownloadInfo(videoUrl, type as "mp3" | "mp4");
+      if (!info || !info.success || !info.downloadUrl) {
+        return res.status(500).json({ error: (info as any)?.error || "Failed to get download URL" });
+      }
 
-      // Find cookies.txt (same paths as scraper)
-      const cookiesPaths = [
-        path.join(process.cwd(), "cookies.txt"),
-        "/var/www/wolfmusicapi/cookies.txt",
-        path.join(process.env.HOME || "", "cookies.txt"),
-      ];
-      const cookiesFile = cookiesPaths.find((p) => fs.existsSync(p));
-      const cookiesArgs = cookiesFile ? ["--cookies", cookiesFile] : [];
+      const { downloadUrl, title } = info as { downloadUrl: string; title: string };
+      const safeName = (title || "download").replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
 
-      const baseArgs = ["--no-warnings", "--no-progress", ...cookiesArgs];
-      const args = type === "mp4"
-        ? [...baseArgs, "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", "-o", tmpFile, videoUrl]
-        : [...baseArgs, "-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", tmpFile, videoUrl];
-
-      await new Promise<void>((resolve, reject) => {
-        const ytdlp = spawn("yt-dlp", args);
-        let stderr = "";
-        ytdlp.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
-        ytdlp.on("error", (err) => reject(new Error(`yt-dlp not available: ${err.message}`)));
-        ytdlp.on("close", (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(`yt-dlp failed: ${stderr.slice(-300)}`));
-        });
-        req.on("close", () => { ytdlp.kill(); reject(new Error("Client disconnected")); });
+      const fileRes = await fetch(downloadUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "*/*",
+          "Referer": "https://www.youtube.com/",
+        },
+        redirect: "follow",
       });
 
-      // yt-dlp may rename the file (e.g. .webm → .mp3 after conversion)
-      let finalFile = tmpFile;
-      if (!fs.existsSync(tmpFile)) {
-        const mp3Candidate = tmpFile.replace(`.${type}`, ".mp3");
-        if (fs.existsSync(mp3Candidate)) finalFile = mp3Candidate;
-        else { cleanup(); return res.status(500).json({ error: "Output file not found after download" }); }
+      if (!fileRes.ok) {
+        return res.status(fileRes.status).json({ error: `CDN returned ${fileRes.status}` });
       }
 
-      const stat = fs.statSync(finalFile);
-      res.setHeader("Content-Type", type === "mp4" ? "video/mp4" : "audio/mpeg");
+      const contentType = fileRes.headers.get("content-type") || (type === "mp4" ? "video/mp4" : "audio/mpeg");
+      const contentLength = fileRes.headers.get("content-length");
+      res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}.${type}"`);
-      res.setHeader("Content-Length", stat.size);
+      if (contentLength) res.setHeader("Content-Length", contentLength);
       res.setHeader("Cache-Control", "no-cache");
 
-      const readStream = fs.createReadStream(finalFile);
-      readStream.pipe(res);
-      readStream.on("close", () => { try { fs.unlinkSync(finalFile); } catch {} });
-      req.on("close", () => { readStream.destroy(); try { fs.unlinkSync(finalFile); } catch {} });
-
+      if (!fileRes.body) return res.status(502).json({ error: "No response body from CDN" });
+      const { Readable } = await import("stream");
+      const nodeStream = Readable.fromWeb(fileRes.body as import("stream/web").ReadableStream);
+      nodeStream.pipe(res);
+      nodeStream.on("error", (err) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
     } catch (err: any) {
-      cleanup();
       if (!res.headersSent) res.status(500).json({ error: err.message });
     }
   });
