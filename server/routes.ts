@@ -2244,6 +2244,48 @@ export async function registerRoutes(
     return res.json(data);
   });
 
+  app.get("/stream", async (req, res) => {
+    const q = (req.query.q || req.query.url) as string;
+    const type = ((req.query.type as string) || "mp3").toLowerCase() === "mp4" ? "mp4" : "mp3";
+    if (!q) return res.status(400).json({ error: "Missing q or url param" });
+    try {
+      let videoUrl = q;
+      if (!isYouTubeUrl(q)) {
+        const searchResults = await searchSongs(q.trim());
+        if (!searchResults.items || searchResults.items.length === 0) {
+          return res.status(404).json({ error: `No results found for "${q}"` });
+        }
+        videoUrl = `https://www.youtube.com/watch?v=${searchResults.items[0].id}`;
+      }
+      const { downloadUrl, title } = await getDownloadInfo(videoUrl, type as "mp3" | "mp4");
+      if (!downloadUrl) return res.status(500).json({ error: "No download URL returned" });
+      const fileRes = await fetch(downloadUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "*/*",
+          "Referer": "https://www.youtube.com/",
+        },
+        redirect: "follow",
+      });
+      if (!fileRes.ok) {
+        return res.status(fileRes.status).json({ error: `CDN returned ${fileRes.status}` });
+      }
+      const contentType = fileRes.headers.get("content-type") || (type === "mp4" ? "video/mp4" : "audio/mpeg");
+      const contentLength = fileRes.headers.get("content-length");
+      const safeName = (title || "download").replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}.${type}"`);
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+      if (!fileRes.body) return res.status(502).json({ error: "No response body from CDN" });
+      const { Readable } = await import("stream");
+      const nodeStream = Readable.fromWeb(fileRes.body as import("stream/web").ReadableStream);
+      nodeStream.pipe(res);
+      nodeStream.on("error", (err) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
+    } catch (err: any) {
+      if (!res.headersSent) res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/proxy", async (req, res) => {
     const url = req.query.url as string;
     if (!url) {
