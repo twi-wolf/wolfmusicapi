@@ -5,7 +5,6 @@ import { createServer } from "http";
 import { exec } from "child_process";
 import {
   securityHeaders,
-  antiScraping,
   antiClone,
   responseFingerprint,
   blockDirectSourceAccess,
@@ -35,7 +34,6 @@ app.set("trust proxy", 1);
 
 app.use(securityHeaders());
 app.use(blockDirectSourceAccess);
-app.use(antiScraping);
 app.use(antiClone);
 
 app.use(
