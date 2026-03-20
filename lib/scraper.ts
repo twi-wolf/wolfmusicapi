@@ -184,7 +184,8 @@ async function ytdlpConvert(
       : "best[height<=720][ext=mp4]/best[height<=720][vcodec!=none][acodec!=none]/best[ext=mp4]/best";
 
   const cookiesArg = ytdlpCookies();
-  const cmd = `yt-dlp ${cookiesArg} --no-warnings --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
+  // Use android player client — less aggressively blocked on datacenter/cloud IPs than the default web client
+  const cmd = `yt-dlp ${cookiesArg} --no-warnings --extractor-args "youtube:player_client=android,web" --socket-timeout 30 --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
 
   let stdout: string;
   try {
@@ -733,11 +734,14 @@ async function ytdlpFileConvert(
       ? "bestaudio[ext=m4a]/bestaudio/best"
       : "bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best";
 
+  // Use android player client — less aggressively blocked on datacenter/cloud IPs than the default web client
   const cmd = [
     `yt-dlp`,
     cookiesArg,
     `--no-warnings`,
     `--no-simulate`,
+    `--extractor-args "youtube:player_client=android,web"`,
+    `--socket-timeout 30`,
     `-f "${formatArg}"`,
     format === "mp3" ? `--extract-audio --audio-format mp3 --audio-quality 0` : `--merge-output-format mp4`,
     `--print title`,
