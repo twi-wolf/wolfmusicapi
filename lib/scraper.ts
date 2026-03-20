@@ -1,7 +1,23 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
+
+const TEMP_DIR = "/tmp/wolfapi_dl";
+try { mkdirSync(TEMP_DIR, { recursive: true }); } catch {}
+
+export const tempFiles = new Map<string, { filePath: string; expiresAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [uuid, entry] of tempFiles.entries()) {
+    if (now > entry.expiresAt) {
+      try { require("fs").unlinkSync(entry.filePath); } catch {}
+      tempFiles.delete(uuid);
+    }
+  }
+}, 5 * 60 * 1000);
 
 const execAsync = promisify(exec);
 
@@ -164,7 +180,7 @@ async function ytdlpConvert(
   const formatArg =
     format === "mp3"
       ? "bestaudio[ext=m4a]/bestaudio/best"
-      : "best[height<=480][ext=mp4]/best[ext=mp4]/best";
+      : "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best";
 
   const cookiesArg = ytdlpCookies();
   const cmd = `yt-dlp ${cookiesArg} --no-warnings --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
@@ -312,7 +328,8 @@ async function cobaltConvert(
         body.audioFormat = "mp3";
       } else {
         body.downloadMode = "auto";
-        body.videoQuality = "480";
+        body.videoQuality = "1080";
+        body.youtubeVideoCodec = "h264";
       }
 
       const res = await fetchWithTimeout(
@@ -442,7 +459,7 @@ async function pipedConvert(
       } else {
         const best =
           (data.videoStreams ?? [])
-            .filter((s: any) => s.url && s.resolution && parseInt(s.resolution) <= 480)
+            .filter((s: any) => s.url && s.resolution && parseInt(s.resolution) <= 720)
             .sort(
               (a: any, b: any) =>
                 parseInt(b.resolution || "0") - parseInt(a.resolution || "0")
@@ -687,6 +704,59 @@ export async function checkVideo(videoId: string) {
   }
 }
 
+// ─── Provider 6: yt-dlp File Download (server-side, non-IP-locked) ───────────
+// Downloads the file to a temp directory and returns a serveable local URL.
+// This is the most reliable provider since it actually downloads server-side.
+
+async function ytdlpFileConvert(
+  videoId: string,
+  format: "mp3" | "mp4"
+): Promise<{ downloadUrl: string; title: string }> {
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId))
+    throw new Error("ytdlp-file: invalid video ID");
+
+  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const uuid = randomUUID();
+  const ext = format === "mp3" ? "mp3" : "mp4";
+  const outTemplate = path.join(TEMP_DIR, `${uuid}.%(ext)s`);
+  const cookiesArg = ytdlpCookies();
+
+  const formatArg =
+    format === "mp3"
+      ? "bestaudio[ext=m4a]/bestaudio/best"
+      : "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best";
+
+  const cmd = [
+    `yt-dlp`,
+    cookiesArg,
+    `--no-warnings`,
+    `-f "${formatArg}"`,
+    format === "mp3" ? `--extract-audio --audio-format mp3 --audio-quality 0` : `--merge-output-format mp4`,
+    `--print title`,
+    `-o "${outTemplate}"`,
+    `"${youtubeUrl}"`,
+    `2>&1`,
+  ].filter(Boolean).join(" ");
+
+  let stdout: string;
+  try {
+    ({ stdout } = await execAsync(cmd, { timeout: 120000 }));
+  } catch (e: any) {
+    throw new Error(`ytdlp-file: ${(e.stderr || e.stdout || e.message || "unknown").substring(0, 300)}`);
+  }
+
+  const lines = stdout.trim().split("\n").filter((l) => l.trim());
+  const title = lines[0] || `video_${videoId}`;
+
+  const finalPath = path.join(TEMP_DIR, `${uuid}.${ext}`);
+  if (!existsSync(finalPath))
+    throw new Error(`ytdlp-file: output file not found at ${finalPath}`);
+
+  tempFiles.set(uuid, { filePath: finalPath, expiresAt: Date.now() + 30 * 60 * 1000 });
+
+  return { downloadUrl: `local://${uuid}.${ext}`, title };
+}
+
 // ─── Title resolver ──────────────────────────────────────────────────────────
 
 async function fetchRealTitle(videoId: string): Promise<string | null> {
@@ -712,11 +782,12 @@ type ConvertProvider = {
 };
 
 const providers: ConvertProvider[] = [
-  { name: "ytdlp",  fn: ytdlpConvert },
-  { name: "fabdl",  fn: fabdlConvert },
-  { name: "cobalt", fn: cobaltConvert },
-  { name: "piped",  fn: pipedConvert },
-  { name: "y2mate", fn: y2mateConvert },
+  { name: "ytdlp",     fn: ytdlpConvert },
+  { name: "fabdl",     fn: fabdlConvert },
+  { name: "cobalt",    fn: cobaltConvert },
+  { name: "piped",     fn: pipedConvert },
+  { name: "y2mate",    fn: y2mateConvert },
+  { name: "ytdlpFile", fn: ytdlpFileConvert },
 ];
 
 export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3") {
@@ -747,14 +818,16 @@ export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3"
       console.log(`[scraper] Trying provider: ${provider.name} for ${videoId} (${format})`);
       const result = await provider.fn(videoId, format);
 
-      if (!result.downloadUrl || !result.downloadUrl.startsWith("http")) {
+      const isLocal = result.downloadUrl?.startsWith("local://");
+      if (!isLocal && (!result.downloadUrl || !result.downloadUrl.startsWith("http"))) {
         throw new Error(`${provider.name}: empty or invalid download URL`);
       }
 
       const isHls =
         result.downloadUrl.includes(".m3u8") ||
         result.downloadUrl.includes("manifest");
-      const audioQuality = isHls ? "128kbps (HLS stream)" : "192kbps";
+      const audioQuality = isHls ? "128kbps (HLS stream)" : "320kbps";
+      const videoQuality = provider.name === "ytdlpFile" ? "720p (server-downloaded)" : "720p";
 
       recordProviderSuccess(provider.name);
 
@@ -768,8 +841,9 @@ export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3"
         title,
         videoId,
         format,
-        quality: format === "mp3" ? audioQuality : "360p",
+        quality: format === "mp3" ? audioQuality : videoQuality,
         downloadUrl: result.downloadUrl,
+        isLocalFile: isLocal,
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         thumbnailMq: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
         youtubeUrl,

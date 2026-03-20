@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies } from "./scraper";
+import { createReadStream, existsSync } from "fs";
+import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles } from "./scraper";
 const execAsync = promisify(exec);
 import { registerAIRoutes } from "./ai-routes";
 import { downloadTikTok } from "../lib/downloaders/tiktok";
@@ -57,6 +58,44 @@ export async function registerRoutes(
     }
   });
 
+  function buildUrls(baseUrl: string, result: any): { proxyUrl: string | null; fileUrl: string | null } {
+    const rawUrl: string = result.downloadUrl || "";
+    if (rawUrl.startsWith("local://")) {
+      const filename = rawUrl.replace("local://", "");
+      const fileUrl = `${baseUrl}/files/${filename}`;
+      return { proxyUrl: fileUrl, fileUrl };
+    }
+    if (!rawUrl.startsWith("http")) return { proxyUrl: null, fileUrl: null };
+    const proxyUrl = `${baseUrl}/proxy?url=${encodeURIComponent(rawUrl)}`;
+    return { proxyUrl, fileUrl: null };
+  }
+
+  app.get("/files/:filename", (req: any, res: any) => {
+    const filename = req.params.filename as string;
+    if (!/^[a-f0-9-]{36}\.(mp3|mp4)$/.test(filename)) {
+      return res.status(400).json({ error: "Invalid filename" });
+    }
+    const uuid = filename.replace(/\.[^.]+$/, "");
+    const entry = tempFiles.get(uuid);
+    if (!entry || !existsSync(entry.filePath)) {
+      return res.status(404).json({ error: "File not found or expired" });
+    }
+    const ext = filename.endsWith(".mp4") ? "mp4" : "mp3";
+    const contentType = ext === "mp4" ? "video/mp4" : "audio/mpeg";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    const stream = createReadStream(entry.filePath);
+    stream.pipe(res);
+    stream.on("end", () => {
+      try { require("fs").unlinkSync(entry.filePath); } catch {}
+      tempFiles.delete(uuid);
+    });
+    stream.on("error", () => {
+      if (!res.headersSent) res.status(500).json({ error: "Stream error" });
+    });
+  });
+
   const downloadHandler = (format: "mp3" | "mp4") => async (req: any, res: any) => {
     try {
       let url = (req.query.url as string) || (req.query.q as string) || (req.query.name as string);
@@ -84,12 +123,11 @@ export async function registerRoutes(
         const firstResult = searchResults.items[0];
         const videoUrl = `https://www.youtube.com/watch?v=${firstResult.id}`;
         const result = await getDownloadInfo(videoUrl, format);
-        const proxyUrl = result.downloadUrl
-          ? `${baseUrl}/proxy?url=${encodeURIComponent(result.downloadUrl as string)}`
-          : null;
+        const { proxyUrl, fileUrl } = buildUrls(baseUrl, result);
 
         return res.json({
           ...result,
+          downloadUrl: fileUrl || result.downloadUrl,
           proxyUrl,
           creator: "APIs by Silent Wolf | A tech explorer",
           searchQuery: url,
@@ -102,12 +140,11 @@ export async function registerRoutes(
       }
 
       const result = await getDownloadInfo(url, format);
-      const proxyUrl = result.downloadUrl
-        ? `${baseUrl}/proxy?url=${encodeURIComponent(result.downloadUrl as string)}`
-        : null;
+      const { proxyUrl, fileUrl } = buildUrls(baseUrl, result);
 
       return res.json({
         ...result,
+        downloadUrl: fileUrl || result.downloadUrl,
         proxyUrl,
         creator: "APIs by Silent Wolf | A tech explorer",
       });
