@@ -892,6 +892,7 @@ export async function getDownloadInfo(url: string, format: "mp3" | "mp4" = "mp3"
         thumbnailMq: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
         youtubeUrl,
         provider: provider.name,
+        ...(errors.length > 0 ? { _skippedProviders: errors } : {}),
       };
     } catch (error: any) {
       console.log(`[scraper] Provider ${provider.name} failed: ${error.message}`);

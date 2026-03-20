@@ -1,0 +1,76 @@
+root@silentwolf:/var/www/wolfmusicapi# update-wolf
+From https://github.com/nk-apex/wolfmusicapi
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+
+up to date, audited 600 packages in 3s
+
+96 packages are looking for funding
+  run `npm fund` for details
+
+13 vulnerabilities (1 low, 3 moderate, 9 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+transforming (5) ../node_modules/wouter/esm/index.js
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If y
+ou've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 1672 modules transformed.
+../dist/public/index.html                       1.87 kB │ gzip:   0.89 kB
+../dist/public/assets/wolf-logo-DF8f9tHc.png  114.15 kB
+../dist/public/assets/index-D-sY-zk0.css       73.19 kB │ gzip:  11.78 kB
+../dist/public/assets/index-B0OkqZ7v.js       499.61 kB │ gzip: 132.83 kB
+✓ built in 6.01s
+building server...
+
+  dist/index.cjs  1.4mb ⚠️
+
+⚡ Done in 210ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 1, 2, 4, 13 ])
+[PM2] [wolfmusicapi](1) ✓
+[PM2] [pairwolf](2) ✓
+[PM2] [wolftech](4) ✓
+[PM2] [wolflix](13) ✓
+┌────┬─────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬────
+──────┐
+│ id │ name            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ wat
+ching │
+├────┼─────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼────
+──────┤
+│ 2  │ pairwolf        │ default     │ 1.0.0   │ fork    │ 1598598  │ 0s     │ 32   │ online    │ 0%       │ 56.7mb   │ root     │ dis
+abled │
+│ 13 │ wolflix         │ default     │ 0.0.0   │ fork    │ 1598614  │ 0s     │ 32   │ online    │ 0%       │ 21.4mb   │ root     │ dis
+abled │
+│ 1  │ wolfmusicapi    │ default     │ 1.0.0   │ fork    │ 1598597  │ 0s     │ 32   │ online    │ 0%       │ 57.0mb   │ root     │ dis
+abled │
+│ 4  │ wolftech        │ default     │ N/A     │ fork    │ 1598613  │ 0s     │ 32   │ online    │ 0%       │ 27.3mb   │ root     │ dis
+abled │
+└────┴─────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴────
+──────┘
+root@silentwolf:/var/www/wolfmusicapi# git pull && npm run build && pm2 restart all
+Already up to date.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+transforming (12) src/pages/home.tsx
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If y
+ou've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 1672 modules transformed.
+../dist/public/index.html                       1.87 kB │ gzip:   0.89 kB
+../dist/public/assets/wolf-logo-DF8f9tHc.png  114.15 kB
+../dist/public/assets/index-D-sY-zk0.css       73.19 kB │ gzip:  11.78 kB
