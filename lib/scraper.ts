@@ -198,8 +198,7 @@ async function ytdlpConvert(
       : "best[height<=720][ext=mp4]/best[height<=720][vcodec!=none][acodec!=none]/best[ext=mp4]/best";
 
   const cookiesArg = ytdlpCookies();
-  // Try multiple player clients — android/ios/mweb are less blocked than web on datacenter IPs
-  const cmd = `yt-dlp ${cookiesArg} --no-warnings --extractor-args "youtube:player_client=android,ios,mweb,web" --socket-timeout 30 --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
+  const cmd = `yt-dlp ${cookiesArg} --no-warnings --extractor-args "youtube:player_client=android_music,android,ios,mweb,web" --socket-timeout 30 --print title -f "${formatArg}" -g "${youtubeUrl}" 2>&1`;
 
   let stdout: string;
   try {
@@ -748,13 +747,14 @@ async function ytdlpFileConvert(
       ? "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[acodec!=none]/best"
       : "best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best";
 
-  // Try multiple player clients — android/ios/mweb are less blocked than web on datacenter IPs
+  // android_music targets YouTube Music and bypasses label/music-content bot detection
+  // that android client alone can't handle on datacenter IPs
   const cmd = [
     `yt-dlp`,
     cookiesArg,
     `--no-warnings`,
     `--no-simulate`,
-    `--extractor-args "youtube:player_client=android,ios,mweb,web"`,
+    `--extractor-args "youtube:player_client=android_music,android,ios,mweb,web"`,
     `--socket-timeout 30`,
     `-f "${formatArg}"`,
     `--print title`,

@@ -2412,7 +2412,7 @@ export async function registerRoutes(
       cookiesArg,
       `--no-warnings`,
       `--no-simulate`,
-      `--extractor-args "youtube:player_client=android,ios,mweb,web"`,
+      `--extractor-args "youtube:player_client=android_music,android,ios,mweb,web"`,
       `--socket-timeout 30`,
       `-f "${fmt}"`,
       `--print title`,
