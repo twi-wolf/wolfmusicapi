@@ -22,19 +22,15 @@ setInterval(() => {
 const execAsync = promisify(exec);
 
 // ─── Cookies ─────────────────────────────────────────────────────────────────
-
-const COOKIES_PATHS = [
-  path.join(process.cwd(), "cookies.txt"),
-  "/var/www/wolfmusicapi/cookies.txt",
-  path.join(process.env.HOME || "", "cookies.txt"),
-];
+// Only use cookies if YTDLP_COOKIES env var is explicitly set to a file path.
+// Auto-detecting cookies from the filesystem caused expired cookies to be used,
+// which made YouTube's bot detection more aggressive rather than less.
 
 function getCookiesArg(): string {
-  for (const p of COOKIES_PATHS) {
-    if (existsSync(p)) {
-      console.log(`[yt-dlp] Using cookies from: ${p}`);
-      return `--cookies '${p}'`;
-    }
+  const envPath = process.env.YTDLP_COOKIES;
+  if (envPath && existsSync(envPath)) {
+    console.log(`[yt-dlp] Using cookies from env: ${envPath}`);
+    return `--cookies '${envPath}'`;
   }
   return "";
 }

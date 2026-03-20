@@ -2401,14 +2401,10 @@ export async function registerRoutes(
     const outTemplate = `${TDIR}/${uuid}.%(ext)s`;
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // Mirror exactly what ytdlpFileConvert does
-    const cookiesPaths = [
-      process.cwd() + "/cookies.txt",
-      "/var/www/wolfmusicapi/cookies.txt",
-      (process.env.HOME || "") + "/cookies.txt",
-    ];
-    const cookiesArg = cookiesPaths.find((p) => existsSync(p))
-      ? `--cookies '${cookiesPaths.find((p) => existsSync(p))}'`
+    // Mirror exactly what ytdlpFileConvert does — only use cookies if YTDLP_COOKIES env var is set
+    const envCookiesPath = process.env.YTDLP_COOKIES;
+    const cookiesArg = (envCookiesPath && existsSync(envCookiesPath))
+      ? `--cookies '${envCookiesPath}'`
       : "";
 
     const cmd = [
