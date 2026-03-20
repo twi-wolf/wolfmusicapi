@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readdirSync } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 
@@ -723,18 +723,16 @@ async function ytdlpFileConvert(
 
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
   const uuid = randomUUID();
-  const ext = format === "mp3" ? "mp3" : "mp4";
   const outTemplate = path.join(TEMP_DIR, `${uuid}.%(ext)s`);
   const cookiesArg = ytdlpCookies();
 
-  // ytdlpFile downloads the full file and merges streams with ffmpeg.
-  // --no-simulate is required because --print would otherwise skip the actual download.
-  // Pre-merged formats are listed first because the android player client (our primary
-  // client for VPS IPs) only provides pre-merged streams, not separate DASH streams.
+  // No ffmpeg-dependent flags (--merge-output-format, --extract-audio) — only pre-merged
+  // formats are requested so the download works on servers without ffmpeg installed.
+  // Android player client provides pre-merged mp4/m4a streams (itag 18/22/140).
   const formatArg =
     format === "mp3"
-      ? "bestaudio[ext=m4a]/bestaudio/best"
-      : "best[height<=720][ext=mp4]/best[height<=720]/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best";
+      ? "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[acodec!=none]/best"
+      : "best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best";
 
   // Try multiple player clients — android/ios/mweb are less blocked than web on datacenter IPs
   const cmd = [
@@ -745,7 +743,6 @@ async function ytdlpFileConvert(
     `--extractor-args "youtube:player_client=android,ios,mweb,web"`,
     `--socket-timeout 30`,
     `-f "${formatArg}"`,
-    format === "mp3" ? `--extract-audio --audio-format mp3 --audio-quality 0` : `--merge-output-format mp4`,
     `--print title`,
     `-o "${outTemplate}"`,
     `"${youtubeUrl}"`,
@@ -762,13 +759,18 @@ async function ytdlpFileConvert(
   const lines = stdout.trim().split("\n").filter((l) => l.trim());
   const title = lines[0] || `video_${videoId}`;
 
-  const finalPath = path.join(TEMP_DIR, `${uuid}.${ext}`);
-  if (!existsSync(finalPath))
-    throw new Error(`ytdlp-file: output file not found at ${finalPath}`);
+  // Find the actual output file — yt-dlp picks the extension from the format it selected
+  const candidates = readdirSync(TEMP_DIR).filter((f) => f.startsWith(uuid));
+  if (candidates.length === 0)
+    throw new Error(`ytdlp-file: output file not found (stdout: ${stdout.substring(0, 200)})`);
+
+  const filename = candidates[0];
+  const actualExt = filename.split(".").pop() || (format === "mp3" ? "m4a" : "mp4");
+  const finalPath = path.join(TEMP_DIR, filename);
 
   tempFiles.set(uuid, { filePath: finalPath, expiresAt: Date.now() + 30 * 60 * 1000 });
 
-  return { downloadUrl: `local://${uuid}.${ext}`, title };
+  return { downloadUrl: `local://${uuid}.${actualExt}`, title };
 }
 
 // ─── Title resolver ──────────────────────────────────────────────────────────

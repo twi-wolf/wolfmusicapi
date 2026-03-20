@@ -99,7 +99,7 @@ export async function registerRoutes(
 
   app.get("/files/:filename", (req: any, res: any) => {
     const filename = req.params.filename as string;
-    if (!/^[a-f0-9-]{36}\.(mp3|mp4)$/.test(filename)) {
+    if (!/^[a-f0-9-]{36}\.(mp3|mp4|m4a|webm|mkv|m4v)$/.test(filename)) {
       return res.status(400).json({ error: "Invalid filename" });
     }
     const uuid = filename.replace(/\.[^.]+$/, "");
@@ -107,8 +107,12 @@ export async function registerRoutes(
     if (!entry || !existsSync(entry.filePath)) {
       return res.status(404).json({ error: "File not found or expired" });
     }
-    const ext = filename.endsWith(".mp4") ? "mp4" : "mp3";
-    const contentType = ext === "mp4" ? "video/mp4" : "audio/mpeg";
+    const extMap: Record<string, string> = {
+      mp4: "video/mp4", m4v: "video/mp4", mkv: "video/x-matroska",
+      webm: "video/webm", mp3: "audio/mpeg", m4a: "audio/mp4",
+    };
+    const ext = filename.split(".").pop() || "mp4";
+    const contentType = extMap[ext] || "application/octet-stream";
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Cache-Control", "no-store");
