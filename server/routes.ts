@@ -2369,6 +2369,42 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/debug/ytdlp", async (req, res) => {
+    const videoId = (req.query.v as string) || "dQw4w9WgXcQ";
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId))
+      return res.status(400).json({ error: "Invalid video ID" });
+
+    const { exec } = await import("child_process");
+    const { promisify } = await import("util");
+    const execAsync = promisify(exec);
+
+    const results: Record<string, any> = {};
+
+    try {
+      const { stdout: version } = await execAsync("yt-dlp --version 2>&1");
+      results.version = version.trim();
+    } catch (e: any) {
+      results.version = `ERROR: ${e.message}`;
+    }
+
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const clients = ["android", "ios", "mweb", "web"];
+
+    for (const client of clients) {
+      try {
+        const cmd = `yt-dlp --no-warnings --extractor-args "youtube:player_client=${client}" --socket-timeout 15 -f "best[height<=720]/best" -g "${youtubeUrl}" 2>&1`;
+        const { stdout } = await execAsync(cmd, { timeout: 25000 });
+        const lines = stdout.trim().split("\n").filter(Boolean);
+        results[`client_${client}`] = { success: true, url: lines[lines.length - 1]?.substring(0, 80) + "..." };
+      } catch (e: any) {
+        const msg = (e.stdout || e.stderr || e.message || "unknown").substring(0, 200);
+        results[`client_${client}`] = { success: false, error: msg };
+      }
+    }
+
+    return res.json({ videoId, ...results });
+  });
+
   app.get("/proxy", async (req, res) => {
     const url = req.query.url as string;
     if (!url) {
