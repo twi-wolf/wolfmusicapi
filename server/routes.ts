@@ -2380,30 +2380,65 @@ export async function registerRoutes(
 
     const { exec } = await import("child_process");
     const { promisify } = await import("util");
+    const { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } = await import("fs");
+    const { randomUUID } = await import("crypto");
     const execAsync = promisify(exec);
+    const TDIR = "/tmp/wolfapi_dl";
 
     const results: Record<string, any> = {};
 
+    // 1. yt-dlp version
     try {
-      const { stdout: version } = await execAsync("yt-dlp --version 2>&1");
-      results.version = version.trim();
-    } catch (e: any) {
-      results.version = `ERROR: ${e.message}`;
+      const { stdout } = await execAsync("yt-dlp --version 2>&1");
+      results.version = stdout.trim();
+    } catch (e: any) { results.version = `ERROR: ${e.message}`; }
+
+    // 2. ffmpeg availability
+    try {
+      const { stdout } = await execAsync("ffmpeg -version 2>&1");
+      results.ffmpeg = stdout.split("\n")[0].trim();
+    } catch { results.ffmpeg = "NOT FOUND"; }
+
+    // 3. Temp dir write test
+    try {
+      mkdirSync(TDIR, { recursive: true });
+      const testFile = `${TDIR}/write_test_${Date.now()}`;
+      require("fs").writeFileSync(testFile, "test");
+      require("fs").unlinkSync(testFile);
+      results.tmp_writable = true;
+    } catch (e: any) { results.tmp_writable = `ERROR: ${e.message}`; }
+
+    // 4. URL extraction per client (fast check)
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    for (const client of ["android", "ios", "mweb", "web"]) {
+      try {
+        const cmd = `yt-dlp --no-warnings --extractor-args "youtube:player_client=${client}" --socket-timeout 15 -f "best[height<=720][ext=mp4]/best[height<=720]/best" -g "${youtubeUrl}" 2>&1`;
+        const { stdout } = await execAsync(cmd, { timeout: 20000 });
+        const lines = stdout.trim().split("\n").filter(Boolean);
+        const url = lines[lines.length - 1] || "";
+        results[`url_${client}`] = url.startsWith("http") ? { success: true, url: url.substring(0, 80) + "..." } : { success: false, error: stdout.substring(0, 200) };
+      } catch (e: any) {
+        results[`url_${client}`] = { success: false, error: (e.stdout || e.stderr || e.message || "unknown").substring(0, 200) };
+      }
     }
 
-    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const clients = ["android", "ios", "mweb", "web"];
-
-    for (const client of clients) {
-      try {
-        const cmd = `yt-dlp --no-warnings --extractor-args "youtube:player_client=${client}" --socket-timeout 15 -f "best[height<=720]/best" -g "${youtubeUrl}" 2>&1`;
-        const { stdout } = await execAsync(cmd, { timeout: 25000 });
-        const lines = stdout.trim().split("\n").filter(Boolean);
-        results[`client_${client}`] = { success: true, url: lines[lines.length - 1]?.substring(0, 80) + "..." };
-      } catch (e: any) {
-        const msg = (e.stdout || e.stderr || e.message || "unknown").substring(0, 200);
-        results[`client_${client}`] = { success: false, error: msg };
+    // 5. Actual file download test (the critical step)
+    try {
+      const uuid = randomUUID();
+      const outTemplate = `${TDIR}/${uuid}.%(ext)s`;
+      const fmt = "best[height<=360][ext=mp4]/best[height<=360]/best[ext=mp4]/best";
+      const cmd = `yt-dlp --no-warnings --no-simulate --extractor-args "youtube:player_client=android,ios,mweb,web" --socket-timeout 30 -f "${fmt}" --print title -o "${outTemplate}" "${youtubeUrl}" 2>&1`;
+      const { stdout } = await execAsync(cmd, { timeout: 90000 });
+      const files = readdirSync(TDIR).filter((f: string) => f.startsWith(uuid));
+      if (files.length > 0) {
+        const sz = statSync(`${TDIR}/${files[0]}`).size;
+        try { unlinkSync(`${TDIR}/${files[0]}`); } catch {}
+        results.download_test = { success: true, file: files[0], size_bytes: sz, stdout: stdout.substring(0, 300) };
+      } else {
+        results.download_test = { success: false, error: "File not created", stdout: stdout.substring(0, 400) };
       }
+    } catch (e: any) {
+      results.download_test = { success: false, error: (e.stdout || e.stderr || e.message || "unknown").substring(0, 400) };
     }
 
     return res.json({ videoId, ...results });
