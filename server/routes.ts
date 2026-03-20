@@ -2271,9 +2271,20 @@ export async function registerRoutes(
       }
 
       const safeName = title.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
+
+      // Find cookies.txt (same paths as scraper)
+      const cookiesPaths = [
+        path.join(process.cwd(), "cookies.txt"),
+        "/var/www/wolfmusicapi/cookies.txt",
+        path.join(process.env.HOME || "", "cookies.txt"),
+      ];
+      const cookiesFile = cookiesPaths.find((p) => fs.existsSync(p));
+      const cookiesArgs = cookiesFile ? ["--cookies", cookiesFile] : [];
+
+      const baseArgs = ["--no-warnings", "--no-progress", ...cookiesArgs];
       const args = type === "mp4"
-        ? ["--no-warnings", "--no-progress", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", "-o", tmpFile, videoUrl]
-        : ["--no-warnings", "--no-progress", "-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", tmpFile, videoUrl];
+        ? [...baseArgs, "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", "-o", tmpFile, videoUrl]
+        : [...baseArgs, "-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", tmpFile, videoUrl];
 
       await new Promise<void>((resolve, reject) => {
         const ytdlp = spawn("yt-dlp", args);
