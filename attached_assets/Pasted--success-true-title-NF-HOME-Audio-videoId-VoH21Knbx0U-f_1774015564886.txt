@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "title": "NF - HOME (Audio)",
+  "videoId": "VoH21Knbx0U",
+  "format": "mp4",
+  "quality": "720p",
+  "downloadUrl": "https://rr5---sn-nx57ynsk.googlevideo.com/videoplayback?expire=1774035013&ei=5Uu9abaTIp_RsfIPzbey0Qw&ip=104.143.228.82&id=o-ALi4AsYZSulDtFMhOQ_wuzYZMFg1AQbVE0-uIUytAcRn&itag=18&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=716&met=1774013413%2C&mh=uC&mm=31%2C26&mn=sn-nx57ynsk%2Csn-qxoedn7k&ms=au%2Conr&mv=u&mvi=5&pl=24&rms=au%2Cau&gcr=us&bui=AVNa5-zS42W9WcPoDJzshv_hdizIw6sXXHJ-ubdWvMRzJ6Zi3PR_vVs0ZFKk2OB6AuM6D9gPBQTtqJzi&spc=6dlaFOkZR_X8z_pzkbhKn6v-Cc2lLYoW-WiPX-adL7a1TvP6Vwz7&vprv=1&svpuc=1&mime=video%2Fmp4&rqh=1&gir=yes&clen=4830128&ratebypass=yes&dur=284.142&lmt=1772349810503219&mt=1774012195&fvip=3&fexp=51565115%2C51565681%2C51791334&c=ANDROID_VR&txp=5538534&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cratebypass%2Cdur%2Clmt&sig=AHEqNM4wRgIhALmazYvawcLrbTqNxDjlseAKoLSOgIMeVXXngLAzse0zAiEA5YCiYtrYUIED0pc_CGkxQM8ON1_mJY-_aDu91gcDPbQ%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms&lsig=APaTxxMwRAIgaSGSou4SSf0rYku6rxYlETHwkOulie6YfkQl_E_AcScCIEnad_LdMnWvlvDRfMusI2R1HzJajk6_tIKxMF123m-2&title=NF+-+HOME+%28Audio%29",
+  "isLocalFile": false,
+  "thumbnail": "https://img.youtube.com/vi/VoH21Knbx0U/hqdefault.jpg",
+  "thumbnailMq": "https://img.youtube.com/vi/VoH21Knbx0U/mqdefault.jpg",
+  "youtubeUrl": "https://www.youtube.com/watch?v=VoH21Knbx0U",
+  "provider": "fabdl",
+  "proxyUrl": "https://apis.xwolf.space/proxy?url=https%3A%2F%2Frr5---sn-nx57ynsk.googlevideo.com%2Fvideoplayback%3Fexpire%3D1774035013%26ei%3D5Uu9abaTIp_RsfIPzbey0Qw%26ip%3D104.143.228.82%26id%3Do-ALi4AsYZSulDtFMhOQ_wuzYZMFg1AQbVE0-uIUytAcRn%26itag%3D18%26source%3Dyoutube%26requiressl%3Dyes%26xpc%3DEgVo2aDSNQ%253D%253D%26cps%3D716%26met%3D1774013413%252C%26mh%3DuC%26mm%3D31%252C26%26mn%3Dsn-nx57ynsk%252Csn-qxoedn7k%26ms%3Dau%252Conr%26mv%3Du%26mvi%3D5%26pl%3D24%26rms%3Dau%252Cau%26gcr%3Dus%26bui%3DAVNa5-zS42W9WcPoDJzshv_hdizIw6sXXHJ-ubdWvMRzJ6Zi3PR_vVs0ZFKk2OB6AuM6D9gPBQTtqJzi%26spc%3D6dlaFOkZR_X8z_pzkbhKn6v-Cc2lLYoW-WiPX-adL7a1TvP6Vwz7%26vprv%3D1%26svpuc%3D1%26mime%3Dvideo%252Fmp4%26rqh%3D1%26gir%3Dyes%26clen%3D4830128%26ratebypass%3Dyes%26dur%3D284.142%26lmt%3D1772349810503219%26mt%3D1774012195%26fvip%3D3%26fexp%3D51565115%252C51565681%252C51791334%26c%3DANDROID_VR%26txp%3D5538534%26sparams%3Dexpire%252Cei%252Cip%252Cid%252Citag%252Csource%252Crequiressl%252Cxpc%252Cgcr%252Cbui%252Cspc%252Cvprv%252Csvpuc%252Cmime%252Crqh%252Cgir%252Cclen%252Cratebypass%252Cdur%252Clmt%26sig%3DAHEqNM4wRgIhALmazYvawcLrbTqNxDjlseAKoLSOgIMeVXXngLAzse0zAiEA5YCiYtrYUIED0pc_CGkxQM8ON1_mJY-_aDu91gcDPbQ%253D%26lsparams%3Dcps%252Cmet%252Cmh%252Cmm%252Cmn%252Cms%252Cmv%252Cmvi%252Cpl%252Crms%26lsig%3DAPaTxxMwRAIgaSGSou4SSf0rYku6rxYlETHwkOulie6YfkQl_E_AcScCIEnad_LdMnWvlvDRfMusI2R1HzJajk6_tIKxMF123m-2%26title%3DNF%2B-%2BHOME%2B%2528Audio%2529",
+  "creator": "APIs by Silent Wolf | A tech explorer",
+  "searchQuery": "Home by NF",
+  "searchResult": {
+    "title": "NF - HOME (Audio)",
+    "channelTitle": "NFrealmusic",
+    "duration": "4:45"
+  }
+}

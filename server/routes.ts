@@ -2383,6 +2383,75 @@ export async function registerRoutes(
     return res.json({ cleared: name || "all", health: getProviderHealthStatus() });
   });
 
+  app.get("/debug/ytdlp-file", async (req, res) => {
+    const videoId = (req.query.v as string) || "VoH21Knbx0U";
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId))
+      return res.status(400).json({ error: "Invalid video ID" });
+
+    const { exec: execRaw } = await import("child_process");
+    const { promisify: prom } = await import("util");
+    const { mkdirSync, readdirSync, statSync, unlinkSync, existsSync } = await import("fs");
+    const { randomUUID } = await import("crypto");
+    const xExec = prom(execRaw);
+    const TDIR = "/tmp/wolfapi_dl";
+    mkdirSync(TDIR, { recursive: true });
+
+    const fmt = `best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best`;
+    const uuid = randomUUID();
+    const outTemplate = `${TDIR}/${uuid}.%(ext)s`;
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // Mirror exactly what ytdlpFileConvert does
+    const cookiesPaths = [
+      process.cwd() + "/cookies.txt",
+      "/var/www/wolfmusicapi/cookies.txt",
+      (process.env.HOME || "") + "/cookies.txt",
+    ];
+    const cookiesArg = cookiesPaths.find((p) => existsSync(p))
+      ? `--cookies '${cookiesPaths.find((p) => existsSync(p))}'`
+      : "";
+
+    const cmd = [
+      `yt-dlp`,
+      cookiesArg,
+      `--no-warnings`,
+      `--no-simulate`,
+      `--extractor-args "youtube:player_client=android,ios,mweb,web"`,
+      `--socket-timeout 30`,
+      `-f "${fmt}"`,
+      `--print title`,
+      `-o "${outTemplate}"`,
+      `"${youtubeUrl}"`,
+      `2>&1`,
+    ].filter(Boolean).join(" ");
+
+    let stdout = "";
+    let cmdError = null;
+    try {
+      ({ stdout } = await xExec(cmd, { timeout: 120000 }));
+    } catch (e: any) {
+      cmdError = (e.stdout || e.stderr || e.message || "unknown");
+    }
+
+    const files = readdirSync(TDIR).filter((f: string) => f.startsWith(uuid));
+    let fileInfo = null;
+    if (files.length > 0) {
+      const sz = statSync(`${TDIR}/${files[0]}`).size;
+      try { unlinkSync(`${TDIR}/${files[0]}`); } catch {}
+      fileInfo = { name: files[0], size_bytes: sz };
+    }
+
+    return res.json({
+      videoId,
+      cmd: cmd.replace(/--cookies '[^']*'/, "--cookies '[REDACTED]'"),
+      cookiesArg: cookiesArg ? "FOUND" : "NONE",
+      stdout: stdout.substring(0, 500),
+      cmdError: cmdError ? String(cmdError).substring(0, 500) : null,
+      fileCreated: fileInfo,
+      providerHealth: getProviderHealthStatus(),
+    });
+  });
+
   app.get("/debug/ytdlp", async (req, res) => {
     const videoId = (req.query.v as string) || "dQw4w9WgXcQ";
     if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId))
