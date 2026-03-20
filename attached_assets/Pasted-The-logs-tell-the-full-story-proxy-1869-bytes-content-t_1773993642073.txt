@@ -1,0 +1,49 @@
+The logs tell the full story:
+
+proxy → 1869 bytes | content-type: text/html; charset=utf-8   ← proxy returns HTML error page
+direct error: Request failed with status code 403              ← CDN still IP-blocks Replit
+The proxy endpoint itself is erroring out internally when it tries to fetch the CDN URL. Let me check what URL it's actually trying to fetch — that's the missing piece:
+
+Now I can see the root cause clearly. The CDN URL has ip=191.101.191.121 hardcoded in it — Google locks the URL to the exact IP that generated it. Your proxy runs on 62.171.170.186 (different IP), so Google rejects it with 403 and your proxy returns an HTML error page.
+
+The real fix: Instead of a two-step process (get URL → proxy-fetch URL), the API needs a single /stream endpoint that generates AND fetches the file in one shot — same server, same IP, no mismatch.
+
+Here's exactly what to add to your server:
+
+The proxy is confirmed broken — even with a simple test URL (httpbin.org) it returns the same 1869-byte HTML page. The /proxy route isn't actually registered on your server — requests are hitting your website's default HTML page instead. Your server likely needs a restart after adding the route, or the route has a code issue.
+
+But there's a much cleaner solution that avoids the two-step problem entirely — a /stream endpoint that searches, gets the CDN URL, and pipes the file back all in one request on your server (same IP = no Google 403):
+
+Add this to your server:
+
+import axios from 'axios';
+app.get('/stream', async (req, res) => {
+  const q = req.query.q || req.query.url;
+  const type = (req.query.type || 'mp3').toLowerCase();
+  if (!q) return res.status(400).json({ error: 'Missing q or url param' });
+  try {
+    // Step 1: Get the CDN download URL from your own API (same server = same IP)
+    const apiPath = type === 'mp4' ? 'mp4' : 'mp3';
+    const paramKey = /^https?:\/\//i.test(q) ? 'url' : 'q';
+    const apiRes = await axios.get(`https://apis.xwolf.space/download/${apiPath}`, {
+      params: { [paramKey]: q, botkey: 'wolfbot_bypass_2024' },
+      timeout: 30000
+    });
+    const downloadUrl = apiRes.data?.downloadUrl || apiRes.data?.download_url;
+    if (!downloadUrl) return res.status(500).json({ error: 'No download URL from API' });
+    // Step 2: Fetch and stream the file (same server IP as above = CDN allows it)
+    const fileRes = await axios.get(downloadUrl, {
+      responseType: 'stream',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Accept': '*/*' },
+      maxRedirects: 10,
+      timeout: 120000
+    });
+    res.setHeader('Content-Type', fileRes.headers['content-type'] || (type === 'mp4' ? 'video/mp4' : 'audio/mpeg'));
+    if (fileRes.headers['content-length']) res.setHeader('Content-Length', fileRes.headers['content-length']);
+    fileRes.data.pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+Once that's live, I'll update the bot to call /stream directly — one request, no CDN URL exposed, no IP mismatch possible. Let me know when it's added.
+

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLoader } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import {
   Music,
@@ -1325,6 +1326,12 @@ export default function Home() {
   const handleTry = (ep: ApiEndpoint) => {
     setTestEndpoint(ep);
   };
+
+  const { triggerLoader } = useLoader();
+
+  useEffect(() => {
+    triggerLoader();
+  }, [activeCategory]);
 
   const handleCategoryClick = (id: string) => {
     setActiveCategory(id);
