@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { createReadStream, existsSync } from "fs";
-import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles } from "./scraper";
+import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles, resetProviderHealth, getProviderHealthStatus } from "./scraper";
 const execAsync = promisify(exec);
 import { registerAIRoutes } from "./ai-routes";
 import { downloadTikTok } from "../lib/downloaders/tiktok";
@@ -2371,6 +2371,16 @@ export async function registerRoutes(
     } catch (err: any) {
       if (!res.headersSent) res.status(500).json({ error: err.message });
     }
+  });
+
+  app.get("/debug/provider-health", (_req, res) => {
+    return res.json(getProviderHealthStatus());
+  });
+
+  app.post("/debug/reset-providers", (req, res) => {
+    const name = req.body?.name as string | undefined;
+    resetProviderHealth(name);
+    return res.json({ cleared: name || "all", health: getProviderHealthStatus() });
   });
 
   app.get("/debug/ytdlp", async (req, res) => {

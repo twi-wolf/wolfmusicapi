@@ -167,6 +167,24 @@ function recordProviderSuccess(name: string): void {
   providerHealth.delete(name);
 }
 
+export function resetProviderHealth(name?: string): void {
+  if (name) providerHealth.delete(name);
+  else providerHealth.clear();
+}
+
+export function getProviderHealthStatus(): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [name, h] of providerHealth.entries()) {
+    const onCooldown = Date.now() < h.cooldownUntil;
+    out[name] = {
+      failures: h.failures,
+      onCooldown,
+      cooldownSecondsLeft: onCooldown ? Math.ceil((h.cooldownUntil - Date.now()) / 1000) : 0,
+    };
+  }
+  return out;
+}
+
 // ─── Provider 1: yt-dlp ──────────────────────────────────────────────────────
 
 async function ytdlpConvert(
