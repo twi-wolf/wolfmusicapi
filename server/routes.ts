@@ -2246,9 +2246,17 @@ export async function registerRoutes(
 
   app.get("/stream", async (req, res) => {
     const { spawn } = await import("child_process");
+    const fs = await import("fs");
+    const path = await import("path");
+    const os = await import("os");
     const q = (req.query.q || req.query.url) as string;
     const type = ((req.query.type as string) || "mp3").toLowerCase() === "mp4" ? "mp4" : "mp3";
     if (!q) return res.status(400).json({ error: "Missing q or url param" });
+
+    const tmpFile = path.join(os.tmpdir(), `wolfstream_${Date.now()}_${Math.random().toString(36).slice(2)}.${type}`);
+
+    const cleanup = () => { try { fs.unlinkSync(tmpFile); } catch {} };
+
     try {
       let videoUrl = q;
       let title = "download";
@@ -2261,30 +2269,45 @@ export async function registerRoutes(
         videoUrl = `https://www.youtube.com/watch?v=${top.id}`;
         title = top.title || "download";
       }
-      const formatArg = type === "mp4" ? "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" : "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio";
+
       const safeName = title.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() || "download";
+      const args = type === "mp4"
+        ? ["--no-warnings", "--no-progress", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", "-o", tmpFile, videoUrl]
+        : ["--no-warnings", "--no-progress", "-x", "--audio-format", "mp3", "--audio-quality", "0", "-o", tmpFile, videoUrl];
+
+      await new Promise<void>((resolve, reject) => {
+        const ytdlp = spawn("yt-dlp", args);
+        let stderr = "";
+        ytdlp.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
+        ytdlp.on("error", (err) => reject(new Error(`yt-dlp not available: ${err.message}`)));
+        ytdlp.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`yt-dlp failed: ${stderr.slice(-300)}`));
+        });
+        req.on("close", () => { ytdlp.kill(); reject(new Error("Client disconnected")); });
+      });
+
+      // yt-dlp may rename the file (e.g. .webm → .mp3 after conversion)
+      let finalFile = tmpFile;
+      if (!fs.existsSync(tmpFile)) {
+        const mp3Candidate = tmpFile.replace(`.${type}`, ".mp3");
+        if (fs.existsSync(mp3Candidate)) finalFile = mp3Candidate;
+        else { cleanup(); return res.status(500).json({ error: "Output file not found after download" }); }
+      }
+
+      const stat = fs.statSync(finalFile);
       res.setHeader("Content-Type", type === "mp4" ? "video/mp4" : "audio/mpeg");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}.${type}"`);
+      res.setHeader("Content-Length", stat.size);
       res.setHeader("Cache-Control", "no-cache");
-      const args = [
-        "--no-warnings",
-        "-f", formatArg,
-        "-o", "-",
-        videoUrl,
-      ];
-      const ytdlp = spawn("yt-dlp", args);
-      ytdlp.stdout.pipe(res);
-      let stderr = "";
-      ytdlp.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
-      ytdlp.on("error", (err) => {
-        console.error("[stream] yt-dlp spawn error:", err.message);
-        if (!res.headersSent) res.status(500).json({ error: "yt-dlp not available" });
-      });
-      ytdlp.on("close", (code) => {
-        if (code !== 0) console.error(`[stream] yt-dlp exited ${code}: ${stderr.slice(-200)}`);
-      });
-      req.on("close", () => ytdlp.kill());
+
+      const readStream = fs.createReadStream(finalFile);
+      readStream.pipe(res);
+      readStream.on("close", () => { try { fs.unlinkSync(finalFile); } catch {} });
+      req.on("close", () => { readStream.destroy(); try { fs.unlinkSync(finalFile); } catch {} });
+
     } catch (err: any) {
+      cleanup();
       if (!res.headersSent) res.status(500).json({ error: err.message });
     }
   });
