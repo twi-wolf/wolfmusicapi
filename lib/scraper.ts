@@ -729,10 +729,12 @@ async function ytdlpFileConvert(
 
   // ytdlpFile downloads the full file and merges streams with ffmpeg.
   // --no-simulate is required because --print would otherwise skip the actual download.
+  // Pre-merged formats are listed first because the android player client (our primary
+  // client for VPS IPs) only provides pre-merged streams, not separate DASH streams.
   const formatArg =
     format === "mp3"
       ? "bestaudio[ext=m4a]/bestaudio/best"
-      : "bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best";
+      : "best[height<=720][ext=mp4]/best[height<=720]/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best";
 
   // Try multiple player clients — android/ios/mweb are less blocked than web on datacenter IPs
   const cmd = [
