@@ -99,6 +99,10 @@ export function securityHeaders() {
   });
 }
 
+const WHITELISTED_IPS = [
+  "136.109.115.21",
+];
+
 export function antiScraping(req: Request, res: Response, next: NextFunction) {
   if (!req.path.startsWith("/api/") && !req.path.startsWith("/download/")) {
     return next();
@@ -106,6 +110,8 @@ export function antiScraping(req: Request, res: Response, next: NextFunction) {
 
   const ua = req.headers["user-agent"] || "";
   const ip = getClientIP(req);
+
+  if (WHITELISTED_IPS.includes(ip)) return next();
   const path = req.path.toLowerCase();
   const now = Date.now();
 
