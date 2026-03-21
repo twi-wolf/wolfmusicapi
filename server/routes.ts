@@ -2521,33 +2521,73 @@ export async function registerRoutes(
 
   app.get("/proxy", async (req, res) => {
     const url = req.query.url as string;
-    if (!url) {
-      return res.status(400).json({ error: "Missing url param" });
-    }
+    if (!url) return res.status(400).json({ error: "Missing url param" });
+
+    let origin = "https://www.youtube.com";
+    try { origin = new URL(url).origin; } catch {}
+
+    const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+    const upstreamHeaders: Record<string, string> = {
+      "User-Agent": UA,
+      "Accept": "*/*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "identity",
+      "Referer": origin + "/",
+      "Origin": origin,
+      "Sec-Fetch-Dest": "video",
+      "Sec-Fetch-Mode": "no-cors",
+      "Sec-Fetch-Site": "cross-site",
+      "Sec-CH-UA": '"Chromium";v="131", "Google Chrome";v="131", "Not_A Brand";v="24"',
+      "Sec-CH-UA-Mobile": "?0",
+      "Sec-CH-UA-Platform": '"Windows"',
+      "DNT": "1",
+      "Connection": "keep-alive",
+    };
+
+    // Forward Range header so video players can seek
+    const rangeHeader = req.headers.range;
+    if (rangeHeader) upstreamHeaders["Range"] = rangeHeader;
+
     try {
       const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "*/*",
-          "Referer": "https://www.youtube.com/",
-        },
+        headers: upstreamHeaders,
         redirect: "follow",
       });
-      if (!response.ok) {
+
+      // 403/401 — the URL may be IP-locked or expired
+      if (response.status === 403 || response.status === 401) {
+        return res.status(response.status).json({ error: `Upstream blocked (${response.status}) — URL may be IP-locked or expired` });
+      }
+      if (!response.ok && response.status !== 206) {
         return res.status(response.status).json({ error: `Upstream returned ${response.status}` });
       }
+
       const contentType = response.headers.get("content-type") || "application/octet-stream";
       const contentLength = response.headers.get("content-length");
+      const contentRange = response.headers.get("content-range");
+      const acceptRanges = response.headers.get("accept-ranges");
+
       res.setHeader("Content-Type", contentType);
-      if (contentLength) res.setHeader("Content-Length", contentLength);
       res.setHeader("Cache-Control", "no-cache");
-      if (!response.body) {
-        return res.status(502).json({ error: "No response body from upstream" });
-      }
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+      if (contentRange) res.setHeader("Content-Range", contentRange);
+      if (acceptRanges) res.setHeader("Accept-Ranges", acceptRanges);
+      else res.setHeader("Accept-Ranges", "bytes");
+
+      // Preserve Content-Disposition so browsers trigger download correctly
+      const disposition = response.headers.get("content-disposition");
+      if (disposition) res.setHeader("Content-Disposition", disposition);
+
+      res.status(response.status);
+
+      if (!response.body) return res.status(502).json({ error: "No response body" });
+
       const { Readable } = await import("stream");
       const nodeStream = Readable.fromWeb(response.body as import("stream/web").ReadableStream);
       nodeStream.pipe(res);
-      nodeStream.on("error", (err) => {
+      nodeStream.on("error", (err: any) => {
         if (!res.headersSent) res.status(500).json({ error: err.message });
       });
     } catch (err: any) {

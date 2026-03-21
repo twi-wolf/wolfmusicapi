@@ -53,6 +53,24 @@ const USER_AGENT =
 const MOBILE_UA =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36";
 
+// Full browser header set used by all outgoing scraping requests to avoid 403 bot blocks
+const BROWSER_HEADERS: Record<string, string> = {
+  "User-Agent": USER_AGENT,
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Connection": "keep-alive",
+  "Upgrade-Insecure-Requests": "1",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Sec-CH-UA": '"Chromium";v="131", "Google Chrome";v="131", "Not_A Brand";v="24"',
+  "Sec-CH-UA-Mobile": "?0",
+  "Sec-CH-UA-Platform": '"Windows"',
+  "DNT": "1",
+};
+
 const Y2MATE_HEADERS = {
   accept: "*/*",
   "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
@@ -79,10 +97,23 @@ const Y2MATE_HTML_HEADERS = {
 async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
-  timeoutMs = 15000
+  timeoutMs = 15000,
+  browserSim = false
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  if (browserSim) {
+    const origin = new URL(url).origin;
+    options = {
+      ...options,
+      headers: {
+        ...BROWSER_HEADERS,
+        "Referer": origin + "/",
+        "Origin": origin,
+        ...(options.headers as Record<string, string> || {}),
+      },
+    };
+  }
   try {
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
@@ -748,7 +779,8 @@ async function ytdlpFileConvert(
       : "best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best";
 
   // android_music targets YouTube Music and bypasses label/music-content bot detection
-  // that android client alone can't handle on datacenter IPs
+  // that android client alone can't handle on datacenter IPs.
+  // --add-header flags simulate a real browser HTTP environment.
   const cmd = [
     `yt-dlp`,
     cookiesArg,
@@ -756,6 +788,8 @@ async function ytdlpFileConvert(
     `--no-simulate`,
     `--extractor-args "youtube:player_client=android_music,android,ios,mweb,web"`,
     `--socket-timeout 30`,
+    `--add-header "Accept-Language:en-US,en;q=0.9"`,
+    `--add-header "DNT:1"`,
     `-f "${formatArg}"`,
     `--print title`,
     `-o "${outTemplate}"`,
