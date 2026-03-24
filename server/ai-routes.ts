@@ -106,40 +106,32 @@ const chatEndpoints: ChatEndpointConfig[] = [
 export function registerAIRoutes(app: Express): void {
   for (const ep of chatEndpoints) {
     const handleAI = async (req: Request, res: Response) => {
-      const prompt = (req.body?.prompt || req.query.prompt || req.query.q || req.query.text) as string;
-      const system = (req.body?.system || req.query.system) as string | undefined;
+      const prompt = (req.query.q || req.query.prompt || req.body?.q || req.body?.prompt) as string;
 
       if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-        return res.json({
-          endpoint: ep.path,
-          method: "GET or POST",
-          description: `${ep.label} AI Chat endpoint.`,
-          usage: {
-            GET: `${ep.path}?prompt=Your message here`,
-            POST: { body: { prompt: "Your message here", system: "(optional) Custom system prompt" } },
-          },
+        return res.status(400).json({
+          status: false,
+          creator: "APIs by Silent Wolf | A tech explorer",
+          error: `Parameter 'q' is required. Usage: ${ep.path}?q=Your message here`,
         });
       }
 
       try {
-        const systemPrompt = system || ep.defaultSystem;
         let text: string;
 
         if (ep.useOpenAI) {
-          text = await openaiProxy(prompt, systemPrompt, ep.openaiModel);
+          text = await openaiProxy(prompt.trim(), ep.defaultSystem, ep.openaiModel);
         } else {
-          text = await chatEverywhereProxy(prompt, systemPrompt);
+          text = await chatEverywhereProxy(prompt.trim(), ep.defaultSystem);
         }
 
         return res.json({
-          success: true,
+          status: true,
           creator: "APIs by Silent Wolf | A tech explorer",
-          provider: ep.provider,
-          model: ep.label,
-          response: text,
+          result: text,
         });
       } catch (error: any) {
-        return res.status(500).json({ success: false, error: error.message, provider: ep.provider });
+        return res.status(500).json({ status: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message });
       }
     };
 
