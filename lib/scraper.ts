@@ -894,6 +894,133 @@ async function fetchRealTitle(videoId: string): Promise<string | null> {
   }
 }
 
+// ─── Provider 7: ytdown.to ────────────────────────────────────────────────────
+// Reverse-engineered from app.ytdown.to. The site uses a PHP session cookie
+// (PHPSESSID) gate, then a proxy.php endpoint that returns download info
+// including per-quality URLs on their own CDN (s*.ytcontent.com). Those CDN
+// URLs are themselves JSON polling endpoints: GET → {status, fileUrl, ...}.
+// When status === "completed" the fileUrl is a signed, expiring direct download.
+//
+// Session flow:
+//   1. GET https://app.ytdown.to/en23/ → grabs PHPSESSID from Set-Cookie
+//   2. POST https://app.ytdown.to/proxy.php
+//        Body:    url=https://www.youtube.com/watch?v=VIDEO_ID
+//        Headers: Origin: https://app.ytdown.to
+//                 Referer: https://app.ytdown.to/en23/
+//                 X-Requested-With: XMLHttpRequest
+//                 Cookie: PHPSESSID=<value>
+//   3. Response: { api: { title, mediaItems: [{ type, mediaQuality, mediaExtension, mediaUrl, mediaFileSize }] } }
+//        type      → "Video" | "Audio"
+//        mediaUrl  → https://s19.ytcontent.com/v5/{video|audio}/ID/TOKEN/QUALITY
+//   4. GET mediaUrl → JSON polling: { status: "completed"|"queued"|"processing", fileUrl, ... }
+//        When completed: fileUrl is the real signed download URL
+//        Otherwise:      poll again (queued/processing → usually < 15 s for video, up to 30 s for MP3)
+
+let ytdownSession: { phpsessid: string; expiresAt: number } | null = null;
+
+async function getYtdownSession(): Promise<string> {
+  if (ytdownSession && Date.now() < ytdownSession.expiresAt) return ytdownSession.phpsessid;
+
+  const r = await fetchWithTimeout(
+    "https://app.ytdown.to/en23/",
+    { headers: { ...BROWSER_HEADERS } },
+    12000
+  );
+  const setCookie = r.headers.get("set-cookie") || "";
+  const match = setCookie.match(/PHPSESSID=([^;]+)/);
+  if (!match) throw new Error("ytdown: failed to get session cookie");
+
+  ytdownSession = { phpsessid: match[1], expiresAt: Date.now() + 25 * 60 * 1000 };
+  return match[1];
+}
+
+async function ytdownConvert(
+  videoId: string,
+  format: "mp3" | "mp4"
+): Promise<{ downloadUrl: string; title: string }> {
+  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const phpsessid = await getYtdownSession();
+
+  // Step 1: get mediaItems list from proxy.php
+  const proxyRes = await fetchWithTimeout(
+    "https://app.ytdown.to/proxy.php",
+    {
+      method: "POST",
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://app.ytdown.to",
+        "Referer": "https://app.ytdown.to/en23/",
+        "X-Requested-With": "XMLHttpRequest",
+        "Cookie": `PHPSESSID=${phpsessid}`,
+      },
+      body: `url=${encodeURIComponent(youtubeUrl)}`,
+    },
+    25000
+  );
+
+  if (!proxyRes.ok) {
+    ytdownSession = null;
+    throw new Error(`ytdown: proxy.php HTTP ${proxyRes.status}`);
+  }
+
+  const data = await safeJsonParse(proxyRes, "ytdown proxy.php");
+  const title: string = data?.api?.title || `video_${videoId}`;
+  const mediaItems: any[] = data?.api?.mediaItems || [];
+  if (mediaItems.length === 0) throw new Error("ytdown: no mediaItems in response");
+
+  // Step 2: pick the best item for the requested format
+  let chosen: any;
+  if (format === "mp3") {
+    // Prefer MP3 extension, then M4A; sort by numeric part of mediaQuality descending
+    const audio = mediaItems.filter((i: any) => i.type === "Audio");
+    if (audio.length === 0) throw new Error("ytdown: no audio items");
+    const mp3Items = audio.filter((i: any) => (i.mediaExtension || "").toLowerCase() === "mp3");
+    const pool = mp3Items.length > 0 ? mp3Items : audio;
+    pool.sort((a: any, b: any) => parseInt(b.mediaQuality || "0") - parseInt(a.mediaQuality || "0"));
+    chosen = pool[0];
+  } else {
+    const video = mediaItems.filter((i: any) => i.type === "Video");
+    if (video.length === 0) throw new Error("ytdown: no video items");
+    // Sort by resolution: FHD=1080, HD=720, SD=480/360/240/144; use quality string numeric prefix
+    const resOrder: Record<string, number> = { FHD: 1080, HD: 720, SD: 480 };
+    video.sort((a: any, b: any) => {
+      const qa = resOrder[a.mediaQuality] ?? parseInt(a.mediaQuality) ?? 0;
+      const qb = resOrder[b.mediaQuality] ?? parseInt(b.mediaQuality) ?? 0;
+      return qb - qa;
+    });
+    chosen = video[0];
+  }
+
+  if (!chosen?.mediaUrl) throw new Error("ytdown: chosen item has no mediaUrl");
+
+  // Step 3: poll the CDN status endpoint until completed
+  const cdnUrl: string = chosen.mediaUrl;
+  for (let attempt = 0; attempt < 15; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 3000));
+
+    const cdnRes = await fetchWithTimeout(
+      cdnUrl,
+      { headers: { "User-Agent": USER_AGENT, Accept: "application/json" } },
+      12000
+    );
+    if (!cdnRes.ok) throw new Error(`ytdown: CDN polling HTTP ${cdnRes.status}`);
+
+    const cdnData = await safeJsonParse(cdnRes, "ytdown CDN poll");
+    if (cdnData.status === "completed" && cdnData.fileUrl && cdnData.fileUrl !== "Waiting...") {
+      return { downloadUrl: cdnData.fileUrl, title };
+    }
+    if (cdnData.status === "error" || cdnData.status === "failed") {
+      throw new Error(`ytdown: CDN reported error: ${JSON.stringify(cdnData)}`);
+    }
+    // status === "queued" | "processing" | "initializing" → keep polling
+  }
+
+  throw new Error("ytdown: CDN conversion timed out after 15 attempts");
+}
+
 // ─── Provider chain ───────────────────────────────────────────────────────────
 
 type ConvertProvider = {
@@ -903,6 +1030,7 @@ type ConvertProvider = {
 
 const mp3Providers: ConvertProvider[] = [
   { name: "ytdlpFile",  fn: ytdlpFileConvert },
+  { name: "ytdown",     fn: ytdownConvert },
   { name: "invidious",  fn: invidiousConvert },
   { name: "y2mate",     fn: y2mateConvert },
   { name: "fabdl",      fn: fabdlConvert },
@@ -916,6 +1044,7 @@ const mp3Providers: ConvertProvider[] = [
 // IP blocks from YouTube without needing cookies.
 const mp4Providers: ConvertProvider[] = [
   { name: "ytdlpFile",  fn: ytdlpFileConvert },
+  { name: "ytdown",     fn: ytdownConvert },
   { name: "invidious",  fn: invidiousConvert },
   { name: "ytdlp",      fn: ytdlpConvert },
   { name: "fabdl",      fn: fabdlConvert },

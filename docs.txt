@@ -1,0 +1,458 @@
+WolfAPIs v4.0 — Site Scraping Research Notes
+=============================================
+Written by: reverse-engineering + network analysis (no browser automation used)
+Purpose: Educational documentation of how each music/video download site was
+         reverse-engineered so you can replicate the technique yourself.
+
+═══════════════════════════════════════════════════════════════════════════════
+HOW TO REVERSE-ENGINEER A DOWNLOAD SITE (GENERAL METHOD)
+═══════════════════════════════════════════════════════════════════════════════
+
+The same 4-step workflow was used for every site below:
+
+  1. Open the site in Chrome DevTools → Network tab (filter: XHR / Fetch)
+  2. Paste a YouTube URL and click "Download"
+  3. Watch which requests fire, in order
+  4. Right-click a request → "Copy as cURL" → replay from curl/Node.js
+
+Key things to look for in the Network tab:
+  • The "Initiator" column tells you which JS file started each request
+  • Sort by time — the download-triggering request is usually 1-3 steps in
+  • Check "Cookies" tab for session tokens the site creates before the API call
+  • If a request returns HTML instead of JSON, look for inline <script> tags
+    that call a secondary API endpoint
+
+Once you have the raw cURL, strip it to the minimum working set of headers.
+Usually only User-Agent, Origin, Referer, and any cookie are required.
+The rest (Sec-Fetch-*, DNT, etc.) can be omitted.
+
+To find hidden API endpoints without DevTools:
+  • View page source → search for "fetch(", "$.post(", "$.getJSON(", "axios."
+  • Search for ".php", "/api/", "/convert", "/download" in the JS
+  • In Nuxt/React apps: download the main bundle JS file and grep it for the
+    apiBase / baseURL config object — this reveals the real backend domain
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 1: ytdown.to  ✅  FULLY IMPLEMENTED (Provider "ytdown")
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://app.ytdown.to/en23/
+
+How it was discovered:
+  Network tab showed two requests on form submit:
+    1. The page itself (GET /en23/) sets a PHPSESSID session cookie
+    2. A POST to /proxy.php with the YouTube URL in the body
+
+Why it's useful:
+  The server returns download URLs on ytdown.to's own CDN (s*.ytcontent.com),
+  NOT on YouTube's servers. This completely bypasses YouTube's IP blocking of
+  VPS/datacenter IPs. Anyone can download from the CDN URL.
+
+Full API flow:
+
+  STEP 1 — Get PHP session cookie:
+    GET https://app.ytdown.to/en23/
+    Headers: standard browser headers
+    → Response sets: PHPSESSID=<hex string>  (via Set-Cookie header)
+    → The session is valid for ~25 minutes. Cache it and reuse.
+
+  STEP 2 — Request download info:
+    POST https://app.ytdown.to/proxy.php
+    Headers:
+      Content-Type: application/x-www-form-urlencoded
+      Origin: https://app.ytdown.to
+      Referer: https://app.ytdown.to/en23/
+      X-Requested-With: XMLHttpRequest
+      Cookie: PHPSESSID=<value from step 1>
+    Body (URL-encoded):
+      url=https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+    Response (JSON):
+    {
+      "api": {
+        "title": "Never Gonna Give You Up",
+        "mediaItems": [
+          {
+            "type": "Video",
+            "mediaQuality": "FHD",       // FHD=1080p, HD=720p, SD=480/360/240/144
+            "mediaExtension": "MP4",
+            "mediaFileSize": "83.70 MB",
+            "mediaDuration": "3:32",
+            "mediaUrl": "https://s19.ytcontent.com/v5/video/dQw4w9WgXcQ/TOKEN/1080p"
+          },
+          {
+            "type": "Audio",
+            "mediaQuality": "128K",      // 48K or 128K
+            "mediaExtension": "MP3",
+            "mediaFileSize": "7.20 MB",
+            "mediaDuration": "3:32",
+            "mediaUrl": "https://s19.ytcontent.com/v5/audio/dQw4w9WgXcQ/TOKEN/128k"
+          },
+          ...more qualities...
+        ]
+      }
+    }
+
+    Note: The "mediaUrl" is NOT the direct download link. It is a JSON
+    polling/status endpoint on ytdown.to's CDN.
+
+  STEP 3 — Poll the CDN status URL:
+    GET https://s19.ytcontent.com/v5/video/dQw4w9WgXcQ/TOKEN/1080p
+    Headers: standard User-Agent (no special auth needed)
+
+    When status = "completed":
+    {
+      "status": "completed",
+      "fileName": "YTDown.com_YouTube_..._1080p.mp4",
+      "percent": "Completed",
+      "fileUrl": "https://s19.ytcontent.com/v5/download/VIDEO_ID/TOKEN/FILENAME.mp4?token=EXPIRES_TOKEN",
+      "viewUrl": "...",
+      "fileSize": "83.77 MB",
+      "fileSizeBytes": 87835921
+    }
+
+    When status = "queued" or "processing":
+    {
+      "status": "queued",
+      "fileName": "...",
+      "percent": "0%",
+      "fileUrl": "Waiting...",
+      "position": 1,
+      "totalWaiting": 1
+    }
+    → Wait ~3 seconds and poll again (max 15 attempts = ~45 seconds total)
+
+  STEP 4 — Use fileUrl as the real download link:
+    The signed CDN URL is the actual MP4/MP3 file. It expires (signed token).
+    For Video: usually already "completed" on first poll.
+    For MP3:   typically 1-4 polls are needed (conversion is server-side).
+
+What we learned from the JS:
+  The page's inline script shows this is a vanilla jQuery app. The form
+  submit triggers an AJAX POST (no framework complexity). The only mystery
+  was the PHPSESSID requirement — spotted in the Cookie header of the POST
+  in DevTools. Without it, proxy.php returns an error response.
+
+Implementation notes:
+  • Session cached in memory for 25 minutes to avoid extra HTTP round-trips
+  • On non-OK response from proxy.php → invalidate session (triggers re-fetch)
+  • Added to both mp3Providers and mp4Providers (position 2 after ytdlpFile)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 2: websolute.fr  ⚠️  METADATA/SEARCH ONLY (no direct download URL)
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://websolute.fr/
+
+How it was discovered:
+  Network tab showed two clean JSON API calls on form submit:
+    - GET /check?q=VIDEO_ID    → video metadata
+    - GET /grab/json/?q=QUERY  → keyword search results
+
+Why it is NOT implemented as a download provider:
+  These endpoints return video metadata (title, ID, channel) but NOT a
+  download URL. The actual download is triggered by embedded iframes:
+    - iframe 1: apisyu.com
+    - iframe 2: sounddownmp3.com
+  Each iframe is a completely separate download service with its own
+  multi-step API flow (see Site 3 below). Reverse-engineering the full
+  iframe chain is out of scope for a server-side provider.
+
+Metadata API (available for use in search features):
+
+  GET https://websolute.fr/check?q=VIDEO_ID
+  Response: { "items": [{ "id": "dQw4w9WgXcQ", "title": "...", "channel": "..." }] }
+
+  GET https://websolute.fr/grab/json/?q=never+gonna+give+you+up
+  Response: { "items": [{ "id": "...", "title": "...", "channel": "..." }, ...] }
+
+  No headers, cookies, or auth required. Simple GET requests.
+
+Technique note:
+  The endpoints were found by viewing the page source and grepping for
+  "fetch(" and "/api/" in the inline JavaScript. The /check endpoint was
+  called synchronously on page load with the video ID extracted from the URL.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 3: apisyu.com  ⚠️  BLOCKED (session-based, server-side token required)
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://apisyu.com/embed/mp4/VIDEO_ID?lang=en  (used via iframe on other sites)
+
+How it was discovered:
+  apisyu.com is embedded as an iframe by websolute.fr and sounddownmp3.com.
+  The Network tab on the iframe page showed a multi-step flow using a
+  custom ajax() function that POSTs to https://apisyu.com/api.
+
+Full API flow (reverse-engineered from inline JS):
+
+  The inline script defines this function:
+    function ajax(o, f) {
+      ajaxRequest = $.post('./api', o).done(function(d) { f(d); });
+    }
+
+  And this sequence runs when user clicks a quality button:
+
+  CALL 1 — acc:'s' (start/session handshake):
+    POST https://apisyu.com/api
+    Body: acc=s&format=mp4&idyt=VIDEO_ID&quality=720p
+    → Response: (some session confirmation, possibly empty or JSON)
+
+  CALL 2 — acc:'v' (verify/validate):
+    POST https://apisyu.com/api
+    Body: acc=v&format=mp4&idyt=VIDEO_ID&quality=720p
+    → Response: JSON
+      { "e": 0, "status": "ok"|"pending"|"completed", "queue": N, "download": URL }
+    - status "ok"        → proceed to acc:'g2'
+    - status "pending"   → retry acc:'v' after 3 seconds
+    - status "completed" → use d.download as final URL (cached result)
+
+  CALL 3 — acc:'g2' (get download job):
+    POST https://apisyu.com/api
+    Body: acc=g2&format=mp4&idyt=VIDEO_ID&quality=720p
+    → Response: JSON { "e": 0, "pid": "https://p.lbserver.xyz/job/TASK_ID" }
+
+  CALL 4 — GET d.pid (get lbserver.xyz task ID):
+    GET https://p.lbserver.xyz/job/TASK_ID
+    → Response: JSON { "id": "ACTUAL_TASK_ID" }
+
+  CALL 5 — Poll lbserver.xyz progress:
+    GET https://p.lbserver.xyz/api/progress?id=ACTUAL_TASK_ID
+    → Response: JSON
+      { "text": "Initialising"|"Converting"|"Finished", "progress": 0-100, "download_url": URL }
+    Poll until text === "Finished", then use download_url.
+
+  CALL 6 — acc:'sv' (save/log stats):
+    POST https://apisyu.com/api
+    Body: acc=sv&l=DOWNLOAD_URL&f=mp4&i=VIDEO_ID&q=720p
+    → No-op for us (just analytics)
+
+Why it is NOT implemented:
+  When tested from our server (not a browser), CALL 2 returns:
+    { "e": 1, "msg": "default!" }
+  This means the server validates that calls come from a real browser session
+  (likely checking Referer chain, hidden CSRF token, or browser fingerprint).
+  The acc:'s' handshake may set a server-side session that our HTTP client
+  cannot replicate without a full browser. Implementing this would require
+  Puppeteer/Playwright (browser automation) — not a simple HTTP call.
+
+Key finding:
+  The download backend is actually lbserver.xyz (not apisyu.com). The
+  apisyu.com API is just a session-gated proxy to lbserver.xyz.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 4: cornerstonecountry.ca (y2mate clone)  ⚠️  IFRAME-BASED (not automatable)
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://www.cornerstonecountry.ca/
+
+How it was discovered:
+  This is a WordPress site running a "ytmate" theme. The main.js was found
+  at /themes/ytmate/assets/js/main.js and read directly (no minification).
+
+What the main.js does:
+
+  1. Search: Google autocomplete via JSONP callback
+  2. Search results: if page has #ajax-results div,
+       fetch(location.href, { method: 'POST' })
+     → Returns JSON array of { id, title, image_url } for the query result.
+     → This only works with a server-side session (set by the initial search GET).
+
+  3. Convert: POSTing to /convert/ with q=YOUTUBE_URL returns an HTML page
+     that contains this iframe:
+       <iframe src="https://clickapi.net/api/widgetplus?url=YOUTUBE_URL">
+
+  4. clickapi.net is a Nuxt.js SPA with apiBase = "https://api.cdnframe.com"
+     The Nuxt app's Vue Router defines these page routes:
+       /api/button, /api/single, /api/widget
+       /api/single/:ftype()
+       /api/single/task/:id()
+
+Why it is NOT implemented:
+  clickapi.net's Nuxt frontend makes internal API calls to api.cdnframe.com.
+  When we test api.cdnframe.com directly, all endpoints return 404. This is
+  because the Nuxt SSR layer may be proxying requests internally, or the
+  API requires a session/CSRF token set by the Nuxt app's initialization.
+  The /api/single/:ftype() routes are Vue Router CLIENT-SIDE routes, not
+  Express server routes — they render a React component that in turn calls
+  the real backend. Without running the full Nuxt JS, we cannot replicate this.
+
+How to implement it in the future:
+  Use Puppeteer to load https://clickapi.net/api/widgetplus?url=YOUTUBE_URL,
+  wait for the download button to appear, intercept the XHR/fetch request it
+  makes to api.cdnframe.com, and replay that request with the same session.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 5: yt1s.biz  ❌  BLOCKED (Cloudflare JS challenge, 403 response)
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://yt1s.biz/
+
+Status: Every HTTP request (GET, POST, any endpoint) returns:
+  HTTP 403 Forbidden
+  cf-mitigated: challenge
+  Server: cloudflare
+
+Why it cannot be scraped without a real browser:
+  Cloudflare's "Managed Challenge" (formerly Bot Fight Mode) serves a
+  JavaScript challenge page to any client that does not have a valid
+  cf_clearance cookie. Obtaining this cookie requires:
+    1. Running the Cloudflare JavaScript challenge (Turnstile or similar)
+    2. This challenge uses browser fingerprinting (Canvas, WebGL, navigator
+       properties, timing analysis) to confirm a real browser is present
+  Server-side fetch, curl, Axios, node-fetch etc. cannot pass this challenge.
+
+How to bypass (if ever needed):
+  Option A: Puppeteer + puppeteer-extra-plugin-stealth
+    - Stealth plugin patches browser fingerprints that CF detects
+    - Still not 100% reliable; CF updates detection regularly
+  Option B: curl-impersonate (https://github.com/lwthiker/curl-impersonate)
+    - Mimics Chrome/Firefox TLS fingerprint (JA3/JA4 hash)
+    - Works for many CF-protected sites without JS execution
+  Option C: flaresolverr (https://github.com/FlareSolverr/FlareSolverr)
+    - Self-hosted proxy service that runs a real Chrome browser
+    - Returns cookies/tokens that can be reused in normal requests
+
+Bottom line: yt1s.biz is not usable as a server-side provider without
+browser automation. It was excluded from implementation.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 6: mediatheque-hulluch.fr (MP3Juice clone)  ⚠️  JS-DRIVEN, NO SERVER-SIDE API
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://mediatheque-hulluch.fr/
+
+How it was discovered:
+  The site presents a search form with <input name="query">. The HTML
+  has <form method="POST"> submitting to the same page.
+
+What was found:
+  When POST'ing with a YouTube URL or search query, the server returns the
+  same HTML homepage without any results — the results rendering is entirely
+  client-side JavaScript.
+
+  The page loads:
+    - /vendor/anti-redirect.js (17,978 bytes) — NOT a download API.
+      This is a security script written in Indonesian (Bahasa) that patches
+      browser navigation APIs (window.open, location.assign, etc.) to prevent
+      malicious ad scripts from hijacking the tab. Contains no download logic.
+
+  The actual search/download functionality is driven by React or vanilla JS
+  that makes XHR calls we could not determine from the static HTML alone,
+  because the JS files are loaded conditionally and the API endpoint was
+  not visible in the page source.
+
+  The site structure matches MP3Juice clones that typically use:
+    POST /api/search?q=QUERY → returns JSON with tracks
+    POST /api/download?id=ID → returns download URL or initiates conversion
+  But the exact endpoint paths were not confirmed.
+
+How to investigate further:
+  Load the site in Chrome DevTools, type a search query, click Search, and
+  watch the Network tab for the XHR/fetch calls. The first JSON response
+  should reveal the API endpoint. Look for requests to any domain that is
+  NOT the main domain (third-party API backends are common in MP3Juice clones).
+
+Note: The site also loads iframes for ads (as expected from an anti-redirect
+protection script), which means the download API is likely on a separate
+path from the ad iframes.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SITE 7: v8.www-y2mate.com (y2mate v8)  ⚠️  HTML-IFRAME BASED
+═══════════════════════════════════════════════════════════════════════════════
+
+URL: https://v8.www-y2mate.com/
+
+How it was discovered:
+  The site has a standard search form (input name="search"). Submitting a
+  YouTube URL causes a POST to /search/ with body: search=YOUTUBE_URL.
+  The server redirects (or directly returns) a /convert/ page with:
+    POST /convert/ with body: videoId=dQw4w9WgXcQ
+
+What the convert page contains:
+  The /convert/ page returns full HTML with:
+    <div id="widgetv2Api"> — placeholder for the download widget
+  And loads:
+    /custom.js         — handles form submission and widget initialization
+    iframe-resizer     — for resizing the widget iframe
+
+  The custom.js likely makes an AJAX call to load the actual download widget
+  from a third-party API (similar to how cornerstonecountry uses clickapi.net).
+  The Network tab would be needed to see what API call fires when the widget
+  loads.
+
+Why it is NOT implemented:
+  The download flow requires JavaScript execution to:
+    1. Render the widget HTML after a JS-triggered AJAX call
+    2. Display quality options that are populated by the API response
+  A simple HTTP POST to /convert/ returns the widget shell but not the
+  actual download links.
+
+Recommended approach:
+  Same as cornerstonecountry — use Puppeteer to intercept the API call
+  made by the widget JavaScript, then replay it with the session headers.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMMARY TABLE
+═══════════════════════════════════════════════════════════════════════════════
+
+Site                        | Status       | Reason
+--------------------------- | ------------ | ---------------------------------
+ytdown.to                   | ✅ WORKING   | PHP session + proxy.php + CDN poll
+websolute.fr (search)       | ✅ WORKING   | Clean JSON GET endpoints (metadata)
+websolute.fr (download)     | ⚠️ NO URL    | Download via apisyu.com iframe
+apisyu.com                  | ⚠️ BLOCKED   | Session/browser token required
+cornerstonecountry.ca       | ⚠️ BLOCKED   | clickapi.net Nuxt app; SSR API
+yt1s.biz                    | ❌ CF 403    | Cloudflare JS challenge; no bypass
+mediatheque-hulluch.fr      | ⚠️ UNKNOWN   | Fully JS-driven, API not found
+v8.www-y2mate.com           | ⚠️ BLOCKED   | Iframe widget requires JS execution
+clickapi.net / cdnframe.com | ⚠️ BLOCKED   | Nuxt SSR internal API; 404 direct
+lbserver.xyz                | ⚠️ BLOCKED   | Backend for apisyu.com; needs token
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TECHNIQUES LEARNED
+═══════════════════════════════════════════════════════════════════════════════
+
+1. PHP SESSION GATING
+   Many PHP-based download sites require a PHPSESSID cookie before they
+   will respond to API calls. The cookie is issued freely by a GET to any
+   page. Cache the cookie and re-use it across requests.
+
+2. X-Requested-With: XMLHttpRequest
+   Sites often check this header to distinguish AJAX calls from normal page
+   loads. Always include it when the network tab shows it on the original
+   request.
+
+3. NUXT.JS APP DETECTION
+   If a site returns <!DOCTYPE html> with window.__NUXT__ in the source,
+   it is a Nuxt.js SPA. Look for window.__NUXT__.config.public.apiBase
+   to find the real backend API URL. Then look at the _nuxt/*.js files for
+   route definitions like /api/single/:ftype().
+
+4. CDN POLLING PATTERN
+   ytdown.to uses a two-level URL pattern:
+     Level 1 (proxy.php): returns per-quality "mediaUrl" status endpoints
+     Level 2 (CDN URL):   returns { status, fileUrl } — poll until completed
+   This is a common pattern in async video conversion services. The signed
+   fileUrl URL expires after a short time, so use it immediately.
+
+5. CLOUDFLARE DETECTION
+   Headers cf-mitigated: challenge and Server: cloudflare indicate CF Bot
+   Fight Mode or Managed Challenge. These cannot be bypassed with plain
+   HTTP clients. Look for these headers before investing time in a scraper.
+
+6. IFRAME WIDGET PATTERN
+   Sites like cornerstonecountry embed the download widget as a third-party
+   iframe. The page is "thin" — it just provides a container. The real work
+   happens in the iframe's JavaScript. To scrape these, you MUST either:
+     a) Reverse-engineer the iframe's backend API (hard — requires JS analysis)
+     b) Use Puppeteer to intercept the network requests inside the iframe
