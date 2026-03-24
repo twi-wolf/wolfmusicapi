@@ -6,6 +6,7 @@ import { createReadStream, existsSync } from "fs";
 import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles, resetProviderHealth, getProviderHealthStatus } from "./scraper";
 const execAsync = promisify(exec);
 import { registerAIRoutes } from "./ai-routes";
+import { registerXcasperRoutes } from "./xcasper-routes";
 import { downloadTikTok } from "../lib/downloaders/tiktok";
 import { downloadSnapchat } from "../lib/downloaders/snapchat";
 import { downloadInstagram } from "../lib/downloaders/instagram";
@@ -39,6 +40,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   registerAIRoutes(app);
+  registerXcasperRoutes(app);
 
   app.get("/api/search", async (req, res) => {
     try {
