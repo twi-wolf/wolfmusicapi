@@ -71,7 +71,7 @@ export const apiCategories = [
   { id: "audio-fx", name: "Audio Effects", description: "25 audio effects: bass boost, robot, echo, nightcore, 8D, reverb, and more", icon: "Headphones" },
 ];
 
-const Q_PARAM = [{ name: "q", type: "string", required: true, description: "Your message or question" }];
+const Q_PARAM = [{ name: "q", type: "string", required: true, description: "Your message or question", default: "Hello! How are you?" }];
 
 const aiChatEndpoints: ApiEndpoint[] = [
   { path: "/api/ai/gpt", method: "GET", description: "Chat with GPT - general purpose AI assistant", params: Q_PARAM, format: "json", category: "ai-chat", provider: "ChatEverywhere" },
