@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 
-const TEMP_DIR = "/tmp/wolfapi_dl";
+export const TEMP_DIR = "/tmp/wolfapi_dl";
 try { mkdirSync(TEMP_DIR, { recursive: true }); } catch {}
 
 export const tempFiles = new Map<string, { filePath: string; expiresAt: number }>();

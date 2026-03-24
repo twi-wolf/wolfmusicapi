@@ -2,8 +2,9 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { createReadStream, existsSync } from "fs";
-import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles, resetProviderHealth, getProviderHealthStatus } from "./scraper";
+import { createReadStream, existsSync, readdirSync, statSync, unlinkSync } from "fs";
+import path from "path";
+import { searchSongs, getDownloadInfo, extractVideoId, reloadCookies, tempFiles, TEMP_DIR, resetProviderHealth, getProviderHealthStatus } from "./scraper";
 const execAsync = promisify(exec);
 import { registerAIRoutes } from "./ai-routes";
 import { registerXcasperRoutes } from "./xcasper-routes";
@@ -105,10 +106,37 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Invalid filename" });
     }
     const uuid = filename.replace(/\.[^.]+$/, "");
+
+    // 1. Check in-memory map first (fast path — same process)
+    let filePath: string | null = null;
     const entry = tempFiles.get(uuid);
-    if (!entry || !existsSync(entry.filePath)) {
+    if (entry && existsSync(entry.filePath)) {
+      filePath = entry.filePath;
+    }
+
+    // 2. Disk fallback — works across PM2 processes and after restarts
+    if (!filePath) {
+      try {
+        const candidates = readdirSync(TEMP_DIR).filter((f) => f.startsWith(uuid));
+        if (candidates.length > 0) {
+          const candidate = path.join(TEMP_DIR, candidates[0]);
+          if (existsSync(candidate)) {
+            // Treat files older than 30 min as expired
+            const { mtimeMs } = statSync(candidate);
+            if (Date.now() - mtimeMs < 30 * 60 * 1000) {
+              filePath = candidate;
+            } else {
+              try { unlinkSync(candidate); } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
+
+    if (!filePath) {
       return res.status(404).json({ error: "File not found or expired" });
     }
+
     const extMap: Record<string, string> = {
       mp4: "video/mp4", m4v: "video/mp4", mkv: "video/x-matroska",
       webm: "video/webm", mp3: "audio/mpeg", m4a: "audio/mp4",
@@ -118,10 +146,11 @@ export async function registerRoutes(
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Cache-Control", "no-store");
-    const stream = createReadStream(entry.filePath);
+    const resolvedPath = filePath;
+    const stream = createReadStream(resolvedPath);
     stream.pipe(res);
     stream.on("end", () => {
-      try { require("fs").unlinkSync(entry.filePath); } catch {}
+      try { unlinkSync(resolvedPath); } catch {}
       tempFiles.delete(uuid);
     });
     stream.on("error", () => {
