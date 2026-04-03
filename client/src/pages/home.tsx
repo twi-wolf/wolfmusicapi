@@ -1200,102 +1200,87 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
         >
           Projects by Silent Wolf
         </h3>
-        <div className="grid gap-3 sm:grid-cols-1">
+        <div className="grid gap-3 md:grid-cols-3">
 
           <a
             href="https://github.com/sil3nt-wolf/wolfXcore"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
             style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
             data-testid="link-project-wolfxcore"
           >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-            >
-              <Github className="w-5 h-5" style={{ color: "#00ff00" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>wolfXcore</h4>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
-                >
-                  Laravel 11 + React/TS
-                </span>
+            <div className="flex items-center justify-between">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+              >
+                <Github className="w-4 h-4" style={{ color: "#00ff00" }} />
               </div>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Cyberpunk game server management panel — Paystack/M-Pesa billing, auto-provisioning & Super Admin control
-              </p>
-              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>github.com/sil3nt-wolf/wolfXcore</p>
+              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
             </div>
-            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>wolfXcore</h4>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>Laravel + React</span>
+              </div>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning</p>
+              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>github.com/sil3nt-wolf/wolfXcore</p>
+            </div>
           </a>
 
           <a
             href="https://panel.xwolf.space"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
             style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
             data-testid="link-project-panel"
           >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-            >
-              <Cpu className="w-5 h-5" style={{ color: "#00ff00" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>panel.xwolf.space</h4>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
-                >
-                  GAME SERVER
-                </span>
+            <div className="flex items-center justify-between">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+              >
+                <Cpu className="w-4 h-4" style={{ color: "#00ff00" }} />
               </div>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Game server management panel — host, manage and provision game servers with automated billing
-              </p>
-              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>panel.xwolf.space</p>
+              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
             </div>
-            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>panel.xwolf.space</h4>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>GAME SERVER</span>
+              </div>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Host, manage and provision game servers with automated billing</p>
+              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>panel.xwolf.space</p>
+            </div>
           </a>
 
           <a
             href="https://host.xwolf.space"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
             style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
             data-testid="link-project-host"
           >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-            >
-              <Globe className="w-5 h-5" style={{ color: "#00ff00" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>host.xwolf.space</h4>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
-                >
-                  BOT HOSTING
-                </span>
+            <div className="flex items-center justify-between">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+              >
+                <Globe className="w-4 h-4" style={{ color: "#00ff00" }} />
               </div>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Deploy and host your bots — one-click deployment platform for chatbots and automation scripts
-              </p>
-              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>host.xwolf.space</p>
+              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
             </div>
-            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>host.xwolf.space</h4>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>BOT HOSTING</span>
+              </div>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>One-click deployment platform for chatbots and automation scripts</p>
+              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>host.xwolf.space</p>
+            </div>
           </a>
 
         </div>
@@ -1518,16 +1503,16 @@ export default function Home() {
     <div className="min-h-screen flex" style={{ background: "#050505" }}>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 lg:hidden"
+          className="fixed inset-0"
           style={{ zIndex: 40, background: "rgba(0,0,0,0.7)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all lg:translate-x-0 hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
-          width: sidebarWidth,
+          width: "260px",
           zIndex: 45,
           background: "#080808",
         }}
@@ -1567,15 +1552,7 @@ export default function Home() {
             </div>
           )}
           <button
-            className="p-1 rounded-md transition-colors flex-shrink-0 hidden lg:block"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            style={{ color: "rgba(255,255,255,0.35)" }}
-            data-testid="button-toggle-sidebar"
-          >
-            {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-          <button
-            className="lg:hidden ml-auto p-1.5 rounded flex-shrink-0"
+            className="ml-auto p-1.5 rounded flex-shrink-0"
             onClick={() => setSidebarOpen(false)}
             style={{ color: "rgba(255,255,255,0.4)" }}
             data-testid="button-close-sidebar"
@@ -1880,8 +1857,8 @@ export default function Home() {
         >
           <div className="px-3 py-2 sm:px-6 sm:py-3 flex items-center gap-2 sm:gap-3">
             <button
-              className="lg:hidden p-1.5 rounded-md"
-              onClick={() => setSidebarOpen(true)}
+              className="p-1.5 rounded-md"
+              onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); }}
               style={{ color: "rgba(255,255,255,0.5)" }}
               data-testid="button-open-sidebar"
             >
