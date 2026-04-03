@@ -15,6 +15,21 @@ import { downloadYouTube } from "../lib/downloaders/youtube";
 import { downloadFacebook } from "../lib/downloaders/facebook";
 import { downloadTwitter } from "../lib/downloaders/twitter";
 import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
+import {
+  spotifyGraphQL,
+  fetchEmbedEntity,
+  fetchOEmbed,
+  mbLookupName,
+  wdLookupName,
+  searchAndMatchByUri,
+  formatDuration,
+  bestImage,
+  idFromUri,
+  SEARCH_HASH,
+  PLAYLIST_HASH,
+  cacheGet,
+  cacheSet,
+} from "../lib/spotify-info";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
 import { generateEphoto, listEphotoEffects, EPHOTO_EFFECTS } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
@@ -712,6 +727,449 @@ export async function registerRoutes(
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "Spotify download failed" });
+    }
+  });
+
+  // ── Spotify Info Endpoints (track, album, artist, playlist, search) ──
+
+  function spRespond(res: any, data: any) {
+    return res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", ...data });
+  }
+  function spError(res: any, status: number, msg: string) {
+    return res.status(status).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: msg });
+  }
+
+  // Track info
+  app.get("/api/spotify/track/:id", async (req: any, res: any) => {
+    const trackId = req.params.id as string;
+    if (!trackId || trackId.length < 10) return spError(res, 400, "Invalid track ID");
+
+    function mapTrackEmbed(entity: any) {
+      const imgArr: any[] = entity.visualIdentity?.image || [];
+      const thumbnail = imgArr[0]?.url || "";
+      const artists = (entity.artists || []).map((a: any) => ({
+        id: a.uri ? a.uri.split(":").pop() : "",
+        name: a.name || "",
+        url: a.uri ? `https://open.spotify.com/artist/${a.uri.split(":").pop()}` : "",
+      }));
+      return {
+        id: entity.id || trackId,
+        title: entity.name || entity.title || "",
+        artist: artists.map((a: any) => a.name).join(", "),
+        artists,
+        thumbnail,
+        duration: formatDuration(entity.duration || 0),
+        duration_ms: entity.duration || 0,
+        release_date: entity.releaseDate?.isoString || "",
+        explicit: entity.isExplicit || false,
+        preview_url: entity.audioPreview?.url || "",
+        url: `https://open.spotify.com/track/${entity.id || trackId}`,
+      };
+    }
+
+    try {
+      const entity = await fetchEmbedEntity("track", trackId);
+      if (entity && (entity.name || entity.id))
+        return spRespond(res, { source: "embed", track: mapTrackEmbed(entity) });
+    } catch {}
+
+    try {
+      const oembed = await fetchOEmbed("track", trackId);
+      if (oembed && oembed.title) {
+        const parts = (oembed.title || "").split(" by ");
+        return spRespond(res, {
+          source: "oembed",
+          track: {
+            id: trackId,
+            title: parts[0]?.trim() || oembed.title || "",
+            artist: parts[1]?.trim() || "",
+            artists: parts[1] ? [{ name: parts[1].trim() }] : [],
+            thumbnail: oembed.thumbnail_url || "",
+            url: `https://open.spotify.com/track/${trackId}`,
+          },
+        });
+      }
+    } catch {}
+
+    return spError(res, 503, "Could not fetch track info. Please try again.");
+  });
+
+  // Album info
+  app.get("/api/spotify/album/:id", async (req: any, res: any) => {
+    const albumId = req.params.id as string;
+    if (!albumId || albumId.length < 10) return spError(res, 400, "Invalid album ID");
+    const spotifyUri = `spotify:album:${albumId}`;
+
+    function mapAlbumEmbed(entity: any) {
+      const imgArr: any[] = entity.visualIdentity?.image || entity.coverArt?.sources || [];
+      const tracks = (entity.trackList || []).map((t: any, i: number) => ({
+        id: t.uri ? t.uri.split(":").pop() : "",
+        title: t.title || t.name || "",
+        artist: t.subtitle || "",
+        duration: formatDuration(t.duration || 0),
+        duration_ms: t.duration || 0,
+        track_number: i + 1,
+        url: t.uri ? `https://open.spotify.com/track/${t.uri.split(":").pop()}` : "",
+      }));
+      return {
+        id: entity.id || idFromUri(entity.uri || "") || albumId,
+        name: entity.name || entity.title || "",
+        artist: entity.subtitle || "",
+        thumbnail: imgArr[0]?.url || "",
+        url: `https://open.spotify.com/album/${albumId}`,
+        release_date: entity.releaseDate?.isoString || "",
+        total_tracks: tracks.length,
+        tracks,
+        source: "embed",
+      };
+    }
+
+    function mapAlbumSearch(a: any) {
+      return {
+        id: albumId,
+        name: a.name || "",
+        artist: (a.artists?.items || []).map((x: any) => x.profile?.name || x.name || "").join(", "),
+        artists: (a.artists?.items || []).map((x: any) => ({ name: x.profile?.name || x.name || "", id: idFromUri(x.uri) })),
+        thumbnail: bestImage(a.coverArt?.sources),
+        release_date: a.date?.year ? String(a.date.year) : "",
+        type: (a.type || "").toLowerCase(),
+        url: `https://open.spotify.com/album/${albumId}`,
+        tracks: [],
+        source: "search",
+      };
+    }
+
+    try {
+      const entity = await fetchEmbedEntity("album", albumId);
+      if (entity && (entity.name || entity.title))
+        return spRespond(res, { album: mapAlbumEmbed(entity) });
+    } catch {}
+
+    try {
+      const mbEntity = await mbLookupName("album", albumId, "release");
+      if (mbEntity) {
+        const name: string = mbEntity.title || "";
+        const artistCredit = mbEntity["artist-credit"]?.[0];
+        const artistName: string = artistCredit?.artist?.name || artistCredit?.name || "";
+        const searchTerm = artistName ? `${name} ${artistName}` : name;
+        if (searchTerm) {
+          const hit = await searchAndMatchByUri(searchTerm, spotifyUri, "album");
+          if (hit?.data) return spRespond(res, { album: mapAlbumSearch(hit.data) });
+        }
+      }
+    } catch {}
+
+    try {
+      const wdName = await wdLookupName("P1729", albumId);
+      if (wdName) {
+        const hit = await searchAndMatchByUri(wdName, spotifyUri, "album");
+        if (hit?.data) return spRespond(res, { album: mapAlbumSearch(hit.data) });
+        return spRespond(res, { album: { id: albumId, name: wdName, url: `https://open.spotify.com/album/${albumId}`, tracks: [], source: "db_lookup" } });
+      }
+    } catch {}
+
+    return spError(res, 503, "Album info could not be retrieved for this ID.");
+  });
+
+  // Artist info
+  app.get("/api/spotify/artist/:id", async (req: any, res: any) => {
+    const artistId = req.params.id as string;
+    if (!artistId || artistId.length < 10) return spError(res, 400, "Invalid artist ID");
+    const spotifyUri = `spotify:artist:${artistId}`;
+
+    function mapArtistSearch(data: any) {
+      const visuals: any[] = data?.visuals?.avatarImage?.sources || data?.visuals?.headerImage?.sources || [];
+      return {
+        id: idFromUri(data?.uri) || artistId,
+        name: data?.profile?.name || "",
+        thumbnail: bestImage(visuals),
+        followers: data?.stats?.followers || 0,
+        genres: data?.profile?.genres?.items?.map((g: any) => g.genre) || [],
+        verified: data?.profile?.verified || false,
+        url: `https://open.spotify.com/artist/${idFromUri(data?.uri) || artistId}`,
+      };
+    }
+
+    async function resolveArtistName(): Promise<{ name: string; searchData: any | null } | null> {
+      try {
+        const mbEntity = await mbLookupName("artist", artistId, "artist");
+        if (mbEntity?.name) {
+          const hit = await searchAndMatchByUri(mbEntity.name, spotifyUri, "artist");
+          return { name: mbEntity.name, searchData: hit?.data || null };
+        }
+      } catch {}
+      try {
+        const wdName = await wdLookupName("P1902", artistId);
+        if (wdName) {
+          const hit = await searchAndMatchByUri(wdName, spotifyUri, "artist");
+          return { name: wdName, searchData: hit?.data || null };
+        }
+      } catch {}
+      return null;
+    }
+
+    const resolved = await resolveArtistName();
+    if (resolved?.searchData) return spRespond(res, { artist: mapArtistSearch(resolved.searchData) });
+    if (resolved?.name)
+      return spRespond(res, { artist: { id: artistId, name: resolved.name, thumbnail: "", url: `https://open.spotify.com/artist/${artistId}`, source: "db_lookup" } });
+
+    try {
+      const entity = await fetchEmbedEntity("artist", artistId);
+      if (entity?.name || entity?.profile?.name) {
+        const imgArr: any[] = entity.visualIdentity?.image || [];
+        return spRespond(res, {
+          artist: {
+            id: entity.id || artistId,
+            name: entity.name || entity.profile?.name || "",
+            thumbnail: imgArr[0]?.url || bestImage(entity.visuals?.avatarImage?.sources),
+            followers: entity.stats?.followers || 0,
+            url: `https://open.spotify.com/artist/${artistId}`,
+            source: "embed",
+          },
+        });
+      }
+    } catch {}
+
+    return spError(res, 503, "Artist info could not be retrieved for this ID.");
+  });
+
+  // Artist top tracks
+  app.get("/api/spotify/artist/:id/top-tracks", async (req: any, res: any) => {
+    const artistId = req.params.id as string;
+    if (!artistId || artistId.length < 10) return spError(res, 400, "Invalid artist ID");
+    const spotifyUri = `spotify:artist:${artistId}`;
+
+    async function resolveArtistNameForTracks(): Promise<string | null> {
+      try {
+        const mbEntity = await mbLookupName("artist", artistId, "artist");
+        if (mbEntity?.name) return mbEntity.name as string;
+      } catch {}
+      try {
+        const wdName = await wdLookupName("P1902", artistId);
+        if (wdName) return wdName;
+      } catch {}
+      try {
+        const entity = await fetchEmbedEntity("artist", artistId);
+        return entity?.name || entity?.profile?.name || null;
+      } catch {}
+      return null;
+    }
+
+    const artistName = await resolveArtistNameForTracks();
+    if (!artistName) return spError(res, 503, "Could not resolve artist name for this ID.");
+
+    try {
+      const data = await spotifyGraphQL("searchDesktop", SEARCH_HASH, {
+        searchTerm: `artist:${artistName}`,
+        offset: 0,
+        limit: 10,
+        numberOfTopResults: 5,
+        includeAudiobooks: false,
+        includeArtistHasConcertsField: false,
+        includePreReleases: true,
+        includeLocalConcertsField: false,
+      });
+
+      const tracks: any[] = (data?.data?.searchV2?.tracksV2?.items || [])
+        .map((i: any) => i?.item?.data || i?.track || i)
+        .filter((t: any) => t?.id || t?.uri)
+        .map((t: any) => {
+          const ms = t.duration?.totalMilliseconds || 0;
+          const id = t.id || idFromUri(t.uri) || "";
+          return {
+            id,
+            title: t.name || "",
+            artist: (t.artists?.items || []).map((a: any) => a.profile?.name || a.name || "").join(", "),
+            album: t.albumOfTrack?.name || "",
+            url: `https://open.spotify.com/track/${id}`,
+            thumbnail: bestImage(t.albumOfTrack?.coverArt?.sources),
+            duration: formatDuration(ms),
+            duration_ms: ms,
+            release_date: t.albumOfTrack?.date?.year ? String(t.albumOfTrack.date.year) : "",
+            explicit: t.contentRating?.label === "EXPLICIT" || false,
+          };
+        })
+        .filter((t: any) => {
+          const artistLower = artistName.toLowerCase();
+          return t.artist.toLowerCase().includes(artistLower);
+        })
+        .slice(0, 10);
+
+      return spRespond(res, { artist: { id: artistId, name: artistName, url: `https://open.spotify.com/artist/${artistId}` }, top_tracks: tracks });
+    } catch (err: any) {
+      return spError(res, 503, err.message || "Could not fetch top tracks.");
+    }
+  });
+
+  // Playlist info
+  app.get("/api/spotify/playlist/:id", async (req: any, res: any) => {
+    const playlistId = req.params.id as string;
+    if (!playlistId || playlistId.length < 10) return spError(res, 400, "Invalid playlist ID");
+
+    function mapPlaylistEmbed(entity: any) {
+      const coverSources: any[] = entity.visualIdentity?.image || entity.coverArt?.sources || [];
+      const thumbnail = coverSources[0]?.url || "";
+      const tracks = (entity.trackList || []).map((t: any) => ({
+        id: t.uri ? t.uri.split(":").pop() : "",
+        title: t.title || t.name || "",
+        artist: t.subtitle || "",
+        duration: formatDuration(t.duration || 0),
+        duration_ms: t.duration || 0,
+        url: t.uri ? `https://open.spotify.com/track/${t.uri.split(":").pop()}` : "",
+        thumbnail: t.imageUrl || "",
+      }));
+      return {
+        id: entity.id || idFromUri(entity.uri || "") || playlistId,
+        name: entity.name || entity.title || "",
+        description: entity.subtitle || entity.description || "",
+        owner: (entity.authors || [])[0]?.name || "",
+        total_tracks: tracks.length,
+        thumbnail,
+        images: coverSources.map((s: any) => ({ url: s.url, width: s.width, height: s.height })),
+        url: `https://open.spotify.com/playlist/${playlistId}`,
+        tracks,
+      };
+    }
+
+    async function enrichWithGraphQL(pl: any): Promise<any> {
+      try {
+        const data = await spotifyGraphQL("fetchPlaylistMetadata", PLAYLIST_HASH, {
+          uri: `spotify:playlist:${playlistId}`,
+          offset: 0,
+          limit: 1,
+          enableWatchFeedEntrypoint: false,
+        });
+        const gql = data?.data?.playlistV2;
+        if (gql) {
+          pl.owner = gql.ownerV2?.data?.name || gql.ownerV2?.data?.username || pl.owner;
+          pl.followers = gql.followers || 0;
+          pl.total_tracks = gql.content?.totalCount || pl.total_tracks;
+          if (gql.name) pl.name = gql.name;
+          if (gql.description) pl.description = gql.description;
+        }
+      } catch {}
+      return pl;
+    }
+
+    try {
+      const entity = await fetchEmbedEntity("playlist", playlistId);
+      if (entity && (entity.name || entity.title)) {
+        const playlist = await enrichWithGraphQL(mapPlaylistEmbed(entity));
+        return spRespond(res, { source: "embed", playlist });
+      }
+    } catch {}
+
+    return spError(res, 503, "Could not fetch playlist info. Please try again.");
+  });
+
+  // Spotify GraphQL search (track, album, artist, playlist)
+  app.get("/api/spotify/info/search", async (req: any, res: any) => {
+    const q = req.query.q as string;
+    const type = ((req.query.type as string) || "track").toLowerCase().split(",")[0].trim();
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 50);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+
+    if (!q || !q.trim()) return spError(res, 400, "Missing query parameter: q");
+    const validTypes = ["track", "album", "artist", "playlist"];
+    if (!validTypes.includes(type)) return spError(res, 400, `Invalid type. Valid: ${validTypes.join(", ")}`);
+
+    const cacheKey = `${q}|${type}|${limit}|${offset}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return spRespond(res, { query: q, type, cached: true, ...cached });
+
+    try {
+      const data = await spotifyGraphQL("searchDesktop", SEARCH_HASH, {
+        searchTerm: q.trim(),
+        offset,
+        limit,
+        numberOfTopResults: 5,
+        includeAudiobooks: false,
+        includeArtistHasConcertsField: false,
+        includePreReleases: true,
+        includeLocalConcertsField: false,
+      });
+
+      const sv2 = data?.data?.searchV2;
+      if (!sv2) throw new Error("Empty response from Spotify GraphQL");
+
+      let results: any[] = [];
+      if (type === "track") {
+        results = (sv2.tracksV2?.items || [])
+          .map((i: any) => i?.item?.data || i?.track || i)
+          .filter((t: any) => t?.id || t?.uri)
+          .map((t: any) => {
+            const ms = t.duration?.totalMilliseconds || 0;
+            const id = t.id || idFromUri(t.uri) || "";
+            return {
+              id,
+              title: t.name || "",
+              artist: (t.artists?.items || []).map((a: any) => a.profile?.name || a.name || "").join(", "),
+              artists: (t.artists?.items || []).map((a: any) => a.profile?.name || a.name || ""),
+              album: t.albumOfTrack?.name || "",
+              url: `https://open.spotify.com/track/${id}`,
+              thumbnail: bestImage(t.albumOfTrack?.coverArt?.sources),
+              duration: formatDuration(ms),
+              duration_ms: ms,
+              release_date: t.albumOfTrack?.date?.year ? String(t.albumOfTrack.date.year) : "",
+              explicit: t.contentRating?.label === "EXPLICIT" || false,
+            };
+          });
+      } else if (type === "album") {
+        results = (sv2.albumsV2?.items || [])
+          .map((i: any) => i?.data || i)
+          .filter((a: any) => a?.uri)
+          .map((a: any) => {
+            const id = idFromUri(a.uri);
+            return {
+              id,
+              name: a.name || "",
+              artist: (a.artists?.items || []).map((x: any) => x.profile?.name || x.name || "").join(", "),
+              artists: (a.artists?.items || []).map((x: any) => x.profile?.name || x.name || ""),
+              url: `https://open.spotify.com/album/${id}`,
+              thumbnail: bestImage(a.coverArt?.sources),
+              release_date: a.date?.year ? String(a.date.year) : "",
+              type: (a.type || "").toLowerCase(),
+            };
+          });
+      } else if (type === "artist") {
+        results = (sv2.artists?.items || [])
+          .map((i: any) => i?.data || i)
+          .filter((a: any) => a?.uri)
+          .map((a: any) => {
+            const id = idFromUri(a.uri);
+            return {
+              id,
+              name: a.profile?.name || a.name || "",
+              url: `https://open.spotify.com/artist/${id}`,
+              thumbnail: bestImage(a.visuals?.avatarImage?.sources),
+              followers: a.stats?.followers || 0,
+              verified: a.profile?.verified || false,
+              genres: a.profile?.genres?.items?.map((g: any) => g.genre) || [],
+            };
+          });
+      } else if (type === "playlist") {
+        results = (sv2.playlists?.items || [])
+          .map((i: any) => i?.data || i)
+          .filter((p: any) => p?.uri)
+          .map((p: any) => {
+            const id = idFromUri(p.uri);
+            return {
+              id,
+              name: p.name || "",
+              description: p.description || "",
+              url: `https://open.spotify.com/playlist/${id}`,
+              thumbnail: bestImage(p.images?.items?.[0]?.sources),
+              owner: p.ownerV2?.data?.name || p.ownerV2?.data?.username || "",
+            };
+          });
+      }
+
+      if (results.length === 0) return spError(res, 404, "No results found for your query");
+      const payload = { total: results.length, results };
+      cacheSet(cacheKey, payload);
+      return spRespond(res, { query: q, type, cached: false, ...payload });
+    } catch (err: any) {
+      return spError(res, 500, err.message || "Spotify search failed");
     }
   });
 
