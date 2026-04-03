@@ -12,7 +12,7 @@ import { downloadTikTok } from "../lib/downloaders/tiktok";
 import { downloadSnapchat } from "../lib/downloaders/snapchat";
 import { downloadInstagram } from "../lib/downloaders/instagram";
 import { downloadYouTube } from "../lib/downloaders/youtube";
-import { downloadFacebook } from "../lib/downloaders/facebook";
+import { downloadFacebook, downloadFacebookSnap } from "../lib/downloaders/facebook";
 import { downloadTwitter } from "../lib/downloaders/twitter";
 import { searchSpotify, downloadSpotify } from "../lib/downloaders/spotify";
 import {
@@ -506,6 +506,45 @@ export async function registerRoutes(
       return res.json(addMediaProxyUrls(baseUrl, result));
     } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message || "Facebook Reel download failed" });
+    }
+  });
+
+  app.get("/api/download/facebook/snap", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url || url.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Query parameter 'url' is required. Provide a Facebook video or Reel URL.",
+        });
+      }
+      const result = await downloadFacebookSnap(url);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message || "Facebook snap download failed" });
+    }
+  });
+
+  app.get("/api/download/facebook/info", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url || url.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Query parameter 'url' is required. Provide a Facebook video or Reel URL.",
+        });
+      }
+      const result = await downloadFacebook(url);
+      if (!result.success) return res.json(result);
+      const { sdUrl, hdUrl, ...info } = result;
+      return res.json({
+        ...info,
+        hasHD: !!hdUrl,
+        hasSD: !!sdUrl,
+        qualityCount: result.links?.length ?? (hdUrl && sdUrl && hdUrl !== sdUrl ? 2 : 1),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message || "Facebook info failed" });
     }
   });
 
