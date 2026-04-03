@@ -1184,12 +1184,120 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
         </h3>
         <div className="space-y-2">
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-            WolfAPIs is a multi-provider API hub built by <span style={{ color: "#ffffff" }}>Silent Wolf</span> - a tech explorer.
+            WolfAPIs is a multi-provider API hub built by <span style={{ color: "#ffffff" }}>Silent Wolf</span> - a mad tech explorer.
             All APIs are free to use with no API key required.
           </p>
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
             Version <span style={{ color: "#00ff00" }}>1.0.0</span> | {allEndpoints.length}+ endpoints | {apiCategories.length} categories
           </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <h3
+          className="text-sm font-bold tracking-wider mb-4"
+          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
+        >
+          Projects by Silent Wolf
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-1">
+
+          <a
+            href="https://github.com/sil3nt-wolf/wolfXcore"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
+            data-testid="link-project-wolfxcore"
+          >
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+            >
+              <Github className="w-5 h-5" style={{ color: "#00ff00" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>wolfXcore</h4>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
+                >
+                  Laravel 11 + React/TS
+                </span>
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Cyberpunk game server management panel — Paystack/M-Pesa billing, auto-provisioning & Super Admin control
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>github.com/sil3nt-wolf/wolfXcore</p>
+            </div>
+            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+          </a>
+
+          <a
+            href="https://panel.xwolf.space"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
+            data-testid="link-project-panel"
+          >
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+            >
+              <Cpu className="w-5 h-5" style={{ color: "#00ff00" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>panel.xwolf.space</h4>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
+                >
+                  GAME SERVER
+                </span>
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Game server management panel — host, manage and provision game servers with automated billing
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>panel.xwolf.space</p>
+            </div>
+            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+          </a>
+
+          <a
+            href="https://host.xwolf.space"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all group"
+            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
+            data-testid="link-project-host"
+          >
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+            >
+              <Globe className="w-5 h-5" style={{ color: "#00ff00" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>host.xwolf.space</h4>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
+                >
+                  BOT HOSTING
+                </span>
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Deploy and host your bots — one-click deployment platform for chatbots and automation scripts
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(0,255,0,0.5)" }}>host.xwolf.space</p>
+            </div>
+            <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
+          </a>
+
         </div>
       </div>
     </div>
@@ -1939,7 +2047,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}>SILENT WOLF</p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>Developer & API Builder</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>Mad Tech Explorer</p>
               </div>
             </div>
 
