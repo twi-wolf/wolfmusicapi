@@ -287,13 +287,26 @@ function TestPopup({
     setInputs((prev) => ({ ...prev, [name]: value }));
   };
 
+  const buildPath = (basePath: string) => {
+    let resolved = basePath;
+    endpoint.params.forEach((p) => {
+      if (inputs[p.name] && resolved.includes(`:${p.name}`)) {
+        resolved = resolved.replace(`:${p.name}`, encodeURIComponent(inputs[p.name]));
+      }
+    });
+    return resolved;
+  };
+
+  const isPathParam = (paramName: string) => endpoint.path.includes(`:${paramName}`);
+
   const getFullUrl = () => {
     if (endpoint.method === "POST") return `${baseUrl}${endpoint.path}`;
+    const resolvedPath = buildPath(endpoint.path);
     const params = endpoint.params
-      .filter((p) => inputs[p.name])
+      .filter((p) => inputs[p.name] && !isPathParam(p.name))
       .map((p) => `${p.name}=${encodeURIComponent(inputs[p.name])}`)
       .join("&");
-    return params ? `${baseUrl}${endpoint.path}?${params}` : `${baseUrl}${endpoint.path}`;
+    return params ? `${baseUrl}${resolvedPath}?${params}` : `${baseUrl}${resolvedPath}`;
   };
 
   const handleExecute = async () => {
@@ -315,11 +328,12 @@ function TestPopup({
           body: JSON.stringify(body),
         });
       } else {
+        const resolvedPath = buildPath(endpoint.path);
         const params = endpoint.params
-          .filter((p) => inputs[p.name])
+          .filter((p) => inputs[p.name] && !isPathParam(p.name))
           .map((p) => `${p.name}=${encodeURIComponent(inputs[p.name])}`)
           .join("&");
-        res = await fetch(`${endpoint.path}${params ? `?${params}` : ""}`);
+        res = await fetch(`${resolvedPath}${params ? `?${params}` : ""}`);
       }
       const data = await res.json();
       setResult(JSON.stringify(data, null, 2));
