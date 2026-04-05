@@ -1,13 +1,9 @@
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { join } from "path";
 import { spawn } from "child_process";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 function fetchTokenViaHelper(): Promise<string | null> {
   return new Promise((resolve) => {
-    const helperPath = join(__dirname, "spotify-token-helper", "get-token.cjs");
+    const helperPath = join(process.cwd(), "lib", "spotify-token-helper", "get-token.cjs");
     const child = spawn("node", [helperPath], { timeout: 20000 });
     let out = "";
     child.stdout.on("data", (d: Buffer) => { out += d.toString(); });
