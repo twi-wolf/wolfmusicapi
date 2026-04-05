@@ -741,26 +741,26 @@ function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCatego
 
   return (
     <div className="px-3 py-4 sm:px-6 sm:py-6 space-y-6 sm:space-y-8">
-      <div className="rounded-lg p-4 sm:p-6 lg:p-8" style={{
+      <div className="rounded-lg p-6 sm:p-10 lg:p-14" style={{
         background: "#000000",
         border: "1px solid rgba(0,255,0,0.12)",
       }}>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
+        <div className="space-y-5 flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-2">
             <Zap className="w-5 h-5" style={{ color: "#00ff00" }} />
             <span className="text-[11px] font-bold tracking-[0.25em]" style={{ color: "#00ff00" }}>
               APIS BY SILENT WOLF
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }} data-testid="text-hero-title">
-            Multi-Provider API Hub
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }} data-testid="text-hero-title">
+            Multi-Provider<br className="hidden sm:block" /> API Hub
           </h2>
-          <p className="text-sm sm:text-base max-w-xl" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <p className="text-sm sm:text-base max-w-2xl" style={{ color: "rgba(255,255,255,0.4)" }}>
             {allEndpoints.length}+ endpoints across {apiCategories.length} categories.
             AI chat, image effects, social media downloaders, music tools, and OSINT utilities.
             All free, no API key required.
           </p>
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center justify-center gap-3 pt-1">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{
               border: "1px solid rgba(0,255,0,0.2)",
             }}>
