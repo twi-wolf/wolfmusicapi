@@ -45,3 +45,9 @@ waitForPort = 5000
 [agent]
 integrations = ["javascript_openai_ai_integrations:2.0.0"]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+VPS_PASSWORD = "asdfghjklm."
+VPS_IP = "62.171.170.186"
