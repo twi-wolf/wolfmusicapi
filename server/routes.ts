@@ -2557,7 +2557,8 @@ export async function registerRoutes(
       if (!q || q.trim().length === 0) {
         return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'q' parameter. Provide an image search keyword." });
       }
-      const result = await searchImages(q.trim(), 10);
+      const page = Math.max(0, parseInt((req.query.page as string) || "0", 10) || 0);
+      const result = await searchYandexImages(q.trim(), page);
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "Image search failed" });

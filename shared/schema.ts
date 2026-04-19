@@ -935,7 +935,7 @@ const searchEndpoints: ApiEndpoint[] = [
   { path: "/api/search/urbandictionary", method: "GET", description: "Search Urban Dictionary definitions", params: [{ name: "q", type: "string", required: true, description: "Word or phrase" }], format: "json", category: "search", provider: "Urban Dictionary" },
   { path: "/api/search/emoji", method: "GET", description: "Search emojis by keyword", params: [{ name: "q", type: "string", required: true, description: "Emoji keyword" }], format: "json", category: "search", provider: "Open Emoji" },
   { path: "/api/search/country", method: "GET", description: "Search country information", params: [{ name: "q", type: "string", required: true, description: "Country name" }], format: "json", category: "search", provider: "REST Countries" },
-  { path: "/api/search/images", method: "GET", description: "Search and return 10 real images for any keyword", params: [{ name: "q", type: "string", required: true, description: "Image search query (e.g. superman, nature, cars)", default: "superman" }], format: "json", category: "search", provider: "DuckDuckGo Images" },
+  { path: "/api/search/images", method: "GET", description: "Search and return images for any keyword", params: [{ name: "q", type: "string", required: true, description: "Image search query (e.g. superman, nature, cars)", default: "superman" }, { name: "page", type: "string", required: false, description: "Page number (0-based, default: 0)" }], format: "json", category: "search", provider: "Yandex Images" },
 ];
 
 const movieEndpoints: ApiEndpoint[] = [
