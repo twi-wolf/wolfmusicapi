@@ -936,6 +936,7 @@ const searchEndpoints: ApiEndpoint[] = [
   { path: "/api/search/emoji", method: "GET", description: "Search emojis by keyword", params: [{ name: "q", type: "string", required: true, description: "Emoji keyword" }], format: "json", category: "search", provider: "Open Emoji" },
   { path: "/api/search/country", method: "GET", description: "Search country information", params: [{ name: "q", type: "string", required: true, description: "Country name" }], format: "json", category: "search", provider: "REST Countries" },
   { path: "/api/search/images", method: "GET", description: "Search and return images for any keyword", params: [{ name: "q", type: "string", required: true, description: "Image search query (e.g. superman, nature, cars)", default: "superman" }, { name: "page", type: "string", required: false, description: "Page number (0-based, default: 0)" }], format: "json", category: "search", provider: "Yandex Images" },
+  { path: "/api/search/videos", method: "GET", description: "Search and return videos with thumbnails, duration and source for any keyword", params: [{ name: "q", type: "string", required: true, description: "Video search query (e.g. superman trailer, nature documentary)", default: "superman trailer" }, { name: "page", type: "string", required: false, description: "Page number (0-based, default: 0)" }], format: "json", category: "search", provider: "Yandex Videos" },
 ];
 
 const movieEndpoints: ApiEndpoint[] = [
