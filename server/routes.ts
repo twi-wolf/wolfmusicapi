@@ -32,6 +32,7 @@ import {
 } from "../lib/spotify-info";
 import { searchShazam, recognizeShazamFull, getTrackDetails } from "../lib/downloaders/shazam";
 import { searchImages } from "../lib/search/imageSearch";
+import { searchYandexImages } from "../lib/search/yandexImages";
 import { generateEphoto, listEphotoEffects, EPHOTO_EFFECTS } from "../lib/downloaders/ephoto360";
 import { generatePhotofunia, listPhotofuniaEffects } from "../lib/downloaders/photofunia";
 import { githubStalk, ipStalk, npmStalk, tiktokStalk, instagramStalk, twitterStalk, telegramStalk, numberPlateStalk } from "../lib/downloaders/stalker";
@@ -2560,6 +2561,28 @@ export async function registerRoutes(
       return res.json(result);
     } catch (error: any) {
       return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message || "Image search failed" });
+    }
+  });
+
+  app.get("/api/search/yandex-images", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q || q.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          creator: "APIs by Silent Wolf | A tech explorer",
+          error: "Missing 'q' parameter. Provide a search keyword.",
+        });
+      }
+      const page = Math.max(0, parseInt((req.query.page as string) || "0", 10) || 0);
+      const result = await searchYandexImages(q.trim(), page);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        error: error.message || "Yandex image search failed",
+      });
     }
   });
 
