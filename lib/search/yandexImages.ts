@@ -100,12 +100,32 @@ function parseHtml(html: string, query: string, page: number): YandexImageSearch
 
   const { keys, entities } = serpListItems;
 
+  const VIDEO_DOMAINS = new Set([
+    "youtube.com", "youtu.be", "vimeo.com", "dailymotion.com",
+    "twitch.tv", "tiktok.com", "rutube.ru", "ok.ru", "vk.com",
+  ]);
+
   const results: YandexImageResult[] = keys
     .map((key) => {
       const item = entities[key];
       if (!item) return null;
 
+      // Skip video items — Yandex mixes videos into image search results
+      if (
+        item.video ||
+        item.duration ||
+        item.durationIso ||
+        item.type === "video" ||
+        item.contentType === "video"
+      ) return null;
+
       const snippet = item.snippet || {};
+      const domain: string = snippet.domain || item.domain || "";
+
+      // Also skip known video hosting domains
+      const rootDomain = domain.replace(/^www\./, "");
+      if (VIDEO_DOMAINS.has(rootDomain)) return null;
+
       const sizes = item.sizes || {};
       const med = sizes.medium || null;
       const lrg = sizes.large || null;
@@ -116,7 +136,7 @@ function parseHtml(html: string, query: string, page: number): YandexImageSearch
         id: item.id || key,
         pos: typeof item.pos === "number" ? item.pos : 0,
         title: item.alt || snippet.title || "",
-        domain: snippet.domain || item.domain || "",
+        domain,
         thumbnail: toAbsUrl(item.image || ""),
         originalUrl,
         detailUrl: item.detail_url ? `https://yandex.com${item.detail_url}` : "",
