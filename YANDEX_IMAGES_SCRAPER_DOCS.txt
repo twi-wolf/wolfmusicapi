@@ -1,0 +1,289 @@
+================================================================================
+  YANDEX IMAGES SCRAPER — FULL TECHNICAL DOCUMENTATION
+  File: lib/search/yandexImages.ts
+  Endpoint: GET /api/search/yandex-images
+================================================================================
+
+--------------------------------------------------------------------------------
+1. WHAT WAS BUILT
+--------------------------------------------------------------------------------
+
+A scraper for Yandex Images (https://yandex.com/images/touch/search) that:
+  - Accepts a search query and optional page number
+  - Returns up to 20 image results per page
+  - Each result includes: id, position, title, domain, thumbnail URL,
+    original image URL, and medium/large size variants where available
+
+Endpoint usage:
+  GET /api/search/yandex-images?q=wolf
+  GET /api/search/yandex-images?q=wolf&page=1
+
+Sample response shape:
+  {
+    "success": true,
+    "creator": "...",
+    "query": "wolf",
+    "page": 0,
+    "count": 20,
+    "results": [
+      {
+        "id": "ec96a1b5e08dd071fa9b8aa1c9435805",
+        "pos": 0,
+        "title": "Wolf - Wikipedia",
+        "domain": "en.wikipedia.org",
+        "thumbnail": "https://avatars.mds.yandex.net/i?id=...",
+        "originalUrl": "https://upload.wikimedia.org/...",
+        "detailUrl": "https://yandex.com/images/touch/search?pos=0&...",
+        "medium": { "url": "...", "thumb": "...", "width": 960, "height": 640 },
+        "large": { "url": "...", "thumb": "...", "width": 4000, "height": 2667 }
+      },
+      ...
+    ]
+  }
+
+
+--------------------------------------------------------------------------------
+2. HOW YANDEX IMAGES IS STRUCTURED (What we discovered)
+--------------------------------------------------------------------------------
+
+Target URL: https://yandex.com/images/touch/search?lr=21312&text={query}&p={page}
+
+Yandex Images is a server-side rendered React application. All search results
+are embedded directly in the HTML at page load time — no separate API call is
+needed after the page renders.
+
+The data is embedded as HTML-entity-encoded JSON inside a "data-state" attribute
+on a React root div element. There are multiple such divs on the page (we found
+between 5 and 6 total). The one that contains image data is the block that,
+once decoded, has a key called "initialState".
+
+HTML structure (simplified):
+  <div data-state="{&quot;location&quot;:...&quot;initialState&quot;:{...}}" ...>
+
+The JSON shape after decoding HTML entities:
+  {
+    "location": "...",
+    "indexLocation": "...",
+    "query": "...",
+    "initialState": {
+      "internalState": { ... page config, user info ... },
+      "serpList": {
+        "items": {
+          "keys": ["id1", "id2", "id3", ...],   <-- ordered list of 20 image IDs
+          "entities": {
+            "id1": {
+              "id": "ec96a1b5e...",
+              "pos": 0,
+              "alt": "Wolf - Wikipedia",
+              "image": "//avatars.mds.yandex.net/i?id=...&n=13",  <-- thumbnail
+              "url": "/images/touch/search?pos=0&img_url=https%3A%2F%2F...",
+              "snippet": {
+                "title": "Wolf - Wikipedia",
+                "domain": "en.wikipedia.org"
+              },
+              "sizes": {
+                "medium": {
+                  "link": "https://upload.wikimedia.org/...",
+                  "width": 960,
+                  "height": 640,
+                  "thumb": "//avatars.mds.yandex.net/i?id=..."
+                },
+                "large": {
+                  "link": "https://...",
+                  "width": 4000,
+                  "height": 2667,
+                  "thumb": "//avatars.mds.yandex.net/i?id=..."
+                }
+              }
+            },
+            "id2": { ... },
+            ...
+          }
+        },
+        ...
+      },
+      ...
+    }
+  }
+
+Key fields extracted per image:
+  - item.alt or item.snippet.title  →  image title
+  - item.image                      →  Yandex CDN thumbnail (avatars.mds.yandex.net)
+  - item.url (decoded img_url param) →  original source image URL
+  - item.snippet.domain             →  source website domain
+  - item.sizes.medium.link          →  medium-res direct image URL
+  - item.sizes.large.link           →  high-res direct image URL
+  - item.detail_url                 →  Yandex's own detail page for this image
+
+Thumbnail URLs come from: avatars.mds.yandex.net (Yandex's CDN)
+They start with "//" so they need "https:" prepended to be absolute URLs.
+
+Pagination: increment the "p" query parameter (p=0, p=1, p=2, ...)
+Each page returns 20 results.
+
+
+--------------------------------------------------------------------------------
+3. THE BOT DETECTION PROBLEM
+--------------------------------------------------------------------------------
+
+Yandex uses "SmartCaptcha" — a sophisticated bot detection system that checks:
+  - IP address reputation (cloud/datacenter IPs are flagged immediately)
+  - TLS fingerprint (Node.js native fetch has a different TLS fingerprint
+    than real browsers)
+  - HTTP header patterns
+  - Possibly JavaScript execution capability
+
+What was tried and FAILED from a Replit server IP:
+  [X] Node.js native fetch() — returned CAPTCHA (13KB vs expected 347KB)
+  [X] curl with mobile user agent — returned CAPTCHA
+  [X] curl with full browser headers (Sec-Ch-Ua, Sec-Fetch-Dest, etc.) — CAPTCHA
+  [X] curl with fake Yandex cookies (yandexuid, yp, i) — CAPTCHA
+  [X] curl with desktop user agent — CAPTCHA
+  [X] yandex.ru instead of yandex.com — CAPTCHA
+  [X] Yandex Images JSON API format (?format=json) — CAPTCHA in JSON form
+  [X] Yandex Images with Android app user agent — CAPTCHA
+  [X] allorigins.win proxy — returned error 522 (connection timeout)
+
+The CAPTCHA page is always 13–14KB and contains:
+  <title>Are you not a robot?</title>
+  A checkbox form at /checkcaptcha
+  Yandex SmartCaptcha JS scripts
+
+Root cause: Replit servers run on cloud infrastructure. Yandex maintains a
+blocklist of cloud provider IP ranges (AWS, GCP, Cloudflare, etc.) and
+immediately routes them to SmartCaptcha.
+
+
+--------------------------------------------------------------------------------
+4. THE BYPASS — HOW IT WORKS
+--------------------------------------------------------------------------------
+
+SOLUTION: Route through corsproxy.io
+
+corsproxy.io is a public CORS proxy relay service. When a request is sent to:
+  https://corsproxy.io/?{URL-encoded target URL}
+
+...the proxy makes the HTTP request from its own servers, which are NOT on
+any cloud/datacenter IP blocklist that Yandex maintains. The proxy returns the
+full page content to the caller.
+
+Why corsproxy.io works:
+  - Its servers have "residential-like" or non-flagged IPs
+  - It sends the request with the headers you specify
+  - It transparently relays the full response body
+
+Implementation detail — we use curl (not Node.js fetch) to call corsproxy.io:
+
+  curl -s "https://corsproxy.io/?{encoded-yandex-url}" \
+    -H "User-Agent: {mobile UA}" \
+    -H "Accept: text/html,application/xhtml+xml" \
+    -H "Accept-Language: en-US,en;q=0.9" \
+    -H "Accept-Encoding: identity" \
+    --max-time 25
+
+Why curl and not Node.js fetch to corsproxy.io?
+  curl uses a different HTTP stack and TLS implementation than Node.js.
+  Even though corsproxy.io itself doesn't block us, using curl ensures the
+  outbound request looks more like a real browser at the TCP/TLS level.
+  It also avoids any potential issues with Node.js's HTTP/2 negotiation.
+
+The maxBuffer is set to 10MB to accommodate the ~350KB HTML response.
+
+
+--------------------------------------------------------------------------------
+5. PARSING FLOW (Step by Step)
+--------------------------------------------------------------------------------
+
+Step 1: Build target URL
+  https://yandex.com/images/touch/search?lr=21312&text={query}&p={page}
+
+Step 2: URL-encode the target and prepend the proxy
+  https://corsproxy.io/?https%3A%2F%2Fyandex.com%2Fimages%2Ftouch%2Fsearch%3F...
+
+Step 3: Fetch via curl, capture stdout
+
+Step 4: Sanity checks
+  - If response < 5000 chars → throw "too short"
+  - If response contains "Are you not a robot" or "checkcaptcha" → throw CAPTCHA error
+
+Step 5: Find all data-state="..." attributes using regex
+  Pattern: /data-state="([^"]+)"/g
+  This captures the raw (HTML-entity-encoded) value of each attribute.
+
+Step 6: For each captured block, HTML-entity-decode it
+  &quot; → "
+  &amp;  → &
+  &lt;   → <
+  &gt;   → >
+  &#39;  → '
+
+Step 7: JSON.parse() the decoded string
+  Try/catch — skip blocks that fail to parse
+
+Step 8: Look for the block that has initialState.serpList.items
+  obj?.initialState?.serpList?.items?.keys  (must be an array)
+  obj?.initialState?.serpList?.items?.entities (must be an object)
+
+Step 9: Once found, iterate over keys[] in order
+  For each key, look up entities[key]
+  Extract: alt, image, url, snippet, sizes
+
+Step 10: Normalize URLs
+  "//" prefix → prepend "https:"
+  img_url param in Yandex URL → decode and use as originalUrl
+
+Step 11: Return structured JSON response
+
+
+--------------------------------------------------------------------------------
+6. KNOWN LIMITATIONS
+--------------------------------------------------------------------------------
+
+  - corsproxy.io is a free third-party service and has rate limits
+    (unknown exact limits, but heavy use may get throttled or blocked)
+  - If corsproxy.io changes its IP range and gets blocked by Yandex,
+    a different proxy will be needed
+  - Response time is slower (~5-10 seconds) vs direct fetch due to proxy hop
+  - The "sizes" (medium/large) object is present in some responses but not all,
+    depending on whether Yandex includes extended data for each result
+  - Yandex may change their page structure at any time, requiring parser updates
+
+
+--------------------------------------------------------------------------------
+7. ALTERNATIVE PROXIES TO TRY IF corsproxy.io FAILS
+--------------------------------------------------------------------------------
+
+  1. https://api.codetabs.com/v1/proxy/?quest={encoded-url}
+  2. https://thingproxy.freeboard.io/fetch/{url}
+  3. https://api.allorigins.win/raw?url={encoded-url}
+     (Note: allorigins.win returned a 522 error in our tests — may be intermittent)
+  4. Self-hosted proxy on a residential or non-cloud VPS
+  5. Rotating residential proxy service (e.g. Bright Data, Oxylabs) — paid
+
+
+--------------------------------------------------------------------------------
+8. FILE LOCATIONS
+--------------------------------------------------------------------------------
+
+  Scraper logic:   lib/search/yandexImages.ts
+  Route handler:   server/routes.ts  (search for "/api/search/yandex-images")
+  Import added:    server/routes.ts line ~38
+
+
+--------------------------------------------------------------------------------
+9. QUICK TEST COMMANDS
+--------------------------------------------------------------------------------
+
+  # Test page 0
+  curl "http://localhost:5000/api/search/yandex-images?q=cat"
+
+  # Test page 2
+  curl "http://localhost:5000/api/search/yandex-images?q=sunset&page=2"
+
+  # Pretty print
+  curl "http://localhost:5000/api/search/yandex-images?q=mountains" | python3 -m json.tool
+
+
+================================================================================
+  END OF DOCUMENTATION
+================================================================================

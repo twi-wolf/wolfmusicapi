@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "JPn3OSrmYsVnDsrTAtZBV"
+uri = "file://YANDEX_IMAGES_SCRAPER_DOCS.txt"
+type = "text"
+title = "Yandex Images Scraper — Full Technical Documentation"
