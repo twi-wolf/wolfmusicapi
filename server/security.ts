@@ -112,7 +112,6 @@ export const globalLimiter = rateLimit({
   max: isDev ? 10000 : 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.ip || "").replace(/^::ffff:/, ""),
   handler: makeRateLimitHandler("Too many requests. Slow down."),
   skip: (req) => !req.path.startsWith("/api") && !req.path.startsWith("/download"),
 });
@@ -123,7 +122,6 @@ export const loginLimiter = rateLimit({
   max: isDev ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.ip || "").replace(/^::ffff:/, ""),
   handler: makeRateLimitHandler("Too many login attempts. Try again later."),
 });
 
@@ -133,7 +131,6 @@ export const apiLimiter = rateLimit({
   max: isDev ? 10000 : 80,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.ip || "").replace(/^::ffff:/, ""),
   handler: makeRateLimitHandler("API rate limit exceeded. Try again in a moment."),
 });
 
@@ -143,7 +140,6 @@ export const heavyLimiter = rateLimit({
   max: isDev ? 10000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.ip || "").replace(/^::ffff:/, ""),
   handler: makeRateLimitHandler("Download/search rate limit exceeded. Please wait a moment."),
 });
 
@@ -153,7 +149,6 @@ export const adminLimiter = rateLimit({
   max: isDev ? 10000 : 30,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.ip || "").replace(/^::ffff:/, ""),
   handler: makeRateLimitHandler("Admin rate limit exceeded."),
 });
 
