@@ -938,27 +938,94 @@ function HeroSection({ categoryId }: { categoryId: string }) {
   );
 }
 
+function DocSection({ label, icon: Icon }: { label: string; icon: typeof MessageSquare }) {
+  return (
+    <div className="flex items-center gap-2 mb-4 mt-10 first:mt-0">
+      <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#00ff00" }} />
+      <span className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}>
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "rgba(0,255,0,0.08)" }} />
+    </div>
+  );
+}
+
+function InlineCode({ children }: { children: string | number }) {
+  return (
+    <code className="text-[11px] px-1.5 py-0.5 rounded font-mono" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}>
+      {children}
+    </code>
+  );
+}
+
 function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (catId: string) => void }) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const links = [
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>({ githubUrl: "https://github.com/SilentWolf-Kenya", cards: DEFAULT_CARDS });
+  useEffect(() => { fetchSiteConfig().then(setSiteConfig); }, []);
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://apis.xwolf.space";
+
+  const rateLimits = [
+    { scope: "Global", limit: "300 requests", window: "15 minutes", applies: "All endpoints, per IP" },
+    { scope: "Downloads", limit: "20 requests", window: "1 minute", applies: "/api/download/*, /download/*" },
+    { scope: "Admin", limit: "30 requests", window: "5 minutes", applies: "/api/admin/*" },
+    { scope: "Login", limit: "5 attempts", window: "15 minutes", applies: "/api/admin/login" },
+    { scope: "API", limit: "80 requests", window: "1 minute", applies: "General API endpoints" },
+  ];
+
+  const errorCodes = [
+    { code: "200", color: "#00ff00", meaning: "OK", detail: "Request succeeded. Check success field in body." },
+    { code: "400", color: "#ffa500", meaning: "Bad Request", detail: "Missing or invalid parameters. Check the error field." },
+    { code: "403", color: "#ff6464", meaning: "Forbidden", detail: "IP is blocked or User-Agent is a known scanner tool." },
+    { code: "404", color: "#ff6464", meaning: "Not Found", detail: "Endpoint does not exist or resource was not found." },
+    { code: "429", color: "#ff6464", meaning: "Too Many Requests", detail: "Rate limit hit. Wait for the window to reset." },
+    { code: "500", color: "#ff6464", meaning: "Server Error", detail: "Upstream provider failed. Try again or use a different provider." },
+  ];
+
+  const quickExamples = [
+    {
+      label: "Get a random joke",
+      method: "GET",
+      path: "/api/fun/jokes",
+      curl: `curl "${baseUrl}/api/fun/jokes"`,
+    },
+    {
+      label: "Download TikTok video",
+      method: "GET",
+      path: "/api/tiktok",
+      curl: `curl "${baseUrl}/api/tiktok?url=https://vm.tiktok.com/example"`,
+    },
+    {
+      label: "Search YouTube music",
+      method: "GET",
+      path: "/api/search",
+      curl: `curl "${baseUrl}/api/search?q=blinding+lights"`,
+    },
+    {
+      label: "Chat with AI",
+      method: "GET",
+      path: "/api/ai/gpt",
+      curl: `curl "${baseUrl}/api/ai/gpt?q=What+is+the+speed+of+light"`,
+    },
+  ];
+
+  const communityLinks = [
     {
       title: "WhatsApp Group",
-      description: "Join our community group for support, updates, and discussions",
+      description: "Join for support, updates, and community discussions",
       url: "https://chat.whatsapp.com/HjFc3pud3IA0R0WGr1V2Xu",
       icon: MessageSquare,
       color: "#25D366",
     },
     {
       title: "WhatsApp Channel",
-      description: "Follow our channel for announcements and API updates",
+      description: "Follow for API announcements and release notes",
       url: "https://whatsapp.com/channel/0029Vb7Kd0h6GcGN1k8WYE0c",
       icon: Bell,
       color: "#25D366",
     },
     {
       title: "GitHub",
-      description: "View source code, report issues, and contribute",
+      description: "Browse source code, open issues, and contribute",
       url: "https://github.com/SilentWolf-Kenya",
       icon: Code2,
       color: "#ffffff",
@@ -966,151 +1033,213 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
   ];
 
   return (
-    <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-4xl mx-auto">
+    <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-3xl mx-auto">
+
+      {/* ── Header ── */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="w-4 h-4" style={{ color: "#00ff00" }} />
-          <span
-            className="text-[10px] font-bold tracking-[0.2em]"
-            style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-          >
-            DOCUMENTATION & COMMUNITY
+        <div className="flex items-center gap-2 mb-3">
+          <BookOpen className="w-4 h-4" style={{ color: "#00ff00" }} />
+          <span className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}>
+            API DOCUMENTATION
           </span>
         </div>
-        <h2
-          className="text-2xl font-bold mb-3"
-          style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}
-          data-testid="text-docs-title"
-        >
-          WolfAPIs Documentation
+        <h2 className="text-2xl font-bold mb-2" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }} data-testid="text-docs-title">
+          WolfAPIs Docs
         </h2>
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Everything you need to get started with the WolfAPIs platform. Join our community, explore the API, and build amazing things.
+        <p className="text-sm mb-5" style={{ color: "rgba(255,255,255,0.35)" }}>
+          Free, no-auth REST APIs for music, AI, social media, image effects, and more. Built by Silent Wolf.
         </p>
-      </div>
-
-      <div className="mb-10">
-        <h3
-          className="text-sm font-bold tracking-wider mb-4"
-          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-        >
-          Community & Links
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-1">
-          {links.map((link) => (
-            <a
-              key={link.title}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all"
-              style={{
-                background: "#000000",
-                border: "1px solid rgba(0,255,0,0.1)",
-              }}
-              data-testid={`link-${link.title.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: `${link.color}15`, border: `1px solid ${link.color}30` }}
-              >
-                <link.icon className="w-5 h-5" style={{ color: link.color }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>{link.title}</h4>
-                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{link.description}</p>
-              </div>
-              <ExternalLink className="w-4 h-4 flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }} />
-            </a>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: `${allEndpoints.length}+ Endpoints` },
+            { label: `${apiCategories.length} Categories` },
+            { label: "No API Key" },
+            { label: "Free Forever" },
+          ].map((tag) => (
+            <span key={tag.label} className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ background: "rgba(0,255,0,0.07)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>
+              {tag.label}
+            </span>
           ))}
         </div>
       </div>
 
-      <div className="mb-10">
-        <h3
-          className="text-sm font-bold tracking-wider mb-4"
-          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-        >
-          Quick Start
-        </h3>
-        <div className="rounded-xl p-5 space-y-4" style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.1)" }}>
-          <div>
-            <h4 className="text-xs font-bold mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>Base URL</h4>
-            <div className="flex items-center gap-2">
-              <code
-                className="text-xs px-3 py-2 rounded-lg flex-1 font-mono"
-                style={{ background: "rgba(0,255,0,0.05)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.1)" }}
-              >
-                {typeof window !== "undefined" ? window.location.origin : ""}
-              </code>
-              <CopyButton text={typeof window !== "undefined" ? window.location.origin : ""} />
-            </div>
-          </div>
+      {/* ── Getting Started ── */}
+      <DocSection label="GETTING STARTED" icon={Zap} />
 
-          <div>
-            <h4 className="text-xs font-bold mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>Example Request</h4>
-            <div className="flex items-center gap-2">
-              <code
-                className="text-xs px-3 py-2 rounded-lg flex-1 font-mono overflow-x-auto"
-                style={{ background: "rgba(0,255,0,0.05)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.1)" }}
-              >
-                GET /api/fun/jokes
-              </code>
-              <CopyButton text={`${typeof window !== "undefined" ? window.location.origin : ""}/api/fun/jokes`} />
-            </div>
-          </div>
+      <div className="rounded-xl overflow-hidden mb-6" style={{ border: "1px solid rgba(0,255,0,0.1)" }}>
+        <div className="px-4 py-3" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.06)" }}>
+          <span className="text-[10px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.4)" }}>BASE URL</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ background: "rgba(0,255,0,0.02)" }}>
+          <code className="text-sm font-mono flex-1" style={{ color: "#00ff00" }}>{baseUrl}</code>
+          <CopyButton text={baseUrl} />
+        </div>
+      </div>
 
+      <div className="rounded-xl p-4 mb-6 space-y-3" style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.1)" }}>
+        <div className="flex items-start gap-3">
+          <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(0,255,0,0.1)" }}>
+            <ShieldCheck className="w-3 h-3" style={{ color: "#00ff00" }} />
+          </div>
           <div>
-            <h4 className="text-xs font-bold mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>Response Format</h4>
-            <pre
-              className="text-xs px-3 py-2 rounded-lg font-mono overflow-x-auto"
-              style={{ background: "rgba(0,255,0,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(0,255,0,0.1)" }}
-            >
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "#ffffff" }}>No Authentication Required</p>
+            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+              All public endpoints are open — no API key, no token, no sign-up. Just send requests directly.
+              Automated scan tools (sqlmap, nikto, etc.) and empty User-Agents are blocked for security.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(0,255,0,0.1)" }}>
+            <Globe className="w-3 h-3" style={{ color: "#00ff00" }} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "#ffffff" }}>CORS Enabled</p>
+            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+              All endpoints support cross-origin requests. You can call them directly from a browser frontend or any HTTP client.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Response Format ── */}
+      <DocSection label="RESPONSE FORMAT" icon={Code} />
+
+      <div className="grid sm:grid-cols-2 gap-3 mb-6">
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,255,0,0.1)" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.06)" }}>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#00ff00" }} />
+            <span className="text-[10px] font-bold tracking-wider" style={{ color: "#00ff00" }}>SUCCESS</span>
+          </div>
+          <pre className="px-4 py-3 text-[11px] font-mono overflow-x-auto" style={{ background: "rgba(0,255,0,0.02)", color: "rgba(255,255,255,0.5)" }}>
 {`{
   "success": true,
-  "creator": "APIs by Silent Wolf | A tech explorer",
+  "creator": "APIs by Silent Wolf",
   "result": { ... }
 }`}
-            </pre>
+          </pre>
+        </div>
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,100,100,0.12)" }}>
+          <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(255,100,100,0.08)" }}>
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#ff6464" }} />
+            <span className="text-[10px] font-bold tracking-wider" style={{ color: "#ff6464" }}>ERROR</span>
           </div>
+          <pre className="px-4 py-3 text-[11px] font-mono overflow-x-auto" style={{ background: "rgba(255,100,100,0.02)", color: "rgba(255,255,255,0.5)" }}>
+{`{
+  "success": false,
+  "error": "Description of what failed",
+  "creator": "APIs by Silent Wolf"
+}`}
+          </pre>
         </div>
       </div>
 
-      <div className="mb-10">
-        <h3
-          className="text-sm font-bold tracking-wider mb-4"
-          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-        >
-          API Categories
-        </h3>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {apiCategories.map((cat) => {
-            const count = allEndpoints.filter(e => e.category === cat.id).length;
-            const Icon = categoryIcons[cat.id] || Code2;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setExpandedCategory(cat.id)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-[#0a0a0a]"
-                style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.08)" }}
-                data-testid={`docs-cat-${cat.id}`}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: "#00ff00" }} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium" style={{ color: "#ffffff" }}>{cat.name}</span>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: "rgba(0,255,0,0.1)", color: "#00ff00" }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <p className="text-[11px] mb-6" style={{ color: "rgba(255,255,255,0.3)" }}>
+        Always check the <InlineCode>success</InlineCode> field first. When <InlineCode>false</InlineCode>, read <InlineCode>error</InlineCode> for the reason. The <InlineCode>creator</InlineCode> field is present on every response.
+      </p>
+
+      {/* ── Quick Examples ── */}
+      <DocSection label="QUICK EXAMPLES" icon={Terminal} />
+
+      <div className="space-y-3 mb-6">
+        {quickExamples.map((ex, i) => (
+          <div key={i} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,255,0,0.08)" }}>
+            <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.05)" }}>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.12)", color: "#00ff00" }}>
+                {ex.method}
+              </span>
+              <code className="text-[11px] font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>{ex.path}</code>
+              <span className="text-[10px] ml-auto" style={{ color: "rgba(255,255,255,0.25)" }}>{ex.label}</span>
+            </div>
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "rgba(0,255,0,0.015)" }}>
+              <code className="text-[11px] font-mono flex-1 overflow-x-auto" style={{ color: "rgba(255,255,255,0.45)" }}>{ex.curl}</code>
+              <CopyButton text={ex.curl} />
+            </div>
+          </div>
+        ))}
       </div>
 
+      {/* ── Rate Limits ── */}
+      <DocSection label="RATE LIMITS" icon={Zap} />
+
+      <div className="rounded-xl overflow-hidden mb-6" style={{ border: "1px solid rgba(0,255,0,0.1)" }}>
+        <div className="px-4 py-3 grid grid-cols-3 gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.06)" }}>
+          {["Scope", "Limit", "Applies To"].map(h => (
+            <span key={h} className="text-[9px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.3)" }}>{h}</span>
+          ))}
+        </div>
+        {rateLimits.map((r, i) => (
+          <div
+            key={i}
+            className="px-4 py-2.5 grid grid-cols-3 gap-2 items-center"
+            style={{ background: i % 2 === 0 ? "rgba(0,255,0,0.015)" : "transparent", borderTop: i > 0 ? "1px solid rgba(0,255,0,0.04)" : "none" }}
+          >
+            <span className="text-[11px] font-semibold" style={{ color: "#ffffff" }}>{r.scope}</span>
+            <div>
+              <span className="text-[11px] font-mono" style={{ color: "#00ff00" }}>{r.limit}</span>
+              <span className="text-[10px] ml-1" style={{ color: "rgba(255,255,255,0.3)" }}>/ {r.window}</span>
+            </div>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{r.applies}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[11px] mb-6" style={{ color: "rgba(255,255,255,0.3)" }}>
+        Limits are per IP address. Exceeding a limit returns HTTP <InlineCode>429</InlineCode> with a <InlineCode>Retry-After</InlineCode> header. All counters reset when the window expires.
+      </p>
+
+      {/* ── Error Reference ── */}
+      <DocSection label="ERROR REFERENCE" icon={ShieldCheck} />
+
+      <div className="rounded-xl overflow-hidden mb-6" style={{ border: "1px solid rgba(0,255,0,0.1)" }}>
+        {errorCodes.map((e, i) => (
+          <div
+            key={i}
+            className="px-4 py-3 flex items-start gap-4"
+            style={{ background: i % 2 === 0 ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.03)" : "none" }}
+          >
+            <span className="text-xs font-bold font-mono flex-shrink-0 w-8" style={{ color: e.color }}>{e.code}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-[11px] font-semibold" style={{ color: "#ffffff" }}>{e.meaning}</span>
+              <span className="text-[10px] block mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{e.detail}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── API Categories ── */}
+      <DocSection label="API CATEGORIES" icon={Server} />
+
+      <div className="grid gap-2 sm:grid-cols-2 mb-6">
+        {apiCategories.map((cat) => {
+          const count = allEndpoints.filter(e => e.category === cat.id).length;
+          const Icon = categoryIcons[cat.id] || Code2;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setExpandedCategory(cat.id)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
+              style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.08)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.2)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.08)"; }}
+              data-testid={`docs-cat-${cat.id}`}
+            >
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(0,255,0,0.07)", border: "1px solid rgba(0,255,0,0.12)" }}>
+                <Icon className="w-3.5 h-3.5" style={{ color: "#00ff00" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-semibold block" style={{ color: "#ffffff" }}>{cat.name}</span>
+                <span className="text-[10px] block mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{cat.description}</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Category Detail Popup */}
       {expandedCategory && (() => {
         const cat = apiCategories.find(c => c.id === expandedCategory);
         if (!cat) return null;
@@ -1119,28 +1248,29 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
         return (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
+            style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)" }}
             onClick={(e) => { if (e.target === e.currentTarget) setExpandedCategory(null); }}
             data-testid="docs-popup-overlay"
           >
-            <div
-              className="w-full max-w-2xl max-h-[80vh] rounded-xl overflow-hidden flex flex-col"
-              style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.2)" }}
-            >
-              <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid rgba(0,255,0,0.1)" }}>
+            <div className="w-full max-w-2xl max-h-[85vh] rounded-xl overflow-hidden flex flex-col" style={{ background: "#080808", border: "1px solid rgba(0,255,0,0.2)" }}>
+              <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid rgba(0,255,0,0.08)" }}>
                 <div className="flex items-center gap-3">
-                  <Icon className="w-5 h-5" style={{ color: "#00ff00" }} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.15)" }}>
+                    <Icon className="w-4 h-4" style={{ color: "#00ff00" }} />
+                  </div>
                   <div>
                     <h3 className="text-sm font-bold" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>{cat.name}</h3>
-                    <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>{cat.description}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{cat.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(0,255,0,0.1)", color: "#00ff00" }}>{catEndpoints.length} endpoints</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>
+                    {catEndpoints.length} endpoints
+                  </span>
                   {onNavigateToCategory && (
                     <button
                       onClick={() => { setExpandedCategory(null); onNavigateToCategory(cat.id); }}
-                      className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
                       style={{ background: "rgba(0,255,0,0.1)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.2)" }}
                       data-testid={`btn-goto-${cat.id}`}
                     >
@@ -1149,10 +1279,11 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
                   )}
                   <button
                     onClick={() => setExpandedCategory(null)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#1a1a1a]"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ border: "1px solid rgba(255,255,255,0.06)" }}
                     data-testid="btn-close-docs-popup"
                   >
-                    <X className="w-4 h-4" style={{ color: "rgba(255,255,255,0.5)" }} />
+                    <X className="w-4 h-4" style={{ color: "rgba(255,255,255,0.4)" }} />
                   </button>
                 </div>
               </div>
@@ -1160,41 +1291,35 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
                 {catEndpoints.map((ep, idx) => (
                   <div
                     key={idx}
-                    className="rounded-lg px-3 py-2.5"
-                    style={{ background: "rgba(0,255,0,0.03)", border: "1px solid rgba(0,255,0,0.06)" }}
+                    className="rounded-xl px-4 py-3"
+                    style={{ background: "rgba(0,255,0,0.02)", border: "1px solid rgba(0,255,0,0.06)" }}
                     data-testid={`docs-endpoint-${cat.id}-${idx}`}
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ background: ep.method === "POST" ? "rgba(255,165,0,0.15)" : "rgba(0,255,0,0.15)", color: ep.method === "POST" ? "#ffa500" : "#00ff00" }}
-                      >
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: ep.method === "POST" ? "rgba(255,165,0,0.12)" : "rgba(0,255,0,0.12)", color: ep.method === "POST" ? "#ffa500" : "#00ff00" }}>
                         {ep.method}
                       </span>
                       <code className="text-[11px] font-mono" style={{ color: "#ffffff" }}>{ep.path}</code>
-                      {ep.provider && <span className="text-[9px] ml-auto" style={{ color: "rgba(255,255,255,0.25)" }}>{ep.provider}</span>}
+                      {ep.provider && <span className="text-[9px] ml-auto" style={{ color: "rgba(255,255,255,0.2)" }}>{ep.provider}</span>}
                     </div>
                     <p className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>{ep.description}</p>
                     {ep.params && ep.params.length > 0 && (
-                      <div className="space-y-1 mb-2">
-                        <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.25)" }}>PARAMETERS:</span>
+                      <div className="space-y-1 mb-2.5">
+                        <span className="text-[9px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.2)" }}>PARAMETERS</span>
                         {ep.params.map((p, pi) => (
-                          <div key={pi} className="flex items-center gap-2 text-[10px]">
+                          <div key={pi} className="flex items-baseline gap-2 text-[10px]">
                             <code style={{ color: "#00ff00" }}>{p.name}</code>
                             <span style={{ color: "rgba(255,255,255,0.2)" }}>{p.type}</span>
-                            {p.required && <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,100,100,0.15)", color: "#ff6464" }}>required</span>}
+                            {p.required && <span className="text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,100,100,0.12)", color: "#ff8080" }}>required</span>}
                             <span style={{ color: "rgba(255,255,255,0.3)" }}>{p.description}</span>
                           </div>
                         ))}
                       </div>
                     )}
                     <div>
-                      <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.25)" }}>EXAMPLE:</span>
+                      <span className="text-[9px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.2)" }}>EXAMPLE</span>
                       <div className="flex items-center gap-2 mt-1">
-                        <code
-                          className="text-[10px] px-2 py-1 rounded font-mono flex-1 overflow-x-auto"
-                          style={{ background: "rgba(0,255,0,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(0,255,0,0.08)" }}
-                        >
+                        <code className="text-[10px] px-2 py-1.5 rounded-lg font-mono flex-1 overflow-x-auto" style={{ background: "rgba(0,255,0,0.04)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(0,255,0,0.07)" }}>
                           {ep.method === "POST"
                             ? `curl -X POST ${baseUrl}${ep.path} -H "Content-Type: application/json" -d '${JSON.stringify(Object.fromEntries((ep.params || []).filter(p => p.required).map(p => [p.name, p.type === "string" ? "example" : "value"])))}'`
                             : `${baseUrl}${ep.path}${ep.params?.some(p => p.required) ? "?" + ep.params.filter(p => p.required).map(p => `${p.name}=example`).join("&") : ""}`}
@@ -1212,61 +1337,82 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
         );
       })()}
 
-      <div className="rounded-xl p-5" style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.1)" }}>
-        <h3
-          className="text-sm font-bold tracking-wider mb-3"
-          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-        >
-          About
-        </h3>
-        <div className="space-y-2">
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-            WolfAPIs is a multi-provider API hub built by <span style={{ color: "#ffffff" }}>Silent Wolf</span> - a mad tech explorer.
-            All APIs are free to use with no API key required.
-          </p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-            Version <span style={{ color: "#00ff00" }}>1.0.0</span> | {allEndpoints.length}+ endpoints | {apiCategories.length} categories
-          </p>
-        </div>
+      {/* ── Community ── */}
+      <DocSection label="COMMUNITY & SUPPORT" icon={MessageSquare} />
+
+      <div className="grid gap-3 mb-6">
+        {communityLinks.map((link) => (
+          <a
+            key={link.title}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 px-4 py-4 rounded-xl transition-all"
+            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.08)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.2)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.08)"; }}
+            data-testid={`link-${link.title.toLowerCase().replace(/\s+/g, "-")}`}
+          >
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${link.color}12`, border: `1px solid ${link.color}25` }}>
+              <link.icon className="w-4 h-4" style={{ color: link.color }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>{link.title}</h4>
+              <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{link.description}</p>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(255,255,255,0.15)" }} />
+          </a>
+        ))}
       </div>
 
-      <div className="mt-6">
-        <h3
-          className="text-sm font-bold tracking-wider mb-4"
-          style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}
-        >
-          Projects by Silent Wolf
-        </h3>
-        <div className="grid gap-3 md:grid-cols-3">
-          {siteConfig.cards.map((card) => (
-            <a
-              key={card.id}
-              href={card.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
-              style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
-              data-testid={`link-project-${card.id}`}
-            >
-              <div className="flex items-center justify-between">
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center"
-                  style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-                >
-                  <CardIcon icon={card.icon} />
+      {/* ── Projects ── */}
+      {siteConfig.cards.length > 0 && (
+        <>
+          <DocSection label="PROJECTS BY SILENT WOLF" icon={Globe} />
+          <div className="grid gap-3 sm:grid-cols-2 mb-6">
+            {siteConfig.cards.map((card) => (
+              <a
+                key={card.id}
+                href={card.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
+                style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.08)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.08)"; }}
+                data-testid={`link-project-${card.id}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,255,0,0.07)", border: "1px solid rgba(0,255,0,0.15)" }}>
+                    <CardIcon icon={card.icon} />
+                  </div>
+                  <ExternalLink className="w-3 h-3 opacity-20 group-hover:opacity-60 transition-opacity" style={{ color: "#00ff00" }} />
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                  <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>{card.name}</h4>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>{card.badge}</span>
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <h4 className="text-xs font-bold" style={{ color: "#ffffff" }}>{card.name}</h4>
+                    {card.badge && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.07)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}>{card.badge}</span>}
+                  </div>
+                  <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>{card.description}</p>
+                  {card.display && <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.4)" }}>{card.display}</p>}
                 </div>
-                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{card.description}</p>
-                <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>{card.display}</p>
-              </div>
-            </a>
-          ))}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Footer ── */}
+      <div className="rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.06)" }}>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: "#ffffff" }}>WolfAPIs <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>by Silent Wolf</span></p>
+          <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.2)" }}>
+            v1.0.0 · {allEndpoints.length} endpoints · {apiCategories.length} categories · Free to use
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 6px #00ff00" }} />
+          <span className="text-[10px] font-bold" style={{ color: "#00ff00" }}>ALL SYSTEMS LIVE</span>
         </div>
       </div>
     </div>
