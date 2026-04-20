@@ -66,14 +66,35 @@ const HIT_COUNTS: Record<string, number> = {};
 const ERROR_COUNTS = { total4xx: 0, total5xx: 0 };
 let totalRequests = 0;
 
+// ─── Daily tracking (resets at midnight) ──────────────────────────────────────
+const DAILY_HIT_COUNTS: Record<string, number> = {};
+let dailyTotalRequests = 0;
+let dailyErrors4xx = 0;
+let dailyErrors5xx = 0;
+let currentDay = new Date().toDateString();
+
+function checkDayRollover() {
+  const today = new Date().toDateString();
+  if (today !== currentDay) {
+    currentDay = today;
+    for (const k in DAILY_HIT_COUNTS) delete DAILY_HIT_COUNTS[k];
+    dailyTotalRequests = 0;
+    dailyErrors4xx = 0;
+    dailyErrors5xx = 0;
+  }
+}
+
 function recordRequest(log: RequestLog) {
+  checkDayRollover();
   totalRequests++;
+  dailyTotalRequests++;
   REQUEST_LOG.push(log);
   if (REQUEST_LOG.length > MAX_LOG) REQUEST_LOG.shift();
   const key = `${log.method} ${log.path.split("?")[0]}`;
   HIT_COUNTS[key] = (HIT_COUNTS[key] || 0) + 1;
-  if (log.status >= 400 && log.status < 500) ERROR_COUNTS.total4xx++;
-  if (log.status >= 500) ERROR_COUNTS.total5xx++;
+  DAILY_HIT_COUNTS[key] = (DAILY_HIT_COUNTS[key] || 0) + 1;
+  if (log.status >= 400 && log.status < 500) { ERROR_COUNTS.total4xx++; dailyErrors4xx++; }
+  if (log.status >= 500) { ERROR_COUNTS.total5xx++; dailyErrors5xx++; }
 }
 
 // ─── Admin Auth ───────────────────────────────────────────────────────────────
@@ -128,6 +149,7 @@ export async function registerRoutes(
 
   // ─── Admin: Stats ──────────────────────────────────────────────────────────
   app.get("/api/admin/stats", requireAdminAuth, (_req: any, res: any) => {
+    checkDayRollover();
     const now = Date.now();
     const hour = now - 3600_000;
     const day = now - 86400_000;
@@ -140,6 +162,11 @@ export async function registerRoutes(
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([endpoint, hits]) => ({ endpoint, hits }));
+    const topEndpointsToday = Object.entries(DAILY_HIT_COUNTS)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([endpoint, hits]) => ({ endpoint, hits }));
+    const topApiToday = topEndpointsToday[0] || null;
     return res.json({
       success: true,
       totalRequests,
@@ -150,6 +177,12 @@ export async function registerRoutes(
       errors5xx: ERROR_COUNTS.total5xx,
       topEndpoints,
       loggedCount: REQUEST_LOG.length,
+      dailyTotalRequests,
+      dailyErrors4xx,
+      dailyErrors5xx,
+      topEndpointsToday,
+      topApiToday,
+      currentDay,
     });
   });
 

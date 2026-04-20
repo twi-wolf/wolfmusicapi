@@ -4,7 +4,8 @@ import {
   LayoutDashboard, ScrollText, Settings, Shield, Cpu,
   RefreshCw, LogOut, ChevronUp, ChevronDown, Trash2,
   Plus, Save, Eye, EyeOff, Zap, RotateCcw, Activity,
-  CheckCircle, XCircle, Clock, AlertTriangle, Globe, Github, Code, Server
+  CheckCircle, XCircle, Clock, AlertTriangle, Globe, Github, Code, Server,
+  TrendingUp, Star, CalendarDays
 } from "lucide-react";
 
 const NEON = "#00ff00";
@@ -135,7 +136,41 @@ function OverviewTab() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+      {/* ── Today's Highlight Banner ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        {/* Today total */}
+        <div style={{ background: "linear-gradient(135deg, rgba(0,255,0,0.07) 0%, rgba(0,255,0,0.02) 100%)", border: "1px solid rgba(0,255,0,0.25)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: "rgba(0,255,0,0.1)", border: "1px solid rgba(0,255,0,0.2)", borderRadius: 10, padding: 10, flexShrink: 0 }}>
+            <CalendarDays size={20} color={NEON} />
+          </div>
+          <div>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 4px" }}>Today's Requests</p>
+            <p style={{ color: NEON, fontFamily: "'Orbitron', sans-serif", fontSize: 30, fontWeight: 700, margin: 0, lineHeight: 1 }}>{stats.dailyTotalRequests?.toLocaleString() ?? 0}</p>
+            <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, margin: "5px 0 0" }}>{stats.currentDay}</p>
+          </div>
+        </div>
+
+        {/* Today's #1 API */}
+        <div style={{ background: "linear-gradient(135deg, rgba(255,200,0,0.06) 0%, rgba(255,200,0,0.01) 100%)", border: "1px solid rgba(255,200,0,0.2)", borderRadius: 14, padding: "20px 22px", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: "rgba(255,200,0,0.1)", border: "1px solid rgba(255,200,0,0.2)", borderRadius: 10, padding: 10, flexShrink: 0 }}>
+            <Star size={20} color="#ffc800" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 4px" }}>Top API Today</p>
+            {stats.topApiToday ? (
+              <>
+                <p style={{ color: "#ffc800", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{stats.topApiToday.endpoint}</p>
+                <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: "5px 0 0" }}><span style={{ color: "#ffc800", fontWeight: 700 }}>{stats.topApiToday.hits.toLocaleString()}</span> hits today</p>
+              </>
+            ) : (
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, margin: 0 }}>No data yet</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── All-time stat cards ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
         <StatCard label="Total Requests" value={stats.totalRequests.toLocaleString()} sub="since last restart" />
         <StatCard label="Last Hour" value={stats.reqLastHour.toLocaleString()} sub="API hits" />
         <StatCard label="Last 24h" value={stats.reqLastDay.toLocaleString()} sub="API hits" />
@@ -144,8 +179,47 @@ function OverviewTab() {
         <StatCard label="5xx Errors" value={stats.errors5xx} color={stats.errors5xx > 0 ? "#ff4444" : NEON} />
       </div>
 
+      {/* ── Today's top endpoints leaderboard ── */}
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,200,0,0.12)", borderRadius: 12, padding: "18px 20px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <TrendingUp size={14} color="#ffc800" />
+          <p style={{ color: "#ffc800", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>Top APIs Today</p>
+          <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.2)", fontSize: 11 }}>{stats.currentDay}</span>
+        </div>
+        {!stats.topEndpointsToday || stats.topEndpointsToday.length === 0 ? (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>No requests yet today.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {stats.topEndpointsToday.map((e: any, i: number) => {
+              const maxHits = stats.topEndpointsToday[0]?.hits || 1;
+              const pct = Math.round((e.hits / maxHits) * 100);
+              const isTop = i === 0;
+              return (
+                <div key={i}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <span style={{ color: isTop ? "#ffc800" : "rgba(255,255,255,0.2)", fontSize: 11, fontWeight: 700, width: 16, flexShrink: 0 }}>#{i + 1}</span>
+                      <span style={{ color: isTop ? "#fff" : "rgba(255,255,255,0.6)", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.endpoint}</span>
+                    </div>
+                    <span style={{ color: isTop ? "#ffc800" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{e.hits.toLocaleString()}</span>
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 4, height: 3, marginLeft: 24 }}>
+                    <div style={{ background: isTop ? "#ffc800" : "rgba(255,200,0,0.35)", height: 3, borderRadius: 4, width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── All-time top endpoints ── */}
       <div style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.1)", borderRadius: 12, padding: "18px 20px" }}>
-        <p style={{ color: NEON, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", margin: "0 0 14px", textTransform: "uppercase" }}>Top Endpoints</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <Activity size={14} color={NEON} />
+          <p style={{ color: NEON, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>All-Time Top Endpoints</p>
+          <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.2)", fontSize: 11 }}>since last restart</span>
+        </div>
         {stats.topEndpoints.length === 0 ? (
           <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>No data yet.</p>
         ) : (
@@ -155,12 +229,15 @@ function OverviewTab() {
               const pct = Math.round((e.hits / maxHits) * 100);
               return (
                 <div key={i}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>{e.endpoint}</span>
-                    <span style={{ color: NEON, fontSize: 12, fontWeight: 700 }}>{e.hits.toLocaleString()}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, fontWeight: 700, width: 16, flexShrink: 0 }}>#{i + 1}</span>
+                      <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.endpoint}</span>
+                    </div>
+                    <span style={{ color: NEON, fontSize: 12, fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{e.hits.toLocaleString()}</span>
                   </div>
-                  <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 4, height: 4 }}>
-                    <div style={{ background: NEON, height: 4, borderRadius: 4, width: `${pct}%`, opacity: 0.7 }} />
+                  <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 4, height: 3, marginLeft: 24 }}>
+                    <div style={{ background: NEON, height: 3, borderRadius: 4, width: `${pct}%`, opacity: 0.7 }} />
                   </div>
                 </div>
               );
