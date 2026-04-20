@@ -1683,24 +1683,27 @@ export default function Home() {
     let passed = 0;
     let done = 0;
 
-    const resolveParamValue = (p: { name: string; default?: string | number }) => {
-      if (!isMusicCat) return p.default != null ? String(p.default) : undefined;
-      if (chosenMode === "name") {
-        if (p.name === "url") return undefined;
-        if (p.name === "q") return MUSIC_TEST_NAME;
-      } else {
-        if (p.name === "q") return undefined;
-        if (p.name === "url") return MUSIC_TEST_URL;
-      }
-      return p.default != null ? String(p.default) : undefined;
-    };
-
     const testOne = async (ep: ApiEndpoint) => {
+      const epParams = ep.params || [];
+      const epHasUrlParam = epParams.some(px => px.name === "url");
+
+      const resolveParamValue = (p: { name: string; default?: string | number }) => {
+        if (!isMusicCat) return p.default != null ? String(p.default) : undefined;
+        if (chosenMode === "name") {
+          if (p.name === "url") return undefined;
+          if (p.name === "q") return MUSIC_TEST_NAME;
+        } else {
+          if (epHasUrlParam && p.name === "q") return undefined;
+          if (p.name === "url") return MUSIC_TEST_URL;
+        }
+        return p.default != null ? String(p.default) : undefined;
+      };
+
       const pathParamNames = new Set(
         (ep.path.match(/:([a-zA-Z_]+)/g) || []).map((s: string) => s.slice(1))
       );
       let path = ep.path;
-      for (const p of ep.params || []) {
+      for (const p of epParams) {
         const val = resolveParamValue(p);
         if (val !== undefined && pathParamNames.has(p.name)) {
           path = path.replace(`:${p.name}`, encodeURIComponent(val));
@@ -1710,7 +1713,7 @@ export default function Home() {
       const opts: RequestInit = {};
       if (ep.method === "GET") {
         const qs = new URLSearchParams();
-        for (const p of ep.params || []) {
+        for (const p of epParams) {
           const val = resolveParamValue(p);
           if (val !== undefined && !pathParamNames.has(p.name)) qs.set(p.name, val);
         }
@@ -1718,7 +1721,7 @@ export default function Home() {
         if (s) url += "?" + s;
       } else {
         const body: Record<string, string> = {};
-        for (const p of ep.params || []) {
+        for (const p of epParams) {
           const val = resolveParamValue(p);
           if (val !== undefined) body[p.name] = val;
         }
@@ -1726,9 +1729,10 @@ export default function Home() {
         opts.headers = { "Content-Type": "application/json" };
         opts.body = JSON.stringify(body);
       }
+      const timeoutMs = isMusicCat ? 25000 : 10000;
       try {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 10000);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
         opts.signal = controller.signal;
         const r = await fetch(url, opts);
         clearTimeout(timer);
