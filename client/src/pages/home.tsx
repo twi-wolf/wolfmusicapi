@@ -33,6 +33,7 @@ import {
   Shield,
   Cpu,
   ArrowUpRight,
+  ArrowLeft,
   Bell,
   Cat,
   Laugh,
@@ -1737,6 +1738,8 @@ export default function Home() {
                       setActiveCategory("ephoto");
                       setEphotoSubCategory(null);
                       setEphotoExpanded(!ephotoExpanded);
+                      setPhotofuniaExpanded(false);
+                      setPhotofuniaSubCategory(null);
                       setEffectSearch("");
                       setSidebarOpen(false);
                     }}
@@ -1805,6 +1808,8 @@ export default function Home() {
                       setActiveCategory("photofunia");
                       setPhotofuniaSubCategory(null);
                       setPhotofuniaExpanded(!photofuniaExpanded);
+                      setEphotoExpanded(false);
+                      setEphotoSubCategory(null);
                       setEffectSearch("");
                       setSidebarOpen(false);
                     }}
@@ -1872,6 +1877,10 @@ export default function Home() {
                 onClick={() => {
                   setActiveCategory(cat.id);
                   setEffectSearch("");
+                  setPhotofuniaExpanded(false);
+                  setPhotofuniaSubCategory(null);
+                  setEphotoExpanded(false);
+                  setEphotoSubCategory(null);
                   setSidebarOpen(false);
                 }}
                 data-testid={`nav-${cat.id}`}
@@ -1999,6 +2008,28 @@ export default function Home() {
             >
               <Menu className="w-5 h-5" />
             </button>
+
+            {activeCategory !== null && (
+              <button
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all flex-shrink-0"
+                style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}
+                onClick={() => {
+                  setActiveCategory(null);
+                  setPhotofuniaSubCategory(null);
+                  setPhotofuniaExpanded(false);
+                  setEphotoSubCategory(null);
+                  setEphotoExpanded(false);
+                  setEffectSearch("");
+                }}
+                data-testid="button-back-home"
+                title="Back to home"
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#00ff00"; e.currentTarget.style.borderColor = "rgba(0,255,0,0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-semibold tracking-wider hidden sm:inline">HOME</span>
+              </button>
+            )}
 
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {activeCategory === null ? (

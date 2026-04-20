@@ -195,10 +195,10 @@ export interface EffectEntry {
 }
 
 export const PHOTOFUNIA_SUBCATEGORIES = [
+  { id: "halloween", name: "Halloween" },
+  { id: "christmas", name: "Christmas" },
   { id: "valentine", name: "Valentine's Day" },
   { id: "easter", name: "Easter" },
-  { id: "christmas", name: "Christmas" },
-  { id: "halloween", name: "Halloween" },
   { id: "filters", name: "Filters" },
   { id: "lab", name: "Lab" },
   { id: "cards", name: "Cards" },
@@ -211,11 +211,10 @@ export const PHOTOFUNIA_SUBCATEGORIES = [
   { id: "frames", name: "Frames" },
   { id: "drawings", name: "Drawings" },
   { id: "vintage", name: "Vintage" },
-  { id: "misc", name: "Misc" },
   { id: "magazines", name: "Magazines" },
   { id: "professions", name: "Professions" },
   { id: "books", name: "Books" },
-  { id: "cards", name: "Cards" },
+  { id: "misc", name: "Misc" },
 ];
 
 export const EPHOTO_SUBCATEGORIES = [
