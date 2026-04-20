@@ -1609,6 +1609,10 @@ export default function Home() {
   const [testAllProgress, setTestAllProgress] = useState({ done: 0, total: 0 });
   const [testAllReport, setTestAllReport] = useState<TestAllReport | null>(null);
   const [testAllCopied, setTestAllCopied] = useState(false);
+  const [testAllPickingMode, setTestAllPickingMode] = useState(false);
+  const [musicTestMode, setMusicTestMode] = useState<"name" | "url">("name");
+  const MUSIC_TEST_URL = "https://youtu.be/VoH21Knbx0U?si=lymFG7mS6bXDWQTp";
+  const MUSIC_TEST_NAME = "Home NF";
 
   useEffect(() => {
     fetchSiteConfig().then((cfg) => setGithubUrl(cfg.githubUrl));
@@ -1663,9 +1667,12 @@ export default function Home() {
     });
   };
 
-  const runTestAll = async () => {
+  const runTestAll = async (mode?: "name" | "url") => {
     if (!activeCategory || testAllRunning) return;
     const endpoints = filteredEndpoints;
+    const isMusicCat = activeCategory === "music";
+    const chosenMode = mode ?? musicTestMode;
+    setTestAllPickingMode(false);
     setTestAllOpen(true);
     setTestAllRunning(true);
     setTestAllReport(null);
@@ -1676,14 +1683,27 @@ export default function Home() {
     let passed = 0;
     let done = 0;
 
+    const resolveParamValue = (p: { name: string; default?: string | number }) => {
+      if (!isMusicCat) return p.default != null ? String(p.default) : undefined;
+      if (chosenMode === "name") {
+        if (p.name === "url") return undefined;
+        if (p.name === "q") return MUSIC_TEST_NAME;
+      } else {
+        if (p.name === "q") return undefined;
+        if (p.name === "url") return MUSIC_TEST_URL;
+      }
+      return p.default != null ? String(p.default) : undefined;
+    };
+
     const testOne = async (ep: ApiEndpoint) => {
       const pathParamNames = new Set(
         (ep.path.match(/:([a-zA-Z_]+)/g) || []).map((s: string) => s.slice(1))
       );
       let path = ep.path;
       for (const p of ep.params || []) {
-        if (p.default && pathParamNames.has(p.name)) {
-          path = path.replace(`:${p.name}`, encodeURIComponent(String(p.default)));
+        const val = resolveParamValue(p);
+        if (val !== undefined && pathParamNames.has(p.name)) {
+          path = path.replace(`:${p.name}`, encodeURIComponent(val));
         }
       }
       let url = baseUrl + path;
@@ -1691,14 +1711,16 @@ export default function Home() {
       if (ep.method === "GET") {
         const qs = new URLSearchParams();
         for (const p of ep.params || []) {
-          if (p.default && !pathParamNames.has(p.name)) qs.set(p.name, String(p.default));
+          const val = resolveParamValue(p);
+          if (val !== undefined && !pathParamNames.has(p.name)) qs.set(p.name, val);
         }
         const s = qs.toString();
         if (s) url += "?" + s;
       } else {
         const body: Record<string, string> = {};
         for (const p of ep.params || []) {
-          if (p.default) body[p.name] = String(p.default);
+          const val = resolveParamValue(p);
+          if (val !== undefined) body[p.name] = val;
         }
         opts.method = "POST";
         opts.headers = { "Content-Type": "application/json" };
@@ -1739,6 +1761,17 @@ export default function Home() {
       issues,
     });
     setTestAllRunning(false);
+  };
+
+  const handleTestAllClick = () => {
+    if (testAllRunning) return;
+    if (activeCategory === "music") {
+      setTestAllPickingMode(true);
+      setTestAllOpen(true);
+      setTestAllReport(null);
+    } else {
+      runTestAll();
+    }
   };
 
   const filteredEndpoints = activeCategory
@@ -2258,7 +2291,7 @@ export default function Home() {
             <section className="px-3 py-4 sm:px-6 sm:py-5">
               <div className="flex items-center gap-2 mb-3">
                 <button
-                  onClick={runTestAll}
+                  onClick={handleTestAllClick}
                   disabled={testAllRunning}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all"
                   style={{
@@ -2338,7 +2371,7 @@ export default function Home() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
           style={{ background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)" }}
-          onClick={(e) => { if (e.target === e.currentTarget && !testAllRunning) setTestAllOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget && !testAllRunning) { setTestAllOpen(false); setTestAllPickingMode(false); } }}
           data-testid="overlay-test-all"
         >
           <div
@@ -2358,7 +2391,7 @@ export default function Home() {
               </div>
               {!testAllRunning && (
                 <button
-                  onClick={() => setTestAllOpen(false)}
+                  onClick={() => { setTestAllOpen(false); setTestAllPickingMode(false); }}
                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
                   style={{ border: "1px solid rgba(255,255,255,0.06)" }}
                   data-testid="button-close-test-all"
@@ -2370,7 +2403,36 @@ export default function Home() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto hide-scrollbar p-5">
-              {testAllRunning ? (
+              {testAllPickingMode ? (
+                <div className="flex flex-col items-center gap-6 py-8">
+                  <div className="text-center">
+                    <p className="text-xs font-bold tracking-widest mb-1" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>CHOOSE TEST MODE</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>How should endpoints be tested?</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+                    <button
+                      onClick={() => { setMusicTestMode("name"); runTestAll("name"); }}
+                      className="flex-1 flex flex-col items-center gap-2 px-4 py-5 rounded-xl transition-all"
+                      style={{ background: "rgba(0,255,0,0.06)", border: "1px solid rgba(0,255,0,0.25)", cursor: "pointer" }}
+                      data-testid="button-test-mode-name"
+                    >
+                      <span className="text-2xl">🎵</span>
+                      <span className="text-[11px] font-bold tracking-wider" style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}>SONG NAME</span>
+                      <span className="text-[10px] text-center px-2" style={{ color: "rgba(255,255,255,0.4)" }}>Test using "<span style={{ color: "rgba(255,255,255,0.7)" }}>Home NF</span>"</span>
+                    </button>
+                    <button
+                      onClick={() => { setMusicTestMode("url"); runTestAll("url"); }}
+                      className="flex-1 flex flex-col items-center gap-2 px-4 py-5 rounded-xl transition-all"
+                      style={{ background: "rgba(0,150,255,0.06)", border: "1px solid rgba(0,150,255,0.25)", cursor: "pointer" }}
+                      data-testid="button-test-mode-url"
+                    >
+                      <span className="text-2xl">🔗</span>
+                      <span className="text-[11px] font-bold tracking-wider" style={{ color: "#0096ff", fontFamily: "'Orbitron', sans-serif" }}>YOUTUBE URL</span>
+                      <span className="text-[10px] text-center px-2" style={{ color: "rgba(255,255,255,0.4)" }}>Test using the <span style={{ color: "rgba(255,255,255,0.7)" }}>Home NF</span> video link</span>
+                    </button>
+                  </div>
+                </div>
+              ) : testAllRunning ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#00ff00" }} />
                   <div className="text-center">
