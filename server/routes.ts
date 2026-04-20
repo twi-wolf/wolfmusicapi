@@ -49,6 +49,7 @@ import { imageToSticker, stickerToImage, videoToSticker, stickerToVideo, videoTo
 import { listAudioEffects, applyAudioEffect } from "../lib/downloaders/audio-effects";
 import { allEndpoints as schemaEndpoints, apiCategories as schemaCategories } from "../shared/schema";
 import { getSettings, saveSettings, loadSettings } from "./admin-settings";
+import { trackIpRequest, getSecurityStats, heavyLimiter, adminLimiter, loginLimiter } from "./security";
 
 // ─── Activity Tracking ────────────────────────────────────────────────────────
 
@@ -125,11 +126,16 @@ export async function registerRoutes(
   app.use((req: any, res: any, next: any) => {
     if (!req.path.startsWith("/api") && !req.path.startsWith("/download")) return next();
     const start = Date.now();
+    const ip = (req.ip || req.socket?.remoteAddress || "").replace(/^::ffff:/, "");
+    if (ip) trackIpRequest(ip);
     res.on("finish", () => {
       recordRequest({ ts: Date.now(), method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - start });
     });
     next();
   });
+
+  // Apply admin-wide rate limiter (login gets stricter loginLimiter on top)
+  app.use("/api/admin", adminLimiter);
 
   // ─── Public config endpoints ───────────────────────────────────────────────
   app.get("/api/config/cards", (_req, res) => {
@@ -138,7 +144,7 @@ export async function registerRoutes(
   });
 
   // ─── Admin: Login ──────────────────────────────────────────────────────────
-  app.post("/api/admin/login", (req: any, res: any) => {
+  app.post("/api/admin/login", loginLimiter, (req: any, res: any) => {
     const { password } = req.body || {};
     const settings = getSettings();
     if (!password || password !== settings.password) {
@@ -219,6 +225,41 @@ export async function registerRoutes(
     const current = getSettings();
     saveSettings({ ...current, password: String(newPassword) });
     return res.json({ success: true, message: "Password updated" });
+  });
+
+  // ─── Admin: Security Stats ──────────────────────────────────────────────────
+  app.get("/api/admin/security", requireAdminAuth, (_req: any, res: any) => {
+    const s = getSettings();
+    const secStats = getSecurityStats();
+    return res.json({
+      success: true,
+      ipBlocklist: s.ipBlocklist || [],
+      ...secStats,
+    });
+  });
+
+  // ─── Admin: Block IP ────────────────────────────────────────────────────────
+  app.post("/api/admin/block-ip", requireAdminAuth, (req: any, res: any) => {
+    const { ip } = req.body || {};
+    const clean = String(ip || "").trim().replace(/^::ffff:/, "");
+    if (!clean) return res.status(400).json({ success: false, error: "IP required" });
+    const current = getSettings();
+    const blocklist: string[] = current.ipBlocklist || [];
+    if (blocklist.includes(clean)) return res.json({ success: true, message: "Already blocked", ipBlocklist: blocklist });
+    const updated = [...blocklist, clean];
+    saveSettings({ ...current, ipBlocklist: updated });
+    return res.json({ success: true, message: `Blocked ${clean}`, ipBlocklist: updated });
+  });
+
+  // ─── Admin: Unblock IP ──────────────────────────────────────────────────────
+  app.post("/api/admin/unblock-ip", requireAdminAuth, (req: any, res: any) => {
+    const { ip } = req.body || {};
+    const clean = String(ip || "").trim().replace(/^::ffff:/, "");
+    if (!clean) return res.status(400).json({ success: false, error: "IP required" });
+    const current = getSettings();
+    const updated = (current.ipBlocklist || []).filter((x: string) => x !== clean);
+    saveSettings({ ...current, ipBlocklist: updated });
+    return res.json({ success: true, message: `Unblocked ${clean}`, ipBlocklist: updated });
   });
 
   app.get("/api/search", async (req, res) => {
@@ -395,6 +436,10 @@ export async function registerRoutes(
       });
     }
   };
+
+  // Apply heavy rate limiter to all download endpoints
+  app.use("/download", heavyLimiter);
+  app.use("/api/download", heavyLimiter);
 
   app.get("/download/audio", downloadHandler("mp3"));
   app.get("/download/ytmp3", downloadHandler("mp3"));

@@ -613,45 +613,190 @@ function ProvidersTab() {
 
 // ─── Security Tab ─────────────────────────────────────────────────────────────
 function SecurityTab({ onPasswordChange }: { onPasswordChange: (pwd: string) => void }) {
-  const [current, setCurrent] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [pwdLoading, setPwdLoading] = useState(false);
 
-  async function handleChange(e: React.FormEvent) {
+  const [secData, setSecData] = useState<any>(null);
+  const [secLoading, setSecLoading] = useState(true);
+  const [manualIp, setManualIp] = useState("");
+  const [blockMsg, setBlockMsg] = useState("");
+  const [blockLoading, setBlockLoading] = useState(false);
+
+  const loadSec = useCallback(async () => {
+    try {
+      const r = await api("/api/admin/security");
+      if (r.ok) setSecData(await r.json());
+    } catch {}
+    setSecLoading(false);
+  }, []);
+
+  useEffect(() => { loadSec(); }, [loadSec]);
+
+  async function handlePwdChange(e: React.FormEvent) {
     e.preventDefault();
-    if (newPwd !== confirm) { setMsg({ type: "err", text: "Passwords do not match." }); return; }
-    if (newPwd.length < 6) { setMsg({ type: "err", text: "Password must be at least 6 characters." }); return; }
-    setLoading(true);
-    setMsg(null);
+    if (newPwd !== confirm) { setPwdMsg({ type: "err", text: "Passwords do not match." }); return; }
+    if (newPwd.length < 6) { setPwdMsg({ type: "err", text: "Must be at least 6 characters." }); return; }
+    setPwdLoading(true); setPwdMsg(null);
     try {
       const r = await api("/api/admin/change-password", { method: "POST", body: JSON.stringify({ newPassword: newPwd }) });
       const d = await r.json();
       if (r.ok && d.success) {
         sessionStorage.setItem(AUTH_KEY, newPwd);
         onPasswordChange(newPwd);
-        setMsg({ type: "ok", text: "Password updated successfully." });
-        setCurrent(""); setNewPwd(""); setConfirm("");
-      } else {
-        setMsg({ type: "err", text: d.error || "Failed to update password." });
-      }
-    } catch { setMsg({ type: "err", text: "Connection error." }); }
-    setLoading(false);
+        setPwdMsg({ type: "ok", text: "Password updated." });
+        setNewPwd(""); setConfirm("");
+      } else { setPwdMsg({ type: "err", text: d.error || "Failed." }); }
+    } catch { setPwdMsg({ type: "err", text: "Connection error." }); }
+    setPwdLoading(false);
   }
+
+  async function blockIp(ip: string) {
+    setBlockLoading(true); setBlockMsg("");
+    try {
+      const r = await api("/api/admin/block-ip", { method: "POST", body: JSON.stringify({ ip }) });
+      const d = await r.json();
+      setBlockMsg(d.message || "Done");
+      if (d.success) { setManualIp(""); setSecData((prev: any) => ({ ...prev, ipBlocklist: d.ipBlocklist })); }
+    } catch { setBlockMsg("Error"); }
+    setBlockLoading(false);
+    setTimeout(() => setBlockMsg(""), 3000);
+  }
+
+  async function unblockIp(ip: string) {
+    try {
+      const r = await api("/api/admin/unblock-ip", { method: "POST", body: JSON.stringify({ ip }) });
+      const d = await r.json();
+      if (d.success) setSecData((prev: any) => ({ ...prev, ipBlocklist: d.ipBlocklist }));
+    } catch {}
+  }
+
+  const RULES = [
+    { label: "Global flood limit", value: "300 req / 15 min / IP", color: NEON },
+    { label: "Login brute-force", value: "5 attempts / 15 min / IP", color: "#ffaa00" },
+    { label: "Admin panel", value: "30 req / 5 min / IP", color: "#00ccff" },
+    { label: "Download / heavy", value: "20 req / min / IP", color: "#ff6b6b" },
+    { label: "General API", value: "80 req / min / IP", color: NEON },
+    { label: "Scanner UA block", value: "sqlmap, nikto, scrapy, nuclei…", color: "#ffaa00" },
+    { label: "IP blocklist", value: `${secData?.ipBlocklist?.length ?? 0} IPs blocked`, color: NEON },
+  ];
 
   return (
     <div>
       <h2 style={{ fontFamily: "'Orbitron', sans-serif", color: NEON, fontSize: 15, fontWeight: 700, margin: "0 0 20px" }}>SECURITY</h2>
-      <div style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.1)", borderRadius: 12, padding: "24px", maxWidth: 440 }}>
+
+      {/* ── Protection rules overview ── */}
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.12)", borderRadius: 12, padding: "18px 20px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <Shield size={14} color={NEON} />
+          <p style={{ color: NEON, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>Active Protections</p>
+          <span style={{ marginLeft: "auto", background: "rgba(0,255,0,0.1)", border: "1px solid rgba(0,255,0,0.2)", borderRadius: 20, padding: "2px 10px", color: NEON, fontSize: 10, fontWeight: 700 }}>ALL ACTIVE</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {RULES.map((r) => (
+            <div key={r.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#111", borderRadius: 8, border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={13} color={r.color} />
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{r.label}</span>
+              </div>
+              <span style={{ color: r.color, fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Top IPs today ── */}
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.1)", borderRadius: 12, padding: "18px 20px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <TrendingUp size={14} color={NEON} />
+            <p style={{ color: NEON, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>
+              Top IPs Today <span style={{ color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>({secData?.uniqueIpsToday ?? 0} unique)</span>
+            </p>
+          </div>
+          <button onClick={loadSec} style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)", borderRadius: 6, padding: "5px 12px", color: NEON, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+            <RefreshCw size={11} /> Refresh
+          </button>
+        </div>
+        {secLoading ? (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>Loading...</p>
+        ) : !secData?.topIpsToday?.length ? (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>No traffic yet today.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {secData.topIpsToday.map((entry: any, i: number) => {
+              const isBlocked = secData?.ipBlocklist?.includes(entry.ip);
+              return (
+                <div key={entry.ip} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#111", borderRadius: 8, border: `1px solid ${isBlocked ? "rgba(255,80,80,0.15)" : "rgba(255,255,255,0.04)"}` }}>
+                  <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, width: 20, flexShrink: 0 }}>#{i + 1}</span>
+                  <span style={{ color: isBlocked ? "#ff6b6b" : "rgba(255,255,255,0.7)", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", flex: 1 }}>{entry.ip}</span>
+                  <span style={{ color: NEON, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{entry.hits.toLocaleString()}</span>
+                  {isBlocked ? (
+                    <span style={{ color: "#ff6b6b", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>BLOCKED</span>
+                  ) : (
+                    <button onClick={() => blockIp(entry.ip)} style={{ background: "rgba(255,80,80,0.08)", border: "1px solid rgba(255,80,80,0.2)", borderRadius: 6, padding: "3px 10px", color: "#ff6b6b", cursor: "pointer", fontSize: 11, flexShrink: 0 }}>
+                      Block
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── IP Blocklist management ── */}
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,80,80,0.12)", borderRadius: 12, padding: "18px 20px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <XCircle size={14} color="#ff6b6b" />
+          <p style={{ color: "#ff6b6b", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>IP Blocklist ({secData?.ipBlocklist?.length ?? 0})</p>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <input
+            value={manualIp}
+            onChange={(e) => setManualIp(e.target.value)}
+            placeholder="Enter IP to block (e.g. 1.2.3.4)"
+            style={{ flex: 1, background: "#111", border: "1px solid rgba(255,80,80,0.2)", borderRadius: 8, padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none" }}
+            onKeyDown={(e) => { if (e.key === "Enter" && manualIp.trim()) blockIp(manualIp.trim()); }}
+          />
+          <button
+            onClick={() => manualIp.trim() && blockIp(manualIp.trim())}
+            disabled={blockLoading || !manualIp.trim()}
+            style={{ background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)", borderRadius: 8, padding: "8px 16px", color: "#ff6b6b", cursor: "pointer", fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+          >
+            {blockLoading ? "..." : "Block IP"}
+          </button>
+        </div>
+        {blockMsg && <p style={{ color: NEON, fontSize: 12, margin: "0 0 10px" }}>{blockMsg}</p>}
+
+        {!secData?.ipBlocklist?.length ? (
+          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No IPs currently blocked.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {secData.ipBlocklist.map((ip: string) => (
+              <div key={ip} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(255,80,80,0.04)", borderRadius: 8, border: "1px solid rgba(255,80,80,0.12)" }}>
+                <span style={{ color: "#ff6b6b", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", flex: 1 }}>{ip}</span>
+                <button onClick={() => unblockIp(ip)} style={{ background: "rgba(0,255,0,0.06)", border: "1px solid rgba(0,255,0,0.15)", borderRadius: 6, padding: "3px 10px", color: NEON, cursor: "pointer", fontSize: 11 }}>
+                  Unblock
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Change Password ── */}
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(0,255,0,0.1)", borderRadius: 12, padding: "20px 24px", maxWidth: 440 }}>
         <p style={{ color: NEON, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", margin: "0 0 16px", textTransform: "uppercase" }}>Change Admin Password</p>
-        <form onSubmit={handleChange} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <form onSubmit={handlePwdChange} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             { label: "New Password", val: newPwd, set: setNewPwd },
             { label: "Confirm Password", val: confirm, set: setConfirm },
           ].map(({ label, val, set }) => (
-            <div key={label} style={{ position: "relative" }}>
+            <div key={label}>
               <label style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
               <input type={show ? "text" : "password"} value={val} onChange={(e) => set(e.target.value)} style={{ width: "100%", background: "#111", border: "1px solid rgba(0,255,0,0.15)", borderRadius: 8, padding: "9px 14px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
@@ -660,20 +805,20 @@ function SecurityTab({ onPasswordChange }: { onPasswordChange: (pwd: string) => 
             <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} style={{ accentColor: NEON }} />
             Show passwords
           </label>
-          {msg && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: msg.type === "ok" ? NEON : "#ff6b6b", fontSize: 12 }}>
-              {msg.type === "ok" ? <CheckCircle size={14} /> : <XCircle size={14} />}
-              {msg.text}
+          {pwdMsg && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: pwdMsg.type === "ok" ? NEON : "#ff6b6b", fontSize: 12 }}>
+              {pwdMsg.type === "ok" ? <CheckCircle size={14} /> : <XCircle size={14} />}
+              {pwdMsg.text}
             </div>
           )}
-          <button type="submit" disabled={loading} style={{ background: "rgba(0,255,0,0.1)", border: "1px solid rgba(0,255,0,0.3)", borderRadius: 8, padding: "10px 0", color: NEON, fontFamily: "'Orbitron', sans-serif", fontSize: 12, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginTop: 4 }}>
-            {loading ? "UPDATING..." : "UPDATE PASSWORD"}
+          <button type="submit" disabled={pwdLoading} style={{ background: "rgba(0,255,0,0.1)", border: "1px solid rgba(0,255,0,0.3)", borderRadius: 8, padding: "10px 0", color: NEON, fontFamily: "'Orbitron', sans-serif", fontSize: 12, fontWeight: 700, cursor: pwdLoading ? "not-allowed" : "pointer", marginTop: 4 }}>
+            {pwdLoading ? "UPDATING..." : "UPDATE PASSWORD"}
           </button>
         </form>
-        <div style={{ marginTop: 24, padding: "14px 16px", background: "rgba(255,170,0,0.05)", border: "1px solid rgba(255,170,0,0.1)", borderRadius: 8 }}>
+        <div style={{ marginTop: 16, padding: "12px 14px", background: "rgba(255,170,0,0.05)", border: "1px solid rgba(255,170,0,0.1)", borderRadius: 8 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-            <AlertTriangle size={14} color="#ffaa00" style={{ flexShrink: 0, marginTop: 1 }} />
-            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, margin: 0, lineHeight: 1.6 }}>After changing your password you will need to log in again on any other sessions. The password is stored in the admin-settings.json file on the server.</p>
+            <AlertTriangle size={13} color="#ffaa00" style={{ flexShrink: 0, marginTop: 1 }} />
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: 0, lineHeight: 1.6 }}>You'll need to re-login on any other active sessions after changing the password.</p>
           </div>
         </div>
       </div>

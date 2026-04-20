@@ -8,6 +8,10 @@ import {
   antiClone,
   responseFingerprint,
   blockDirectSourceAccess,
+  ipBlocklistGuard,
+  botBlocker,
+  globalLimiter,
+  apiLimiter,
 } from "./security";
 
 function autoUpdateYtDlp() {
@@ -34,6 +38,9 @@ app.set("trust proxy", 1);
 app.set("query parser", "extended"); // Use qs parser — Express 5 default changed to "simple" which breaks + decoding
 
 app.use(securityHeaders());
+app.use(ipBlocklistGuard);
+app.use(globalLimiter);
+app.use(botBlocker);
 app.use(blockDirectSourceAccess);
 app.use(antiClone);
 

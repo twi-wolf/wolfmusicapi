@@ -17,11 +17,13 @@ export interface AdminSettings {
   password: string;
   githubUrl: string;
   repoCards: RepoCard[];
+  ipBlocklist: string[];
 }
 
 const DEFAULT_SETTINGS: AdminSettings = {
   password: "wolfadmin2026",
   githubUrl: "https://github.com/SilentWolf-Kenya",
+  ipBlocklist: [],
   repoCards: [
     {
       id: "wolfxcore",
