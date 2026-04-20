@@ -982,30 +982,48 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
     { code: "500", color: "#ff6464", meaning: "Server Error", detail: "Upstream provider failed. Try again or use a different provider." },
   ];
 
+  const [exampleLang, setExampleLang] = useState<"curl" | "python" | "js">("curl");
+
   const quickExamples = [
     {
       label: "Get a random joke",
       method: "GET",
       path: "/api/fun/jokes",
       curl: `curl "${baseUrl}/api/fun/jokes"`,
+      python: `import requests\n\nr = requests.get("${baseUrl}/api/fun/jokes")\nprint(r.json())`,
+      js: `fetch("${baseUrl}/api/fun/jokes")\n  .then(r => r.json())\n  .then(data => console.log(data))`,
     },
     {
       label: "Download TikTok video",
       method: "GET",
       path: "/api/tiktok",
       curl: `curl "${baseUrl}/api/tiktok?url=https://vm.tiktok.com/example"`,
+      python: `import requests\n\nparams = {"url": "https://vm.tiktok.com/example"}\nr = requests.get("${baseUrl}/api/tiktok", params=params)\nprint(r.json())`,
+      js: `const params = new URLSearchParams({\n  url: "https://vm.tiktok.com/example"\n})\nfetch(\`${baseUrl}/api/tiktok?\${params}\`)\n  .then(r => r.json())\n  .then(data => console.log(data))`,
     },
     {
       label: "Search YouTube music",
       method: "GET",
       path: "/api/search",
       curl: `curl "${baseUrl}/api/search?q=blinding+lights"`,
+      python: `import requests\n\nparams = {"q": "blinding lights"}\nr = requests.get("${baseUrl}/api/search", params=params)\nprint(r.json())`,
+      js: `const params = new URLSearchParams({\n  q: "blinding lights"\n})\nfetch(\`${baseUrl}/api/search?\${params}\`)\n  .then(r => r.json())\n  .then(data => console.log(data))`,
     },
     {
       label: "Chat with AI",
       method: "GET",
       path: "/api/ai/gpt",
       curl: `curl "${baseUrl}/api/ai/gpt?q=What+is+the+speed+of+light"`,
+      python: `import requests\n\nparams = {"q": "What is the speed of light"}\nr = requests.get("${baseUrl}/api/ai/gpt", params=params)\nprint(r.json())`,
+      js: `const params = new URLSearchParams({\n  q: "What is the speed of light"\n})\nfetch(\`${baseUrl}/api/ai/gpt?\${params}\`)\n  .then(r => r.json())\n  .then(data => console.log(data))`,
+    },
+    {
+      label: "AI text translation (POST)",
+      method: "POST",
+      path: "/api/ai/translate",
+      curl: `curl -X POST "${baseUrl}/api/ai/translate" \\\n  -H "Content-Type: application/json" \\\n  -d '{"text":"Hello world","to":"sw"}'`,
+      python: `import requests\n\nbody = {"text": "Hello world", "to": "sw"}\nr = requests.post(\n    "${baseUrl}/api/ai/translate",\n    json=body\n)\nprint(r.json())`,
+      js: `fetch("${baseUrl}/api/ai/translate", {\n  method: "POST",\n  headers: {"Content-Type": "application/json"},\n  body: JSON.stringify({\n    text: "Hello world",\n    to: "sw"\n  })\n})\n  .then(r => r.json())\n  .then(data => console.log(data))`,
     },
   ];
 
@@ -1142,22 +1160,47 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
       {/* ── Quick Examples ── */}
       <DocSection label="QUICK EXAMPLES" icon={Terminal} />
 
-      <div className="space-y-3 mb-6">
-        {quickExamples.map((ex, i) => (
-          <div key={i} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,255,0,0.08)" }}>
-            <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.05)" }}>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.12)", color: "#00ff00" }}>
-                {ex.method}
-              </span>
-              <code className="text-[11px] font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>{ex.path}</code>
-              <span className="text-[10px] ml-auto" style={{ color: "rgba(255,255,255,0.25)" }}>{ex.label}</span>
-            </div>
-            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "rgba(0,255,0,0.015)" }}>
-              <code className="text-[11px] font-mono flex-1 overflow-x-auto" style={{ color: "rgba(255,255,255,0.45)" }}>{ex.curl}</code>
-              <CopyButton text={ex.curl} />
-            </div>
-          </div>
+      {/* Language tab selector */}
+      <div className="flex items-center gap-1 mb-4 p-1 rounded-lg w-fit" style={{ background: "rgba(0,255,0,0.04)", border: "1px solid rgba(0,255,0,0.1)" }}>
+        {(["curl", "python", "js"] as const).map((lang) => (
+          <button
+            key={lang}
+            onClick={() => setExampleLang(lang)}
+            className="px-3 py-1 rounded-md text-[10px] font-bold tracking-wider transition-all"
+            style={{
+              background: exampleLang === lang ? "rgba(0,255,0,0.15)" : "transparent",
+              color: exampleLang === lang ? "#00ff00" : "rgba(255,255,255,0.35)",
+              border: exampleLang === lang ? "1px solid rgba(0,255,0,0.25)" : "1px solid transparent",
+            }}
+            data-testid={`btn-example-lang-${lang}`}
+          >
+            {lang === "curl" ? "cURL" : lang === "python" ? "Python" : "JavaScript"}
+          </button>
         ))}
+      </div>
+
+      <div className="space-y-3 mb-6">
+        {quickExamples.map((ex, i) => {
+          const code = exampleLang === "curl" ? ex.curl : exampleLang === "python" ? ex.python : ex.js;
+          return (
+            <div key={i} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,255,0,0.08)" }}>
+              <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.05)" }}>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background: ex.method === "POST" ? "rgba(255,165,0,0.12)" : "rgba(0,255,0,0.12)", color: ex.method === "POST" ? "#ffa500" : "#00ff00" }}
+                >
+                  {ex.method}
+                </span>
+                <code className="text-[11px] font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>{ex.path}</code>
+                <span className="text-[10px] ml-auto" style={{ color: "rgba(255,255,255,0.25)" }}>{ex.label}</span>
+              </div>
+              <div className="px-4 py-3 flex items-start gap-3" style={{ background: "rgba(0,255,0,0.015)" }}>
+                <pre className="text-[11px] font-mono flex-1 overflow-x-auto whitespace-pre" style={{ color: "rgba(255,255,255,0.5)", lineHeight: "1.6" }}>{code}</pre>
+                <CopyButton text={code} />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Rate Limits ── */}
