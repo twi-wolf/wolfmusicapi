@@ -1,3 +1,840 @@
+================================================================================
+  WOLFMUSICAPI — PROJECT ARCHITECTURE DOCUMENTATION
+  apis.xwolf.space | Author: SilentWolf-Kenya
+================================================================================
+
+Last updated: April 2026
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. WHAT THIS PROJECT IS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+wolfmusicapi is a full-stack REST API platform and web hub hosted at
+apis.xwolf.space. It serves two purposes:
+
+  1. A public API server — offering 100+ endpoints across music, video
+     downloads, social media, image search, AI, OSINT/stalker tools,
+     sports, movies, converters, image/text effects, and more.
+
+  2. A web landing page — a neon-themed dark UI that showcases the APIs,
+     lists every available endpoint, and links to related projects.
+
+The project runs as a single unified Node.js process on a VPS (port 5000).
+Express handles both the API routes and serves the built React frontend. In
+development, Vite serves the frontend with hot-module reload. In production,
+the pre-built static files are served directly by Express.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2. TECH STACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Backend    : Node.js + Express 5 (TypeScript via tsx / esbuild)
+  Frontend   : React 18 + Vite + TypeScript
+  UI Library : shadcn/ui (Radix UI primitives + Tailwind CSS)
+  Routing    : wouter (lightweight client-side router)
+  Data Fetch : TanStack Query v5
+  Fonts      : Orbitron (headings), JetBrains Mono (code/mono)
+  Process Mgr: PM2 (production, VPS)
+  Build      : Custom script/build.ts — runs Vite, then esbuild
+  Deployment : VPS via SSH + SCP, or deploy.sh on the server itself
+  Version Ctl: GitHub (github.com/nk-apex/wolfmusicapi)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3. FULL FILE TREE (with explanations)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+wolfmusicapi/
+│
+├── admin-settings.json          ← LIVE runtime config. Stores: admin password,
+│                                   GitHub URL, project cards (repo links), and
+│                                   the IP blocklist. Written by the server at
+│                                   runtime when settings change via the admin
+│                                   panel. NOT committed to git (.gitignore) to
+│                                   protect live credentials and configuration.
+│
+├── deploy.sh                    ← VPS deployment script. Run this on the VPS
+│                                   after pushing new code to GitHub. It:
+│                                     1. Backs up admin-settings.json to /tmp
+│                                     2. Removes it so git pull can run cleanly
+│                                     3. git pull origin main
+│                                     4. Merges live settings back in using Node
+│                                        (preserves password, blocklist, cards,
+│                                        but picks up new fields from git)
+│                                     5. npm run build
+│                                     6. pm2 restart wolfmusicapi
+│                                   This prevents settings loss on every deploy.
+│
+├── package.json                 ← Project manifest. Key scripts:
+│                                     npm run dev   → starts dev server (tsx)
+│                                     npm run build → full production build
+│                                     npm run start → runs the production build
+│                                     npm run check → TypeScript type check
+│
+├── tsconfig.json                ← TypeScript config. Targets ESNext, path aliases:
+│                                     @/*        → client/src/*
+│                                     @shared/*  → shared/*
+│                                     @assets/*  → client/src/assets/*
+│
+├── vite.config.ts               ← Vite config for the React frontend. Path aliases,
+│                                   asset handling. Do NOT modify unless necessary.
+│
+├── tailwind.config.ts           ← Tailwind CSS config. Dark mode via class strategy.
+│                                   Custom neon-green theme colors and fonts.
+│
+├── postcss.config.js            ← PostCSS config (required for Tailwind to work).
+│
+├── drizzle.config.ts            ← Drizzle ORM migration config for PostgreSQL.
+│                                   DB integration is present for future expansion
+│                                   (user accounts, API keys, usage logs) but is
+│                                   not required for any core API functionality.
+│
+├── components.json              ← shadcn/ui config. Specifies component paths,
+│                                   style variant, and Tailwind integration.
+│
+├── vercel.json                  ← Vercel deployment config (legacy, unused).
+│                                   Production runs on the VPS, not Vercel.
+│
+├── replit.md                    ← AI assistant memory file. Tracks architecture
+│                                   decisions, key files, and preferences across
+│                                   development sessions.
+│
+├── docs.txt                     ← This file. Full project documentation.
+│
+├── YANDEX_IMAGES_SCRAPER_DOCS.txt ← Developer notes on how the Yandex image
+│                                     scraper works (URL formats, query params,
+│                                     response parsing).
+│
+│
+│ ── SERVER ─────────────────────────────────────────────────────────────────
+│
+├── server/
+│   │
+│   ├── index.ts                 ← MAIN ENTRY POINT. This is what Node.js runs.
+│   │                               Responsibilities:
+│   │                               - Creates the Express app and HTTP server
+│   │                               - Sets trust proxy (for real IPs behind Nginx)
+│   │                               - Applies the full middleware stack in order:
+│   │                                   1. securityHeaders()      → Helmet HTTP headers
+│   │                                   2. ipBlocklistGuard       → blocks banned IPs
+│   │                                   3. globalLimiter          → 300 req/15min flood guard
+│   │                                   4. botBlocker             → blocks scanner User-Agents
+│   │                                   5. blockDirectSourceAccess→ hides .ts/.tsx source files
+│   │                                   6. antiClone              → protects endpoint list
+│   │                                   7. express.json()         → parses JSON request bodies
+│   │                                   8. express.urlencoded()   → parses form data
+│   │                                   9. URL decode validator   → rejects malformed URLs
+│   │                                  10. Request logger         → logs all /api calls
+│   │                               - Calls registerRoutes() to mount all API routes
+│   │                               - In production: serves the built frontend from dist/
+│   │                               - In development: mounts Vite as middleware (HMR)
+│   │                               - Auto-updates yt-dlp binary on startup
+│   │                               - Listens on port 5000 (or $PORT env var)
+│   │
+│   ├── routes.ts                ← ALL API ROUTES. The largest file (~3400 lines).
+│   │                               Contains:
+│   │                               - Activity tracking middleware — records every
+│   │                                 API request into a 300-entry ring buffer (the
+│   │                                 "Live Log" tab reads this buffer)
+│   │                               - Daily stats tracking — counters that reset at
+│   │                                 midnight (today's requests, top API today)
+│   │                               - Per-IP request tracking — feeds the Security tab
+│   │                               - adminLimiter applied to all /api/admin/* routes
+│   │                               - heavyLimiter applied to all /download/* routes
+│   │                               - All public API endpoints:
+│   │                                   /api/search          → YouTube/music search
+│   │                                   /api/download/*      → audio/video downloads
+│   │                                   /api/tiktok          → TikTok downloader
+│   │                                   /api/instagram       → Instagram downloader
+│   │                                   /api/facebook        → Facebook downloader
+│   │                                   /api/twitter         → Twitter/X downloader
+│   │                                   /api/snapchat        → Snapchat downloader
+│   │                                   /api/spotify/*       → Spotify search/download
+│   │                                   /api/shazam          → Shazam recognition
+│   │                                   /api/yandex/*        → Yandex image/video search
+│   │                                   /api/stalk/*         → OSINT/lookup endpoints
+│   │                                   /api/sports/*        → Sports scores/fixtures
+│   │                                   /api/movie/*         → Movie/TV info (xcasper)
+│   │                                   /api/ai/*            → AI chat endpoints
+│   │                                   /api/tools/*         → QR, hash, UUID, etc.
+│   │                                   /api/image-effects/* → Ephoto360, PhotoFunia
+│   │                                   /api/text-effects/*  → TextPro effects
+│   │                                   /api/audio-effects/* → Audio processing
+│   │                                   /api/convert/*       → Media format conversion
+│   │                                   /api/fun/*           → Jokes, memes, facts
+│   │                                   /api/anime           → Anime images
+│   │                                   /api/url/shorten     → URL shortener
+│   │                               - All admin endpoints (see Section 6)
+│   │                               - /api/proxy — streams remote media URLs
+│   │                               - /api/tempfile/:id — serves yt-dlp temp files
+│   │                               - /api/config/cards — public endpoint for homepage
+│   │                               - /api/endpoints/list — full endpoint catalogue
+│   │
+│   ├── security.ts              ← SECURITY LAYER. Exports all middleware and rate
+│   │                               limiters used across index.ts and routes.ts:
+│   │                               - Per-IP tracking: trackIpRequest(), getTopIpsToday(),
+│   │                                 getSecurityStats() — feeds the Security tab
+│   │                               - botBlocker() — blocks by User-Agent signature:
+│   │                                   sqlmap, nikto, nmap, scrapy, nuclei, masscan,
+│   │                                   dirbuster, gobuster, ffuf, wfuzz, hydra,
+│   │                                   burpsuite, acunetix, nessus, openvas
+│   │                                   Also blocks empty UA on /api/* paths → HTTP 403
+│   │                               - ipBlocklistGuard() — reads blocklist from
+│   │                                   admin-settings.json and returns 403 for banned IPs
+│   │                               - 5 rate limiters (express-rate-limit):
+│   │                                   globalLimiter  → 300 req / 15 min / IP
+│   │                                   loginLimiter   → 5 attempts / 15 min / IP
+│   │                                   apiLimiter     → 80 req / min / IP
+│   │                                   heavyLimiter   → 20 req / min / IP
+│   │                                   adminLimiter   → 30 req / 5 min / IP
+│   │                               - securityHeaders() — Helmet config (CSP, referrer
+│   │                                   policy, frame options, CORP, COOP)
+│   │                               - antiClone() — blocks non-browser access to
+│   │                                   /api/endpoints/list to prevent API cloning
+│   │                               - responseFingerprint() — appends _powered and _ts
+│   │                                   fields to every JSON response
+│   │                               - blockDirectSourceAccess() — returns 404 for
+│   │                                   requests to .ts, .tsx, .map, .env file paths
+│   │                                   and /server/, /lib/, /shared/, /.git/ paths
+│   │
+│   ├── admin-settings.ts        ← SETTINGS PERSISTENCE MODULE.
+│   │                               - Defines AdminSettings interface:
+│   │                                   { password, githubUrl, repoCards[], ipBlocklist[] }
+│   │                               - Reads and writes admin-settings.json on disk
+│   │                               - In-memory cache (_settings) for fast reads
+│   │                               - loadSettings() — called once at server startup
+│   │                               - getSettings() — returns the cached settings
+│   │                               - saveSettings() — writes to disk + updates cache
+│   │                               - DEFAULT_SETTINGS — fallback if file is missing
+│   │
+│   ├── scraper.ts               ← RE-EXPORT SHIM. A one-line file that re-exports
+│   │                               everything from lib/scraper.ts so that server/
+│   │                               routes.ts can import from a clean relative path.
+│   │
+│   ├── ai-routes.ts             ← AI CHAT ROUTES. Registers four AI endpoints:
+│   │                               - POST /api/ai/chat         → OpenAI GPT completion
+│   │                               - POST /api/ai/groq         → Groq fast inference
+│   │                               - POST /api/ai/gemini       → Google Gemini
+│   │                               - POST /api/ai/chateverywhere → proxy to chateverywhere.app
+│   │                               Uses OPENAI_API_KEY and GROQ_API_KEY env vars.
+│   │
+│   ├── xcasper-routes.ts        ← MOVIE/TV PROXY ROUTES. Proxies requests to
+│   │                               movieapi.xcasper.space for movie search, details,
+│   │                               streaming links, and TV show data.
+│   │
+│   ├── storage.ts               ← DB STORAGE INTERFACE (Drizzle ORM / PostgreSQL).
+│   │                               Not used for core functionality. Provides the
+│   │                               IStorage interface for future features like user
+│   │                               accounts, API key management, and usage logging.
+│   │
+│   ├── static.ts                ← STATIC FILE SERVING. In production, serves the
+│   │                               built React app from dist/public/. Falls through
+│   │                               to index.html for all unknown routes so the SPA
+│   │                               client-side router handles them.
+│   │
+│   └── vite.ts                  ← VITE DEV SERVER INTEGRATION. In development mode,
+│                                   mounts Vite as an Express middleware so both the
+│                                   API and the React frontend run on port 5000 with
+│                                   hot module replacement (HMR).
+│
+│
+│ ── LIBRARY (API LOGIC) ────────────────────────────────────────────────────
+│
+├── lib/
+│   │
+│   ├── scraper.ts               ← CORE MUSIC DOWNLOAD ENGINE. The heart of all
+│   │                               audio/video download functionality. Handles:
+│   │                               - searchSongs(query) → YouTube music search
+│   │                               - getDownloadInfo(url, format) → tries multiple
+│   │                                   providers in order to get a working stream URL
+│   │                               - Provider health tracking — marks providers UP/DOWN
+│   │                                   based on cumulative success/failure rates
+│   │                               - Temp file management for yt-dlp downloads:
+│   │                                   writes to /tmp/wolfapi_dl/<uuid>.<ext>,
+│   │                                   auto-deletes files after 10 minutes
+│   │                               - reloadCookies() — refreshes YouTube cookies
+│   │                               - extractVideoId() — parses YouTube video IDs
+│   │                               - TEMP_DIR and tempFiles Map — tracks active files
+│   │
+│   ├── spotify-info.ts          ← SPOTIFY METADATA ENGINE. Fetches rich track, album,
+│   │                               and artist data from Spotify's internal GraphQL API
+│   │                               without needing an official OAuth API key:
+│   │                               - spotifyGraphQL() — raw GraphQL executor
+│   │                               - fetchEmbedEntity() — reads the embed page data
+│   │                               - searchAndMatchByUri() — search + match by URI
+│   │                               - formatDuration(ms) → "mm:ss"
+│   │                               - bestImage() — picks the highest-resolution image
+│   │                               - In-memory response cache for repeat lookups
+│   │
+│   ├── spotify-token-helper/    ← SPOTIFY AUTH HELPER. Gets a valid Spotify access
+│   │   ├── get-token.cjs        ← token without OAuth flow. Spawned as a child
+│   │   ├── totp.js              ← process. Uses TOTP (time-based one-time password)
+│   │   ├── crypto.js            ← to generate the client_credentials token that
+│   │   └── package.json         ← Spotify's own web player uses internally.
+│   │
+│   ├── downloaders/             ← PLATFORM-SPECIFIC DOWNLOADERS. Each file handles
+│   │   │                           one platform or category of functionality.
+│   │   │
+│   │   ├── tiktok.ts            ← TikTok video downloader. Scrapes ssstik.io.
+│   │   │                           Returns: videoUrl, noWatermarkUrl, audioUrl,
+│   │   │                           author name/handle, cover image, like/comment/
+│   │   │                           share counts, and video duration.
+│   │   │
+│   │   ├── instagram.ts         ← Instagram post, reel, and story downloader.
+│   │   │                           Extracts media URLs from Instagram's embed API.
+│   │   │                           Returns image/video URLs and post metadata.
+│   │   │
+│   │   ├── youtube.ts           ← YouTube-specific download helper. Used as a
+│   │   │                           supplement when scraper.ts provider chain fails.
+│   │   │
+│   │   ├── facebook.ts          ← Facebook video downloader. Tries two methods:
+│   │   │                           standard FB API scrape and Snapfrom fallback.
+│   │   │                           Returns SD and HD download URLs.
+│   │   │
+│   │   ├── twitter.ts           ← Twitter/X video and GIF downloader. Uses the
+│   │   │                           fxtwitter.com API to parse tweet media. Returns
+│   │   │                           video URL, quality options, and tweet metadata.
+│   │   │
+│   │   ├── snapchat.ts          ← Snapchat spotlight video downloader. Returns
+│   │   │                           the direct video URL from a Snapchat spotlight link.
+│   │   │
+│   │   ├── spotify.ts           ← Spotify track search and audio download.
+│   │   │                           searchSpotify() → track lookup via spotify-info.ts
+│   │   │                           downloadSpotify() → gets the audio file URL.
+│   │   │
+│   │   ├── shazam.ts            ← Shazam music recognition and search. Supports
+│   │   │                           audio fingerprinting for song identification,
+│   │   │                           plus text-based track search via Shazam's API.
+│   │   │
+│   │   ├── anime.ts             ← Anime image fetcher. Returns random anime images
+│   │   │                           by category (waifu, neko, etc.) from anime image
+│   │   │                           CDN APIs.
+│   │   │
+│   │   ├── fun.ts               ← Fun/meme content APIs. Categories include:
+│   │   │                           jokes, memes, quotes, facts, riddles, trivia.
+│   │   │
+│   │   ├── stalker.ts           ← OSINT and lookup tools:
+│   │   │                           - githubStalk()       → GitHub profile details
+│   │   │                           - ipStalk()           → IP geolocation + ISP info
+│   │   │                           - npmStalk()          → npm package details
+│   │   │                           - tiktokStalk()       → TikTok profile lookup
+│   │   │                           - instagramStalk()    → Instagram profile lookup
+│   │   │                           - twitterStalk()      → Twitter/X profile lookup
+│   │   │                           - telegramStalk()     → Telegram user/channel info
+│   │   │                           - numberPlateStalk()  → Kenya vehicle plate lookup
+│   │   │
+│   │   ├── tools.ts             ← General utility tools:
+│   │   │                           QR code generator, base64 encode/decode,
+│   │   │                           password generator, UUID generator, hash
+│   │   │                           functions (MD5, SHA1, SHA256), text case
+│   │   │                           converters, and other small utilities.
+│   │   │
+│   │   ├── security.ts          ← Security/network tools:
+│   │   │                           Port scanner, DNS lookup, WHOIS, SSL certificate
+│   │   │                           info, IP reputation check, HTTP headers analysis.
+│   │   │
+│   │   ├── sports.ts            ← Sports data:
+│   │   │                           Live scores, fixtures, and standings for football
+│   │   │                           (soccer) and other sports via sports APIs.
+│   │   │
+│   │   ├── movie.ts             ← Movie and TV data helpers. The underlying logic
+│   │   │                           used by server/xcasper-routes.ts for fetching
+│   │   │                           movie info, streaming links, and TV episodes.
+│   │   │
+│   │   ├── urlshortener.ts      ← URL shortening. Tries multiple services:
+│   │   │                           TinyURL, is.gd, v.gd. Returns the shortened
+│   │   │                           URL and the service name that succeeded.
+│   │   │
+│   │   ├── ephoto360.ts         ← Ephoto360 photo effect generator. Sends images
+│   │   │                           through ephoto360.com effect templates and returns
+│   │   │                           the processed image URL.
+│   │   │
+│   │   ├── photofunia.ts        ← PhotoFunia image effect generator. Uses
+│   │   │                           photofunia.com templates, similar to ephoto360.
+│   │   │
+│   │   ├── textpro.ts           ← TextPro text effect generator. Creates stylized
+│   │   │                           text images using effects from textpro.me.
+│   │   │
+│   │   ├── audio-effects.ts     ← Audio effects processor. Applies effects such as
+│   │   │                           reverb, bass boost, nightcore, slowed+reverb to
+│   │   │                           audio files via ffmpeg/yt-dlp processing.
+│   │   │
+│   │   └── converter.ts         ← Media format converter:
+│   │                               - imageToSticker() / stickerToImage()
+│   │                               - videoToSticker() / stickerToVideo()
+│   │                               - videoToGif()     / gifToVideo()
+│   │                               Uses ffmpeg for all format conversion operations.
+│   │
+│   └── search/
+│       ├── imageSearch.ts       ← General image search. Queries multiple image
+│       │                           search backends and returns structured image
+│       │                           results with thumbnails and source URLs.
+│       │
+│       ├── yandexImages.ts      ← Yandex Image search scraper. Parses Yandex's
+│       │                           image results page and returns structured image
+│       │                           objects with URLs at multiple resolutions.
+│       │
+│       └── yandexVideos.ts      ← Yandex Video search scraper. Returns video
+│                                   results with title, duration, thumbnail, and
+│                                   source. YouTube-hosted results go through the
+│                                   multi-provider download chain from lib/scraper.ts;
+│                                   other sources use yt-dlp directly.
+│
+│
+│ ── SHARED ──────────────────────────────────────────────────────────────────
+│
+├── shared/
+│   └── schema.ts                ← SHARED TYPE DEFINITIONS. Imported by both the
+│                                   frontend and backend. Contains:
+│                                   - Zod schemas for all API response shapes
+│                                   - allEndpoints[] — the master list of every API
+│                                     endpoint with path, method, description,
+│                                     parameters, and category. This is the single
+│                                     source of truth for the homepage endpoint list.
+│                                   - apiCategories[] — category groupings for the
+│                                     search/filter UI on the homepage.
+│                                   Adding a new endpoint here makes it automatically
+│                                   appear on the website — no manual docs needed.
+│
+│
+│ ── CLIENT (FRONTEND) ──────────────────────────────────────────────────────
+│
+├── client/
+│   ├── index.html               ← HTML shell. Contains:
+│   │                               - Google Fonts (Orbitron + JetBrains Mono)
+│   │                               - Full Open Graph meta tags for social sharing
+│   │                               - Twitter Card meta tags
+│   │                               - og-image.jpg reference (1280×720 hero image)
+│   │                               - The root <div id="root"> where React mounts
+│   │
+│   ├── public/
+│   │   └── og-image.jpg         ← Social media preview image (1280×720 px).
+│   │                               Shown when the site is shared on WhatsApp,
+│   │                               Twitter, Discord, Telegram, etc.
+│   │
+│   └── src/
+│       ├── main.tsx             ← React entry point. Wraps the app in
+│       │                           QueryClientProvider (TanStack Query) and mounts
+│       │                           it into the DOM root element.
+│       │
+│       ├── App.tsx              ← Router setup using wouter. Two routes defined:
+│       │                               "/"      → <Home /> (public homepage)
+│       │                               "/admin" → <Admin /> (password-protected panel)
+│       │
+│       ├── index.css            ← Global CSS. Tailwind base styles + custom CSS
+│       │                           variables for the neon green theme, dark
+│       │                           backgrounds, glow effects, and scrollbar styling.
+│       │
+│       ├── pages/
+│       │   │
+│       │   ├── home.tsx         ← HOMEPAGE. The main public-facing page.
+│       │   │                       Sections top to bottom:
+│       │   │                       - Loading screen: animated WolfTech logo spinner
+│       │   │                           with neon progress bar (shown for ~2 seconds)
+│       │   │                       - Navbar: Wolf logo, tagline, dynamic GitHub link
+│       │   │                       - Hero: title, description, two CTA buttons
+│       │   │                       - Stats bar: endpoint count, uptime, response time
+│       │   │                       - Project cards: links to wolfXcore,
+│       │   │                           panel.xwolf.space, host.xwolf.space, etc.
+│       │   │                           (fetched from /api/config/cards — fully
+│       │   │                           editable from the admin Settings tab)
+│       │   │                       - Endpoint list: searchable/filterable table of
+│       │   │                           all API endpoints from shared/schema.ts,
+│       │   │                           with category chips and copy-URL button
+│       │   │                       - Quick links popup: Docs, GitHub, Status, Contact
+│       │   │                       - Footer: creator credit + live clock
+│       │   │
+│       │   ├── admin.tsx        ← ADMIN PANEL at /admin. Password-protected.
+│       │   │                       Five tabs:
+│       │   │
+│       │   │                       [Overview]
+│       │   │                         - Today's Requests: large counter resets midnight
+│       │   │                         - Top API Today: most-hit endpoint (gold highlight)
+│       │   │                         - Stat cards: total requests, last hour, last 24h,
+│       │   │                           avg response time, 4xx count, 5xx count
+│       │   │                         - Today's Top APIs leaderboard (top 10, gold bars)
+│       │   │                         - All-Time Top Endpoints leaderboard (neon bars)
+│       │   │                         - Auto-refreshes every 10 seconds
+│       │   │
+│       │   │                       [Live Log]
+│       │   │                         - Real-time request log (last 100 entries)
+│       │   │                         - Each row: timestamp, method badge, path,
+│       │   │                           HTTP status code (color-coded), response time
+│       │   │                         - Auto-refreshes every 5 seconds
+│       │   │
+│       │   │                       [Settings]
+│       │   │                         - Edit the GitHub URL shown in the nav header
+│       │   │                         - Add/edit/reorder/delete project cards shown
+│       │   │                           on the homepage (name, URL, badge text,
+│       │   │                           description, icon, button label)
+│       │   │                         - Save → writes to admin-settings.json and
+│       │   │                           immediately updates the live homepage
+│       │   │
+│       │   │                       [Providers]
+│       │   │                         - Update yt-dlp to the latest stable version
+│       │   │                         - Reload YouTube cookies from disk
+│       │   │                         - Provider health grid: shows UP/DOWN status
+│       │   │                           for each download provider: ytdlp, fabdl,
+│       │   │                           cobalt, piped, y2mate, invidious, ytdown,
+│       │   │                           tiktok — with a reset button for each
+│       │   │
+│       │   │                       [Security]
+│       │   │                         - Active Protections: lists all security rules
+│       │   │                           with their rate limit values
+│       │   │                         - Top IPs Today: ranked list of IPs by request
+│       │   │                           count with one-click Block button
+│       │   │                         - IP Blocklist: view all blocked IPs, add an IP
+│       │   │                           manually, unblock any IP (persisted to disk)
+│       │   │                         - Change Admin Password
+│       │   │
+│       │   └── not-found.tsx    ← 404 page for any unknown client-side route.
+│       │
+│       ├── components/
+│       │   ├── PageLoader.tsx   ← Animated loading screen shown for ~2 seconds on
+│       │   │                       first load. Displays the spinning Wolf logo, the
+│       │   │                       "WolfTech APIs" title, and a neon progress bar.
+│       │   │
+│       │   └── ui/              ← shadcn/ui component library (40+ files).
+│       │                           Pre-built, fully accessible UI primitives:
+│       │                           button, card, badge, dialog, input, select,
+│       │                           toast, accordion, table, avatar, tooltip, tabs,
+│       │                           sheet, popover, dropdown-menu, and more.
+│       │                           Each is a Radix UI primitive with Tailwind styling.
+│       │
+│       ├── hooks/
+│       │   ├── use-toast.ts     ← Toast notification hook. Used for feedback
+│       │   │                       messages throughout the admin panel (success/error).
+│       │   └── use-mobile.tsx   ← Responsive hook. Returns true when viewport < 768px.
+│       │
+│       └── lib/
+│           ├── queryClient.ts   ← TanStack Query client setup. Configures default
+│           │                       fetcher (fetch with error handling + JSON parsing)
+│           │                       and exports apiRequest() for POST/PATCH/DELETE.
+│           └── utils.ts         ← cn() utility: merges Tailwind class names using
+│                                   clsx + tailwind-merge. Used throughout components.
+│
+│
+│ ── BUILD & DEPLOYMENT ──────────────────────────────────────────────────────
+│
+├── script/
+│   └── build.ts                 ← PRODUCTION BUILD SCRIPT. Two steps:
+│                                   1. Vite build → bundles React app → dist/public/
+│                                      (index.html + hashed JS/CSS/image files)
+│                                   2. esbuild → bundles server → dist/index.cjs
+│                                      (single CommonJS file with all deps inlined)
+│                                   Result: dist/ is a fully self-contained artifact.
+│                                   Run: npm run build
+│
+├── dist/                        ← PRODUCTION BUILD OUTPUT (git-ignored).
+│   ├── index.cjs                ← Bundled server (all routes + libs + Express)
+│   └── public/
+│       ├── index.html           ← Final HTML with content-hashed asset links
+│       └── assets/
+│           ├── index-[hash].js  ← Bundled and minified React application
+│           ├── index-[hash].css ← Bundled and minified Tailwind CSS
+│           └── wolf-logo-[hash].png
+│
+│
+│ ── LEGACY / REFERENCE ──────────────────────────────────────────────────────
+│
+├── api/                         ← LEGACY STUBS (not actively used in production).
+│   ├── search.ts                ← Early version of the search endpoint (Vercel era).
+│   └── download/                ← Early download endpoint stubs for audio/video.
+│                                   The real logic is now in lib/ and server/routes.ts.
+│
+└── public/                      ← Legacy public directory (old Vite root).
+    ├── index.html               ← Original HTML shell (superseded by client/index.html)
+    └── wolf-logo.png            ← Wolf logo copy (canonical is client/src/assets/)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4. HOW A REQUEST FLOWS THROUGH THE SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Example: GET /api/download/tiktok?url=https://tiktok.com/...
+
+  1. Request arrives at the VPS. Nginx terminates HTTPS and forwards to port 5000.
+
+  2. Express processes the middleware stack in server/index.ts:
+       a. ipBlocklistGuard   → checks IP against admin-settings.json blocklist
+       b. globalLimiter      → checks if IP has exceeded 300 req/15min
+       c. botBlocker         → checks User-Agent against scanner signatures
+       d. blockDirectSourceAccess → passes (is an /api/ path, not a source file)
+       e. antiClone          → passes (not the endpoints list route)
+       f. express.json()     → parses body (GET has no body)
+       g. URL validator      → validates the URL encoding is safe
+       h. Request logger     → records start time
+
+  3. routes.ts middleware fires:
+       a. Activity tracker   → records the request IP, starts timing
+       b. heavyLimiter       → checks /api/download/* limit (20/min)
+
+  4. The route handler executes:
+       - Extracts url from query params
+       - Calls downloadTikTok(url) from lib/downloaders/tiktok.ts
+       - tiktok.ts scrapes ssstik.io with the URL
+       - Returns: { success, videoUrl, noWatermarkUrl, audioUrl, author, stats }
+
+  5. Response is sent back:
+       - responseFingerprint() adds _powered and _ts fields to the JSON
+       - Activity tracker records: endpoint, HTTP status, duration
+       - Daily counter and per-IP tracker are incremented
+
+  6. Admin panel reflects it within seconds:
+       - Overview: dailyTotalRequests counter goes up
+       - Live Log: this request appears within 5 seconds
+       - Security: this IP's hit count increases
+       - Top APIs Today: endpoint ranking updates
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5. HOW THE MULTI-PROVIDER MUSIC DOWNLOAD CHAIN WORKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When a user requests /api/download/mp3?url=<youtube_url>, lib/scraper.ts runs
+getDownloadInfo(url, "mp3") which tries providers in this order:
+
+  1. FabDL     → Fast, reliable. Sends URL to the FabDL service API.
+  2. Invidious → Open-source YouTube frontend that exposes audio streams.
+  3. Cobalt    → cobalt.tools — open-source download service.
+  4. Piped     → Another YouTube frontend with direct stream access.
+  5. Y2Mate   → y2mate.com API.
+  6. YTDown   → ytdown.to — PHP session + CDN polling (see docs below).
+  7. yt-dlp   → Final fallback. Spawns the yt-dlp binary, downloads to
+                 /tmp/wolfapi_dl/<uuid>.mp3, serves as a stream, then
+                 auto-deletes the file after 10 minutes.
+
+How provider health works:
+  Each provider has a success/failure score tracked in memory. After enough
+  consecutive failures, the provider is marked DOWN and skipped for future
+  requests. This is automatic — if cobalt.tools goes down at 3am, the system
+  just routes around it without any manual intervention. Providers can be
+  manually reset to UP status from the admin Providers tab.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6. ADMIN PANEL — HOW IT WORKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL: https://apis.xwolf.space/admin
+
+Authentication model:
+  - Login form POSTs to POST /api/admin/login with { password }
+  - On success, password is stored in browser sessionStorage (tab-scoped)
+  - Every subsequent admin API call sends it as: x-admin-password header
+  - Server validates against admin-settings.json on every single request
+  - No JWT, no session cookie — the password IS the token
+  - Login is rate-limited: 5 attempts per 15 minutes per IP (brute-force guard)
+
+Admin API endpoints (all require x-admin-password header):
+
+  GET  /api/admin/stats          → traffic stats, top endpoints, daily counts
+  GET  /api/admin/logs           → last N request log entries (the Live Log)
+  GET  /api/admin/settings       → current githubUrl and repoCards config
+  POST /api/admin/settings       → update githubUrl or repoCards
+  POST /api/admin/change-password→ change the admin password (written to disk)
+  GET  /api/admin/security       → IP tracking stats, blocklist, top IPs today
+  POST /api/admin/block-ip       → add IP to blocklist (takes effect immediately)
+  POST /api/admin/unblock-ip     → remove IP from blocklist
+  GET  /api/admin/provider-health→ UP/DOWN status of all download providers
+  POST /api/admin/reset-health   → reset a specific provider back to UP
+  GET  /api/admin/update-ytdlp   → triggers yt-dlp self-update on the server
+  GET  /api/admin/reload-cookies → reloads YouTube cookies from disk
+
+Public endpoints (no auth required):
+  GET  /api/config/cards         → returns githubUrl + repoCards for the homepage
+  GET  /api/endpoints/list       → returns the full API endpoint catalogue
+                                   (antiClone middleware restricts browser-only access)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  7. SECURITY SYSTEM — HOW IT WORKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Five layers of protection run on every incoming request:
+
+  LAYER 1 — IP Blocklist (ipBlocklistGuard)
+    Reads the blocklist from admin-settings.json (in-memory cache, fast).
+    Returns HTTP 403 immediately if the request IP is on the list.
+    Blocking and unblocking from the admin panel take effect instantly —
+    no server restart needed.
+
+  LAYER 2 — Flood Protection (globalLimiter)
+    300 requests per 15 minutes per IP across all /api/ and /download/ paths.
+    Returns HTTP 429 with a Retry-After header if the limit is exceeded.
+    Uses express-rate-limit's default IP resolution which correctly handles
+    IPv4, IPv6, and IPv4-mapped IPv6 addresses.
+
+  LAYER 3 — Bot / Scanner Detection (botBlocker)
+    Inspects the User-Agent header against a list of known attack tool strings.
+    Also blocks requests with an empty User-Agent on /api/ paths.
+    Blocked tools: sqlmap, nikto, nmap, scrapy, nuclei, masscan, dirbuster,
+    gobuster, ffuf, wfuzz, hydra, burpsuite, acunetix, nessus, openvas.
+    Returns HTTP 403 for any match.
+
+  LAYER 4 — Endpoint-Specific Rate Limits
+    adminLimiter  → /api/admin/*        : 30 req / 5 min / IP
+    loginLimiter  → /api/admin/login    : 5 req / 15 min / IP (brute-force)
+    heavyLimiter  → /download/* and /api/download/* : 20 req / min / IP
+    apiLimiter    → available for individual endpoints if needed
+
+  LAYER 5 — Security Headers (Helmet)
+    Content-Security-Policy: restricts script, style, image, and font origins
+    Referrer-Policy: strict-origin-when-cross-origin
+    Cross-Origin-Resource-Policy: cross-origin (allows API calls from anywhere)
+    Blocks iframe embedding (frameAncestors: self), <object> tags, base-URI abuse
+
+All counters and IP tracking are in-memory and reset on server restart.
+The IP blocklist is the only security state persisted to disk (admin-settings.json).
+Daily stats and IP hit counts reset automatically at midnight.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8. DEPLOYMENT WORKFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Development (on Replit):
+  npm run dev
+  → starts tsx on server/index.ts
+  → Express listens on port 5000
+  → Vite middleware provides React frontend with HMR
+  → Access via the Replit preview URL
+
+Building for production:
+  npm run build
+  → runs script/build.ts
+  → Vite bundles the React app → dist/public/
+  → esbuild bundles the server → dist/index.cjs
+
+Deploying to the VPS:
+
+  Method A — deploy.sh (RECOMMENDED after a GitHub push):
+    SSH into the VPS and run:
+      bash /var/www/wolfmusicapi/deploy.sh
+    Steps:
+      1. Backs up admin-settings.json to /tmp/wolf_settings_backup.json
+      2. Removes admin-settings.json from the working tree
+      3. Runs: git pull origin main
+      4. Node script merges live settings into the new admin-settings.json:
+           - Keeps the git version's structure for any new fields
+           - Overrides password and ipBlocklist with live values from backup
+           - Preserves githubUrl and repoCards from live backup
+      5. Runs: npm run build
+      6. Runs: pm2 restart wolfmusicapi
+      7. Waits 2 seconds, confirms PM2 is online
+
+  Method B — Manual SCP (for hotfixes without a GitHub push):
+    Build locally:    npm run build
+    Upload server:    scp dist/index.cjs root@<VPS_IP>:/var/www/wolfmusicapi/dist/
+    If frontend changed, also upload:
+      dist/public/index.html
+      dist/public/assets/index-[hash].js
+      (delete old index-*.js first to avoid stale cached files)
+    Restart:          ssh root@<VPS_IP> "pm2 restart wolfmusicapi"
+
+VPS details:
+  Path      : /var/www/wolfmusicapi/
+  PM2 name  : wolfmusicapi  (PM2 process id 3)
+  Port      : 5000
+  Domain    : apis.xwolf.space (Nginx reverse proxy → localhost:5000)
+  Runtime   : Node.js managed by PM2 with auto-restart on crash
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  9. ENVIRONMENT VARIABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  NODE_ENV       → "development" or "production". Controls Vite vs. static
+                   serving, and whether middleware is strict or lenient.
+
+  PORT           → Port number to listen on. Defaults to 5000.
+
+  OPENAI_API_KEY → Required for /api/ai/chat (GPT endpoints).
+
+  GROQ_API_KEY   → Required for /api/ai/groq (Groq fast inference).
+
+  VPS_IP         → (Replit Secret) IP address of the VPS for deployments.
+
+  VPS_PASSWORD   → (Replit Secret) SSH root password for the VPS.
+
+  DATABASE_URL   → PostgreSQL connection string (for Drizzle ORM).
+                   Not required for any core API functionality.
+
+Managed as Replit Secrets in the dev environment. On the VPS, set via
+PM2 ecosystem config or a .env file in /var/www/wolfmusicapi/.
+Never commit these to git.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  10. ADDING A NEW API ENDPOINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Step 1: Write the logic
+    Create lib/downloaders/<name>.ts with the function that fetches and
+    processes data for the new feature.
+
+  Step 2: Register the route
+    In server/routes.ts, import your function and add:
+      app.get("/api/<path>", async (req, res) => { ... });
+    For expensive operations, add the heavyLimiter middleware:
+      app.get("/api/<path>", heavyLimiter, async (req, res) => { ... });
+
+  Step 3: Document it
+    Add an entry to the allEndpoints array in shared/schema.ts with:
+      path, method, description, parameters, category
+    This automatically makes it appear on the homepage endpoint list.
+
+  Step 4: Build and test
+    npm run build
+    curl https://apis.xwolf.space/api/<path>
+
+  Step 5: Deploy
+    git push, then on VPS: bash /var/www/wolfmusicapi/deploy.sh
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  11. KEY DESIGN DECISIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Single port, single process
+    Express serves both the REST API and the static React app from port 5000.
+    No separate frontend server in production. Simplifies VPS setup and
+    eliminates CORS issues entirely since everything is the same origin.
+
+  No database required for core features
+    All runtime state (stats, logs, settings, provider health) lives in memory
+    or in a single JSON file. Fast reads, zero infrastructure dependencies,
+    easy to understand and debug.
+
+  Multi-provider fallback chain for downloads
+    Instead of depending on one external service, the system tries 7 providers
+    in sequence and falls back automatically. If any service goes down, users
+    never notice. The final fallback (yt-dlp) runs locally so the API always
+    has a way to fulfill the request.
+
+  Runtime-editable settings without restart
+    The admin password, homepage cards, and IP blocklist all live in
+    admin-settings.json and are hot-reloaded without restarting Node. The
+    in-memory cache is updated on every saveSettings() call.
+
+  Security in middleware, not per-route
+    All five protection layers are applied before any route handler runs.
+    New endpoints added in the future automatically inherit full security
+    protection without any extra code.
+
+  Self-documenting API via shared schema
+    Both the frontend and backend import from shared/schema.ts. The endpoint
+    list on the homepage is always 100% in sync with what is actually deployed —
+    there is no separate documentation file to maintain or forget to update.
+
+
+════════════════════════════════════════════════════════════════════════════════
+  APPENDIX: SITE SCRAPING RESEARCH NOTES
+  (Provider reverse-engineering reference for developers)
+════════════════════════════════════════════════════════════════════════════════
+
 WolfAPIs v4.0 — Site Scraping Research Notes
 =============================================
 Written by: reverse-engineering + network analysis (no browser automation used)
@@ -83,321 +920,93 @@ Full API flow:
           },
           {
             "type": "Audio",
-            "mediaQuality": "128K",      // 48K or 128K
+            "mediaQuality": "128K",
             "mediaExtension": "MP3",
             "mediaFileSize": "7.20 MB",
             "mediaDuration": "3:32",
             "mediaUrl": "https://s19.ytcontent.com/v5/audio/dQw4w9WgXcQ/TOKEN/128k"
-          },
-          ...more qualities...
+          }
         ]
       }
     }
 
-    Note: The "mediaUrl" is NOT the direct download link. It is a JSON
-    polling/status endpoint on ytdown.to's CDN.
+    Note: mediaUrl is a status/polling endpoint, NOT the direct download URL.
 
   STEP 3 — Poll the CDN status URL:
     GET https://s19.ytcontent.com/v5/video/dQw4w9WgXcQ/TOKEN/1080p
-    Headers: standard User-Agent (no special auth needed)
 
-    When status = "completed":
-    {
-      "status": "completed",
-      "fileName": "YTDown.com_YouTube_..._1080p.mp4",
-      "percent": "Completed",
-      "fileUrl": "https://s19.ytcontent.com/v5/download/VIDEO_ID/TOKEN/FILENAME.mp4?token=EXPIRES_TOKEN",
-      "viewUrl": "...",
-      "fileSize": "83.77 MB",
-      "fileSizeBytes": 87835921
-    }
+    When completed:
+    { "status": "completed", "fileUrl": "https://s19.ytcontent.com/v5/download/..." }
 
-    When status = "queued" or "processing":
-    {
-      "status": "queued",
-      "fileName": "...",
-      "percent": "0%",
-      "fileUrl": "Waiting...",
-      "position": 1,
-      "totalWaiting": 1
-    }
-    → Wait ~3 seconds and poll again (max 15 attempts = ~45 seconds total)
+    When pending:
+    { "status": "queued", "percent": "0%", "position": 1 }
+    → Wait ~3 seconds and poll again (max 15 attempts = ~45 seconds)
 
-  STEP 4 — Use fileUrl as the real download link:
-    The signed CDN URL is the actual MP4/MP3 file. It expires (signed token).
-    For Video: usually already "completed" on first poll.
-    For MP3:   typically 1-4 polls are needed (conversion is server-side).
-
-What we learned from the JS:
-  The page's inline script shows this is a vanilla jQuery app. The form
-  submit triggers an AJAX POST (no framework complexity). The only mystery
-  was the PHPSESSID requirement — spotted in the Cookie header of the POST
-  in DevTools. Without it, proxy.php returns an error response.
+  STEP 4 — fileUrl is the real download link (signed, expires shortly).
 
 Implementation notes:
-  • Session cached in memory for 25 minutes to avoid extra HTTP round-trips
+  • Session cached in memory for 25 minutes to avoid extra round-trips
   • On non-OK response from proxy.php → invalidate session (triggers re-fetch)
-  • Added to both mp3Providers and mp4Providers (position 2 after ytdlpFile)
 
 
 ═══════════════════════════════════════════════════════════════════════════════
 SITE 2: websolute.fr  ⚠️  METADATA/SEARCH ONLY (no direct download URL)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://websolute.fr/
-
-How it was discovered:
-  Network tab showed two clean JSON API calls on form submit:
-    - GET /check?q=VIDEO_ID    → video metadata
-    - GET /grab/json/?q=QUERY  → keyword search results
-
-Why it is NOT implemented as a download provider:
-  These endpoints return video metadata (title, ID, channel) but NOT a
-  download URL. The actual download is triggered by embedded iframes:
-    - iframe 1: apisyu.com
-    - iframe 2: sounddownmp3.com
-  Each iframe is a completely separate download service with its own
-  multi-step API flow (see Site 3 below). Reverse-engineering the full
-  iframe chain is out of scope for a server-side provider.
-
-Metadata API (available for use in search features):
-
   GET https://websolute.fr/check?q=VIDEO_ID
-  Response: { "items": [{ "id": "dQw4w9WgXcQ", "title": "...", "channel": "..." }] }
+  → Returns video metadata (title, ID, channel). No download URL.
 
-  GET https://websolute.fr/grab/json/?q=never+gonna+give+you+up
-  Response: { "items": [{ "id": "...", "title": "...", "channel": "..." }, ...] }
+  GET https://websolute.fr/grab/json/?q=search+query
+  → Returns search result items. No download URL.
 
-  No headers, cookies, or auth required. Simple GET requests.
-
-Technique note:
-  The endpoints were found by viewing the page source and grepping for
-  "fetch(" and "/api/" in the inline JavaScript. The /check endpoint was
-  called synchronously on page load with the video ID extracted from the URL.
+  Actual download is done via apisyu.com iframes — not automatable server-side.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-SITE 3: apisyu.com  ⚠️  BLOCKED (session-based, server-side token required)
+SITE 3: apisyu.com  ⚠️  BLOCKED (session-based, browser token required)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://apisyu.com/embed/mp4/VIDEO_ID?lang=en  (used via iframe on other sites)
-
-How it was discovered:
-  apisyu.com is embedded as an iframe by websolute.fr and sounddownmp3.com.
-  The Network tab on the iframe page showed a multi-step flow using a
-  custom ajax() function that POSTs to https://apisyu.com/api.
-
-Full API flow (reverse-engineered from inline JS):
-
-  The inline script defines this function:
-    function ajax(o, f) {
-      ajaxRequest = $.post('./api', o).done(function(d) { f(d); });
-    }
-
-  And this sequence runs when user clicks a quality button:
-
-  CALL 1 — acc:'s' (start/session handshake):
-    POST https://apisyu.com/api
-    Body: acc=s&format=mp4&idyt=VIDEO_ID&quality=720p
-    → Response: (some session confirmation, possibly empty or JSON)
-
-  CALL 2 — acc:'v' (verify/validate):
-    POST https://apisyu.com/api
-    Body: acc=v&format=mp4&idyt=VIDEO_ID&quality=720p
-    → Response: JSON
-      { "e": 0, "status": "ok"|"pending"|"completed", "queue": N, "download": URL }
-    - status "ok"        → proceed to acc:'g2'
-    - status "pending"   → retry acc:'v' after 3 seconds
-    - status "completed" → use d.download as final URL (cached result)
-
-  CALL 3 — acc:'g2' (get download job):
-    POST https://apisyu.com/api
-    Body: acc=g2&format=mp4&idyt=VIDEO_ID&quality=720p
-    → Response: JSON { "e": 0, "pid": "https://p.lbserver.xyz/job/TASK_ID" }
-
-  CALL 4 — GET d.pid (get lbserver.xyz task ID):
-    GET https://p.lbserver.xyz/job/TASK_ID
-    → Response: JSON { "id": "ACTUAL_TASK_ID" }
-
-  CALL 5 — Poll lbserver.xyz progress:
-    GET https://p.lbserver.xyz/api/progress?id=ACTUAL_TASK_ID
-    → Response: JSON
-      { "text": "Initialising"|"Converting"|"Finished", "progress": 0-100, "download_url": URL }
-    Poll until text === "Finished", then use download_url.
-
-  CALL 6 — acc:'sv' (save/log stats):
-    POST https://apisyu.com/api
-    Body: acc=sv&l=DOWNLOAD_URL&f=mp4&i=VIDEO_ID&q=720p
-    → No-op for us (just analytics)
-
-Why it is NOT implemented:
-  When tested from our server (not a browser), CALL 2 returns:
-    { "e": 1, "msg": "default!" }
-  This means the server validates that calls come from a real browser session
-  (likely checking Referer chain, hidden CSRF token, or browser fingerprint).
-  The acc:'s' handshake may set a server-side session that our HTTP client
-  cannot replicate without a full browser. Implementing this would require
-  Puppeteer/Playwright (browser automation) — not a simple HTTP call.
-
-Key finding:
-  The download backend is actually lbserver.xyz (not apisyu.com). The
-  apisyu.com API is just a session-gated proxy to lbserver.xyz.
+  Multi-step flow: acc=s → acc=v → acc=g2 → poll lbserver.xyz → download
+  When tested from server (not browser): acc=v returns { "e": 1, "msg": "default!" }
+  Server validates browser fingerprint / CSRF token. Cannot replicate without
+  a real browser (Puppeteer/Playwright).
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-SITE 4: cornerstonecountry.ca (y2mate clone)  ⚠️  IFRAME-BASED (not automatable)
+SITE 4: cornerstonecountry.ca  ⚠️  IFRAME-BASED (not automatable)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://www.cornerstonecountry.ca/
-
-How it was discovered:
-  This is a WordPress site running a "ytmate" theme. The main.js was found
-  at /themes/ytmate/assets/js/main.js and read directly (no minification).
-
-What the main.js does:
-
-  1. Search: Google autocomplete via JSONP callback
-  2. Search results: if page has #ajax-results div,
-       fetch(location.href, { method: 'POST' })
-     → Returns JSON array of { id, title, image_url } for the query result.
-     → This only works with a server-side session (set by the initial search GET).
-
-  3. Convert: POSTing to /convert/ with q=YOUTUBE_URL returns an HTML page
-     that contains this iframe:
-       <iframe src="https://clickapi.net/api/widgetplus?url=YOUTUBE_URL">
-
-  4. clickapi.net is a Nuxt.js SPA with apiBase = "https://api.cdnframe.com"
-     The Nuxt app's Vue Router defines these page routes:
-       /api/button, /api/single, /api/widget
-       /api/single/:ftype()
-       /api/single/task/:id()
-
-Why it is NOT implemented:
-  clickapi.net's Nuxt frontend makes internal API calls to api.cdnframe.com.
-  When we test api.cdnframe.com directly, all endpoints return 404. This is
-  because the Nuxt SSR layer may be proxying requests internally, or the
-  API requires a session/CSRF token set by the Nuxt app's initialization.
-  The /api/single/:ftype() routes are Vue Router CLIENT-SIDE routes, not
-  Express server routes — they render a React component that in turn calls
-  the real backend. Without running the full Nuxt JS, we cannot replicate this.
-
-How to implement it in the future:
-  Use Puppeteer to load https://clickapi.net/api/widgetplus?url=YOUTUBE_URL,
-  wait for the download button to appear, intercept the XHR/fetch request it
-  makes to api.cdnframe.com, and replay that request with the same session.
+  WordPress "ytmate" theme. Download widget is a third-party iframe from
+  clickapi.net (Nuxt.js SPA). Real backend: api.cdnframe.com. Direct calls
+  to api.cdnframe.com return 404 — requires the Nuxt SSR session to work.
+  Would need Puppeteer to intercept XHR inside the iframe.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-SITE 5: yt1s.biz  ❌  BLOCKED (Cloudflare JS challenge, 403 response)
+SITE 5: yt1s.biz  ❌  BLOCKED (Cloudflare JS challenge, 403 on all requests)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://yt1s.biz/
-
-Status: Every HTTP request (GET, POST, any endpoint) returns:
-  HTTP 403 Forbidden
-  cf-mitigated: challenge
-  Server: cloudflare
-
-Why it cannot be scraped without a real browser:
-  Cloudflare's "Managed Challenge" (formerly Bot Fight Mode) serves a
-  JavaScript challenge page to any client that does not have a valid
-  cf_clearance cookie. Obtaining this cookie requires:
-    1. Running the Cloudflare JavaScript challenge (Turnstile or similar)
-    2. This challenge uses browser fingerprinting (Canvas, WebGL, navigator
-       properties, timing analysis) to confirm a real browser is present
-  Server-side fetch, curl, Axios, node-fetch etc. cannot pass this challenge.
-
-How to bypass (if ever needed):
-  Option A: Puppeteer + puppeteer-extra-plugin-stealth
-    - Stealth plugin patches browser fingerprints that CF detects
-    - Still not 100% reliable; CF updates detection regularly
-  Option B: curl-impersonate (https://github.com/lwthiker/curl-impersonate)
-    - Mimics Chrome/Firefox TLS fingerprint (JA3/JA4 hash)
-    - Works for many CF-protected sites without JS execution
-  Option C: flaresolverr (https://github.com/FlareSolverr/FlareSolverr)
-    - Self-hosted proxy service that runs a real Chrome browser
-    - Returns cookies/tokens that can be reused in normal requests
-
-Bottom line: yt1s.biz is not usable as a server-side provider without
-browser automation. It was excluded from implementation.
+  cf-mitigated: challenge + Server: cloudflare headers on every response.
+  Cannot pass Cloudflare Managed Challenge with plain HTTP clients.
+  Bypass options: puppeteer-extra-plugin-stealth, curl-impersonate, flaresolverr.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-SITE 6: mediatheque-hulluch.fr (MP3Juice clone)  ⚠️  JS-DRIVEN, NO SERVER-SIDE API
+SITE 6: mediatheque-hulluch.fr  ⚠️  FULLY JS-DRIVEN (API endpoint unknown)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://mediatheque-hulluch.fr/
-
-How it was discovered:
-  The site presents a search form with <input name="query">. The HTML
-  has <form method="POST"> submitting to the same page.
-
-What was found:
-  When POST'ing with a YouTube URL or search query, the server returns the
-  same HTML homepage without any results — the results rendering is entirely
-  client-side JavaScript.
-
-  The page loads:
-    - /vendor/anti-redirect.js (17,978 bytes) — NOT a download API.
-      This is a security script written in Indonesian (Bahasa) that patches
-      browser navigation APIs (window.open, location.assign, etc.) to prevent
-      malicious ad scripts from hijacking the tab. Contains no download logic.
-
-  The actual search/download functionality is driven by React or vanilla JS
-  that makes XHR calls we could not determine from the static HTML alone,
-  because the JS files are loaded conditionally and the API endpoint was
-  not visible in the page source.
-
-  The site structure matches MP3Juice clones that typically use:
-    POST /api/search?q=QUERY → returns JSON with tracks
-    POST /api/download?id=ID → returns download URL or initiates conversion
-  But the exact endpoint paths were not confirmed.
-
-How to investigate further:
-  Load the site in Chrome DevTools, type a search query, click Search, and
-  watch the Network tab for the XHR/fetch calls. The first JSON response
-  should reveal the API endpoint. Look for requests to any domain that is
-  NOT the main domain (third-party API backends are common in MP3Juice clones).
-
-Note: The site also loads iframes for ads (as expected from an anti-redirect
-protection script), which means the download API is likely on a separate
-path from the ad iframes.
+  POST returns same HTML homepage — results rendered entirely in client JS.
+  The /vendor/anti-redirect.js file is a tab-hijack prevention script, not
+  a download API. Need DevTools network tab to find actual XHR endpoint.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-SITE 7: v8.www-y2mate.com (y2mate v8)  ⚠️  HTML-IFRAME BASED
+SITE 7: v8.www-y2mate.com  ⚠️  JS-DRIVEN WIDGET (not automatable)
 ═══════════════════════════════════════════════════════════════════════════════
 
-URL: https://v8.www-y2mate.com/
-
-How it was discovered:
-  The site has a standard search form (input name="search"). Submitting a
-  YouTube URL causes a POST to /search/ with body: search=YOUTUBE_URL.
-  The server redirects (or directly returns) a /convert/ page with:
-    POST /convert/ with body: videoId=dQw4w9WgXcQ
-
-What the convert page contains:
-  The /convert/ page returns full HTML with:
-    <div id="widgetv2Api"> — placeholder for the download widget
-  And loads:
-    /custom.js         — handles form submission and widget initialization
-    iframe-resizer     — for resizing the widget iframe
-
-  The custom.js likely makes an AJAX call to load the actual download widget
-  from a third-party API (similar to how cornerstonecountry uses clickapi.net).
-  The Network tab would be needed to see what API call fires when the widget
-  loads.
-
-Why it is NOT implemented:
-  The download flow requires JavaScript execution to:
-    1. Render the widget HTML after a JS-triggered AJAX call
-    2. Display quality options that are populated by the API response
-  A simple HTTP POST to /convert/ returns the widget shell but not the
-  actual download links.
-
-Recommended approach:
-  Same as cornerstonecountry — use Puppeteer to intercept the API call
-  made by the widget JavaScript, then replay it with the session headers.
+  POST /convert/ returns HTML widget shell only. Actual download links are
+  populated by a JavaScript-triggered AJAX call inside the widget. Needs
+  Puppeteer to intercept the API call made by the widget JavaScript.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -410,8 +1019,8 @@ ytdown.to                   | ✅ WORKING   | PHP session + proxy.php + CDN poll
 websolute.fr (search)       | ✅ WORKING   | Clean JSON GET endpoints (metadata)
 websolute.fr (download)     | ⚠️ NO URL    | Download via apisyu.com iframe
 apisyu.com                  | ⚠️ BLOCKED   | Session/browser token required
-cornerstonecountry.ca       | ⚠️ BLOCKED   | clickapi.net Nuxt app; SSR API
-yt1s.biz                    | ❌ CF 403    | Cloudflare JS challenge; no bypass
+cornerstonecountry.ca       | ⚠️ BLOCKED   | Nuxt SSR internal API; 404 direct
+yt1s.biz                    | ❌ CF 403    | Cloudflare JS challenge
 mediatheque-hulluch.fr      | ⚠️ UNKNOWN   | Fully JS-driven, API not found
 v8.www-y2mate.com           | ⚠️ BLOCKED   | Iframe widget requires JS execution
 clickapi.net / cdnframe.com | ⚠️ BLOCKED   | Nuxt SSR internal API; 404 direct
@@ -419,40 +1028,34 @@ lbserver.xyz                | ⚠️ BLOCKED   | Backend for apisyu.com; needs t
 
 
 ═══════════════════════════════════════════════════════════════════════════════
-TECHNIQUES LEARNED
+SCRAPING TECHNIQUES LEARNED
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. PHP SESSION GATING
-   Many PHP-based download sites require a PHPSESSID cookie before they
-   will respond to API calls. The cookie is issued freely by a GET to any
-   page. Cache the cookie and re-use it across requests.
+1. PHP SESSION GATING — Many PHP download sites require a PHPSESSID cookie
+   before responding to API calls. Issue a GET to any page first, cache the
+   cookie, and reuse it across requests for ~25 minutes.
 
-2. X-Requested-With: XMLHttpRequest
-   Sites often check this header to distinguish AJAX calls from normal page
-   loads. Always include it when the network tab shows it on the original
-   request.
+2. X-Requested-With: XMLHttpRequest — Always include this header when the
+   Network tab shows it on the original request. Sites use it to distinguish
+   AJAX from regular page loads.
 
-3. NUXT.JS APP DETECTION
-   If a site returns <!DOCTYPE html> with window.__NUXT__ in the source,
-   it is a Nuxt.js SPA. Look for window.__NUXT__.config.public.apiBase
-   to find the real backend API URL. Then look at the _nuxt/*.js files for
-   route definitions like /api/single/:ftype().
+3. NUXT.JS APP DETECTION — If the page source contains window.__NUXT__, look
+   for window.__NUXT__.config.public.apiBase to find the real backend URL.
+   Route definitions are in the _nuxt/*.js bundle files.
 
-4. CDN POLLING PATTERN
-   ytdown.to uses a two-level URL pattern:
-     Level 1 (proxy.php): returns per-quality "mediaUrl" status endpoints
-     Level 2 (CDN URL):   returns { status, fileUrl } — poll until completed
-   This is a common pattern in async video conversion services. The signed
-   fileUrl URL expires after a short time, so use it immediately.
+4. CDN POLLING PATTERN — ytdown.to uses a two-level URL pattern:
+   Level 1 (proxy.php): returns per-quality status endpoint URLs
+   Level 2 (CDN URL): returns { status, fileUrl } — poll until "completed"
+   This is common in async video conversion services. fileUrl expires quickly.
 
-5. CLOUDFLARE DETECTION
-   Headers cf-mitigated: challenge and Server: cloudflare indicate CF Bot
-   Fight Mode or Managed Challenge. These cannot be bypassed with plain
-   HTTP clients. Look for these headers before investing time in a scraper.
+5. CLOUDFLARE DETECTION — Headers cf-mitigated: challenge and Server: cloudflare
+   mean CF Bot Fight Mode is active. Plain HTTP clients cannot bypass this.
 
-6. IFRAME WIDGET PATTERN
-   Sites like cornerstonecountry embed the download widget as a third-party
-   iframe. The page is "thin" — it just provides a container. The real work
-   happens in the iframe's JavaScript. To scrape these, you MUST either:
-     a) Reverse-engineer the iframe's backend API (hard — requires JS analysis)
-     b) Use Puppeteer to intercept the network requests inside the iframe
+6. IFRAME WIDGET PATTERN — Sites embed download widgets as third-party iframes.
+   To scrape these, you must either reverse-engineer the iframe's backend API
+   from its JavaScript bundle, or use Puppeteer to intercept requests inside
+   the iframe during real browser execution.
+
+================================================================================
+  END OF DOCUMENTATION
+================================================================================
