@@ -1594,6 +1594,22 @@ export default function Home() {
   const [showSocialPopup, setShowSocialPopup] = useState(false);
   const [githubUrl, setGithubUrl] = useState("https://github.com/SilentWolf-Kenya");
 
+  type TestAllIssue = { endpoint: string; status: number; error: string };
+  type TestAllReport = {
+    success: boolean;
+    creator: string;
+    total: number;
+    passed: number;
+    failed: number;
+    duration_ms: number;
+    issues: TestAllIssue[];
+  };
+  const [testAllOpen, setTestAllOpen] = useState(false);
+  const [testAllRunning, setTestAllRunning] = useState(false);
+  const [testAllProgress, setTestAllProgress] = useState({ done: 0, total: 0 });
+  const [testAllReport, setTestAllReport] = useState<TestAllReport | null>(null);
+  const [testAllCopied, setTestAllCopied] = useState(false);
+
   useEffect(() => {
     fetchSiteConfig().then((cfg) => setGithubUrl(cfg.githubUrl));
   }, []);
@@ -1645,6 +1661,84 @@ export default function Home() {
       setCopiedAllEndpoints(true);
       setTimeout(() => setCopiedAllEndpoints(false), 2000);
     });
+  };
+
+  const runTestAll = async () => {
+    if (!activeCategory || testAllRunning) return;
+    const endpoints = filteredEndpoints;
+    setTestAllOpen(true);
+    setTestAllRunning(true);
+    setTestAllReport(null);
+    setTestAllProgress({ done: 0, total: endpoints.length });
+
+    const t0 = Date.now();
+    const issues: { endpoint: string; status: number; error: string }[] = [];
+    let passed = 0;
+    let done = 0;
+
+    const testOne = async (ep: ApiEndpoint) => {
+      const pathParamNames = new Set(
+        (ep.path.match(/:([a-zA-Z_]+)/g) || []).map((s: string) => s.slice(1))
+      );
+      let path = ep.path;
+      for (const p of ep.params || []) {
+        if (p.default && pathParamNames.has(p.name)) {
+          path = path.replace(`:${p.name}`, encodeURIComponent(String(p.default)));
+        }
+      }
+      let url = baseUrl + path;
+      const opts: RequestInit = {};
+      if (ep.method === "GET") {
+        const qs = new URLSearchParams();
+        for (const p of ep.params || []) {
+          if (p.default && !pathParamNames.has(p.name)) qs.set(p.name, String(p.default));
+        }
+        const s = qs.toString();
+        if (s) url += "?" + s;
+      } else {
+        const body: Record<string, string> = {};
+        for (const p of ep.params || []) {
+          if (p.default) body[p.name] = String(p.default);
+        }
+        opts.method = "POST";
+        opts.headers = { "Content-Type": "application/json" };
+        opts.body = JSON.stringify(body);
+      }
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 10000);
+        opts.signal = controller.signal;
+        const r = await fetch(url, opts);
+        clearTimeout(timer);
+        const data = await r.json().catch(() => ({}));
+        const ok = r.ok && data.success !== false;
+        if (!ok) {
+          issues.push({ endpoint: ep.path, status: r.status, error: data.error || `HTTP ${r.status}` });
+        } else {
+          passed++;
+        }
+      } catch (e: any) {
+        issues.push({ endpoint: ep.path, status: 0, error: e.name === "AbortError" ? "Timeout (10s)" : (e.message || "Request failed") });
+      }
+      done++;
+      setTestAllProgress({ done, total: endpoints.length });
+    };
+
+    const BATCH = 8;
+    for (let i = 0; i < endpoints.length; i += BATCH) {
+      await Promise.allSettled(endpoints.slice(i, i + BATCH).map(testOne));
+    }
+
+    setTestAllReport({
+      success: issues.length === 0,
+      creator: "APIs by Silent Wolf",
+      total: endpoints.length,
+      passed,
+      failed: issues.length,
+      duration_ms: Date.now() - t0,
+      issues,
+    });
+    setTestAllRunning(false);
   };
 
   const filteredEndpoints = activeCategory
@@ -2162,6 +2256,45 @@ export default function Home() {
             <HeroSection categoryId={activeCategory} />
 
             <section className="px-3 py-4 sm:px-6 sm:py-5">
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={runTestAll}
+                  disabled={testAllRunning}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider transition-all"
+                  style={{
+                    background: testAllRunning ? "rgba(0,255,0,0.06)" : "rgba(0,255,0,0.08)",
+                    color: testAllRunning ? "rgba(0,255,0,0.4)" : "#00ff00",
+                    border: "1px solid rgba(0,255,0,0.2)",
+                    cursor: testAllRunning ? "not-allowed" : "pointer",
+                  }}
+                  data-testid="button-test-all"
+                  title={`Test all ${filteredEndpoints.length} endpoints in this category`}
+                >
+                  {testAllRunning ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Zap className="w-3 h-3" />
+                  )}
+                  {testAllRunning
+                    ? `TESTING… ${testAllProgress.done}/${testAllProgress.total}`
+                    : `TEST ALL (${filteredEndpoints.length})`}
+                </button>
+                {testAllReport && !testAllRunning && (
+                  <button
+                    onClick={() => setTestAllOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                    style={{
+                      background: testAllReport.success ? "rgba(0,255,0,0.06)" : "rgba(255,100,100,0.08)",
+                      color: testAllReport.success ? "#00ff00" : "#ff6464",
+                      border: `1px solid ${testAllReport.success ? "rgba(0,255,0,0.2)" : "rgba(255,100,100,0.2)"}`,
+                    }}
+                    data-testid="button-test-all-results"
+                  >
+                    {testAllReport.success ? "✓" : "!"} {testAllReport.passed}/{testAllReport.total} passed
+                  </button>
+                )}
+              </div>
+
               <EndpointSearchBar
                 endpoints={filteredEndpoints}
                 searchQuery={effectSearch}
@@ -2199,6 +2332,171 @@ export default function Home() {
           baseUrl={baseUrl}
           onClose={() => setTestEndpoint(null)}
         />
+      )}
+
+      {testAllOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+          style={{ background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !testAllRunning) setTestAllOpen(false); }}
+          data-testid="overlay-test-all"
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: "#080808", border: "1px solid rgba(0,255,0,0.2)", maxHeight: "85vh" }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid rgba(0,255,0,0.08)" }}>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" style={{ color: "#00ff00" }} />
+                <span className="text-sm font-bold tracking-widest" style={{ color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>
+                  TEST ALL
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>
+                  {activeCategoryData?.name || activeCategory}
+                </span>
+              </div>
+              {!testAllRunning && (
+                <button
+                  onClick={() => setTestAllOpen(false)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                  style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+                  data-testid="button-close-test-all"
+                >
+                  <X className="w-4 h-4" style={{ color: "rgba(255,255,255,0.4)" }} />
+                </button>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto hide-scrollbar p-5">
+              {testAllRunning ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#00ff00" }} />
+                  <div className="text-center">
+                    <p className="text-sm font-semibold" style={{ color: "#00ff00", fontFamily: "'Orbitron', sans-serif" }}>
+                      RUNNING TESTS
+                    </p>
+                    <p className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      {testAllProgress.done} / {testAllProgress.total} endpoints tested
+                    </p>
+                    <div className="w-48 h-1 rounded-full mt-3 mx-auto" style={{ background: "rgba(0,255,0,0.08)" }}>
+                      <div
+                        className="h-1 rounded-full transition-all"
+                        style={{
+                          width: testAllProgress.total > 0 ? `${(testAllProgress.done / testAllProgress.total) * 100}%` : "0%",
+                          background: "#00ff00",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : testAllReport ? (
+                <>
+                  {/* Status banner */}
+                  <div
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4"
+                    style={{
+                      background: testAllReport.success ? "rgba(0,255,0,0.06)" : "rgba(255,100,100,0.06)",
+                      border: `1px solid ${testAllReport.success ? "rgba(0,255,0,0.15)" : "rgba(255,100,100,0.15)"}`,
+                    }}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: testAllReport.success ? "#00ff00" : "#ff6464", boxShadow: `0 0 6px ${testAllReport.success ? "#00ff00" : "#ff6464"}` }}
+                    />
+                    <span className="text-xs font-bold" style={{ color: testAllReport.success ? "#00ff00" : "#ff6464" }}>
+                      {testAllReport.success ? "ALL ENDPOINTS PASSING" : `${testAllReport.failed} ENDPOINT${testAllReport.failed > 1 ? "S" : ""} FAILED`}
+                    </span>
+                    <span className="ml-auto text-[10px]" style={{ color: "rgba(255,255,255,0.25)" }}>
+                      {testAllReport.duration_ms}ms
+                    </span>
+                  </div>
+
+                  {/* JSON report */}
+                  <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,255,0,0.08)" }}>
+                    <div className="flex items-center justify-between px-4 py-2" style={{ background: "#000000", borderBottom: "1px solid rgba(0,255,0,0.06)" }}>
+                      <span className="text-[9px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.25)" }}>JSON REPORT</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(testAllReport, null, 2));
+                          setTestAllCopied(true);
+                          setTimeout(() => setTestAllCopied(false), 2000);
+                        }}
+                        className="flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded transition-all"
+                        style={{ color: testAllCopied ? "#00ff00" : "rgba(255,255,255,0.3)", border: "1px solid rgba(0,255,0,0.1)" }}
+                        data-testid="button-copy-test-report"
+                      >
+                        {testAllCopied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                        {testAllCopied ? "COPIED" : "COPY"}
+                      </button>
+                    </div>
+                    <pre
+                      className="p-4 text-[11px] font-mono overflow-x-auto"
+                      style={{ background: "rgba(0,255,0,0.015)", color: "rgba(255,255,255,0.6)", lineHeight: "1.7", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                    >
+                      {/* Render JSON with colour highlighting */}
+                      {JSON.stringify(testAllReport, null, 2)
+                        .split("\n")
+                        .map((line, i) => {
+                          const keyMatch = line.match(/^(\s*)"([^"]+)":/);
+                          const trueMatch = /:\s*true/.test(line);
+                          const falseMatch = /:\s*false/.test(line);
+                          const numMatch = line.match(/:\s*(\d+)/);
+                          const strMatch = line.match(/:\s*"([^"]*)"/);
+                          return (
+                            <span key={i} style={{ display: "block" }}>
+                              {keyMatch && <span style={{ color: "rgba(0,255,0,0.7)" }}>{keyMatch[0].slice(0, -1)}</span>}
+                              {keyMatch && <span style={{ color: "rgba(255,255,255,0.3)" }}>:</span>}
+                              {trueMatch && <span style={{ color: "#00ff00" }}> true</span>}
+                              {falseMatch && <span style={{ color: "#ff6464" }}> false</span>}
+                              {!trueMatch && !falseMatch && numMatch && <span style={{ color: "#ffa500" }}> {numMatch[1]}</span>}
+                              {!trueMatch && !falseMatch && !numMatch && strMatch && <span style={{ color: "rgba(255,255,255,0.55)" }}> "{strMatch[1]}"</span>}
+                              {!keyMatch && !trueMatch && !falseMatch && !numMatch && !strMatch && line}
+                            </span>
+                          );
+                        })}
+                    </pre>
+                  </div>
+
+                  {/* Issues list */}
+                  {testAllReport.issues.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <span className="text-[9px] font-bold tracking-wider block" style={{ color: "rgba(255,100,100,0.6)" }}>
+                        FAILED ENDPOINTS
+                      </span>
+                      {testAllReport.issues.map((issue, i) => (
+                        <div
+                          key={i}
+                          className="px-3 py-2.5 rounded-lg"
+                          style={{ background: "rgba(255,100,100,0.04)", border: "1px solid rgba(255,100,100,0.12)" }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,100,100,0.12)", color: "#ff6464" }}>
+                              {issue.status || "ERR"}
+                            </span>
+                            <code className="text-[11px] font-mono" style={{ color: "#ffffff" }}>{issue.endpoint}</code>
+                          </div>
+                          <p className="text-[10px] pl-1" style={{ color: "rgba(255,100,100,0.7)" }}>{issue.error}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Rerun button */}
+                  <button
+                    onClick={runTestAll}
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold tracking-wider transition-all"
+                    style={{ background: "rgba(0,255,0,0.06)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}
+                    data-testid="button-rerun-test-all"
+                  >
+                    <Zap className="w-3 h-3" /> RUN AGAIN
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
       )}
 
       {showSocialPopup && (
