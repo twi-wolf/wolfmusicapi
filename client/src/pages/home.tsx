@@ -50,6 +50,8 @@ import {
   Headphones,
   Share2,
   ChevronDown,
+  Server,
+  Code,
 } from "lucide-react";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, AUDIO_EFFECTS_LIST, EPHOTO_SUBCATEGORIES, PHOTOFUNIA_SUBCATEGORIES, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
@@ -730,8 +732,43 @@ function EffectTable({
   );
 }
 
+interface SiteCard { id: string; name: string; url: string; description: string; badge: string; display: string; icon: string; }
+interface SiteConfig { githubUrl: string; cards: SiteCard[]; }
+
+const DEFAULT_CARDS: SiteCard[] = [
+  { id: "wolfxcore", name: "wolfXcore", url: "https://github.com/sil3nt-wolf/wolfXcore", description: "Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning", badge: "Laravel + React", display: "github.com/sil3nt-wolf/wolfXcore", icon: "github" },
+  { id: "panel", name: "panel.xwolf.space", url: "https://panel.xwolf.space", description: "Host, manage and provision game servers with automated billing", badge: "GAME SERVER", display: "panel.xwolf.space", icon: "cpu" },
+  { id: "host", name: "host.xwolf.space", url: "https://host.xwolf.space", description: "One-click deployment platform for chatbots and automation scripts", badge: "BOT HOSTING", display: "host.xwolf.space", icon: "globe" },
+];
+
+let _cachedConfig: SiteConfig | null = null;
+
+async function fetchSiteConfig(): Promise<SiteConfig> {
+  if (_cachedConfig) return _cachedConfig;
+  try {
+    const r = await fetch("/api/config/cards");
+    if (r.ok) {
+      const d = await r.json();
+      _cachedConfig = { githubUrl: d.githubUrl || "https://github.com/sil3nt-wolf", cards: d.cards || DEFAULT_CARDS };
+      return _cachedConfig!;
+    }
+  } catch {}
+  return { githubUrl: "https://github.com/sil3nt-wolf", cards: DEFAULT_CARDS };
+}
+
+function CardIcon({ icon }: { icon: string }) {
+  if (icon === "github") return <Github className="w-4 h-4" style={{ color: "#00ff00" }} />;
+  if (icon === "cpu") return <Cpu className="w-4 h-4" style={{ color: "#00ff00" }} />;
+  if (icon === "server") return <Server className="w-4 h-4" style={{ color: "#00ff00" }} />;
+  if (icon === "zap") return <Zap className="w-4 h-4" style={{ color: "#00ff00" }} />;
+  if (icon === "code") return <Code className="w-4 h-4" style={{ color: "#00ff00" }} />;
+  return <Globe className="w-4 h-4" style={{ color: "#00ff00" }} />;
+}
+
 function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCategoryClick: (id: string) => void; onTryEndpoint: (ep: ApiEndpoint) => void; mediaStatus?: MediaStatusData }) {
   const [globalSearch, setGlobalSearch] = useState("");
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>({ githubUrl: "https://github.com/sil3nt-wolf", cards: DEFAULT_CARDS });
+  useEffect(() => { fetchSiteConfig().then(setSiteConfig); }, []);
   const stats = [
     { label: "TOTAL ENDPOINTS", value: allEndpoints.length.toString(), icon: Globe, desc: "Across all categories" },
     { label: "AI MODELS", value: "35+", icon: Cpu, desc: "Multi-provider hub" },
@@ -1201,88 +1238,35 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
           Projects by Silent Wolf
         </h3>
         <div className="grid gap-3 md:grid-cols-3">
-
-          <a
-            href="https://github.com/sil3nt-wolf/wolfXcore"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
-            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
-            data-testid="link-project-wolfxcore"
-          >
-            <div className="flex items-center justify-between">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-              >
-                <Github className="w-4 h-4" style={{ color: "#00ff00" }} />
+          {siteConfig.cards.map((card) => (
+            <a
+              key={card.id}
+              href={card.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
+              style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
+              data-testid={`link-project-${card.id}`}
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center"
+                  style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
+                >
+                  <CardIcon icon={card.icon} />
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
               </div>
-              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>wolfXcore</h4>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>Laravel + React</span>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                  <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>{card.name}</h4>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>{card.badge}</span>
+                </div>
+                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{card.description}</p>
+                <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>{card.display}</p>
               </div>
-              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning</p>
-              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>github.com/sil3nt-wolf/wolfXcore</p>
-            </div>
-          </a>
-
-          <a
-            href="https://panel.xwolf.space"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
-            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
-            data-testid="link-project-panel"
-          >
-            <div className="flex items-center justify-between">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-              >
-                <Cpu className="w-4 h-4" style={{ color: "#00ff00" }} />
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>panel.xwolf.space</h4>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>GAME SERVER</span>
-              </div>
-              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Host, manage and provision game servers with automated billing</p>
-              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>panel.xwolf.space</p>
-            </div>
-          </a>
-
-          <a
-            href="https://host.xwolf.space"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col gap-3 px-4 py-4 rounded-xl transition-all group"
-            style={{ background: "#000000", border: "1px solid rgba(0,255,0,0.12)" }}
-            data-testid="link-project-host"
-          >
-            <div className="flex items-center justify-between">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.2)" }}
-              >
-                <Globe className="w-4 h-4" style={{ color: "#00ff00" }} />
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 opacity-30 group-hover:opacity-70 transition-opacity" style={{ color: "#00ff00" }} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                <h4 className="text-sm font-semibold" style={{ color: "#ffffff" }}>host.xwolf.space</h4>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.15)" }}>BOT HOSTING</span>
-              </div>
-              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>One-click deployment platform for chatbots and automation scripts</p>
-              <p className="text-[10px] mt-1.5" style={{ color: "rgba(0,255,0,0.45)" }}>host.xwolf.space</p>
-            </div>
-          </a>
-
+            </a>
+          ))}
         </div>
       </div>
     </div>
@@ -1418,6 +1402,11 @@ export default function Home() {
   const [photofuniaExpanded, setPhotofuniaExpanded] = useState(false);
   const [photofuniaSubCategory, setPhotofuniaSubCategory] = useState<string | null>(null);
   const [showSocialPopup, setShowSocialPopup] = useState(false);
+  const [githubUrl, setGithubUrl] = useState("https://github.com/sil3nt-wolf");
+
+  useEffect(() => {
+    fetchSiteConfig().then((cfg) => setGithubUrl(cfg.githubUrl));
+  }, []);
 
   useEffect(() => {
     const dismissed = localStorage.getItem("wolfapis_social_dismissed");
@@ -1930,7 +1919,7 @@ export default function Home() {
               </div>
               <Bell className="w-4 h-4 hidden sm:block" style={{ color: "rgba(255,255,255,0.3)" }} />
               <a
-                href="https://github.com/sil3nt-wolf"
+                href={githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
@@ -2032,7 +2021,7 @@ export default function Home() {
 
             <div className="flex flex-col gap-3">
               <a
-                href="https://github.com/sil3nt-wolf"
+                href={githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 rounded-xl transition-all group"

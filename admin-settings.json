@@ -1,0 +1,33 @@
+{
+  "password": "wolfadmin2026",
+  "githubUrl": "https://github.com/sil3nt-wolf",
+  "repoCards": [
+    {
+      "id": "wolfxcore",
+      "name": "wolfXcore",
+      "url": "https://github.com/sil3nt-wolf/wolfXcore",
+      "description": "Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning",
+      "badge": "Laravel + React",
+      "display": "github.com/sil3nt-wolf/wolfXcore",
+      "icon": "github"
+    },
+    {
+      "id": "panel",
+      "name": "panel.xwolf.space",
+      "url": "https://panel.xwolf.space",
+      "description": "Host, manage and provision game servers with automated billing",
+      "badge": "GAME SERVER",
+      "display": "panel.xwolf.space",
+      "icon": "cpu"
+    },
+    {
+      "id": "host",
+      "name": "host.xwolf.space",
+      "url": "https://host.xwolf.space",
+      "description": "One-click deployment platform for chatbots and automation scripts",
+      "badge": "BOT HOSTING",
+      "display": "host.xwolf.space",
+      "icon": "globe"
+    }
+  ]
+}

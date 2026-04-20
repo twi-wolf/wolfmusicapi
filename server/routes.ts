@@ -48,6 +48,44 @@ import { listTextproEffects, generateTextpro } from "../lib/downloaders/textpro"
 import { imageToSticker, stickerToImage, videoToSticker, stickerToVideo, videoToGif, gifToVideo } from "../lib/downloaders/converter";
 import { listAudioEffects, applyAudioEffect } from "../lib/downloaders/audio-effects";
 import { allEndpoints as schemaEndpoints, apiCategories as schemaCategories } from "../shared/schema";
+import { getSettings, saveSettings, loadSettings } from "./admin-settings";
+
+// ─── Activity Tracking ────────────────────────────────────────────────────────
+
+interface RequestLog {
+  ts: number;
+  method: string;
+  path: string;
+  status: number;
+  ms: number;
+}
+
+const REQUEST_LOG: RequestLog[] = [];
+const MAX_LOG = 300;
+const HIT_COUNTS: Record<string, number> = {};
+const ERROR_COUNTS = { total4xx: 0, total5xx: 0 };
+let totalRequests = 0;
+
+function recordRequest(log: RequestLog) {
+  totalRequests++;
+  REQUEST_LOG.push(log);
+  if (REQUEST_LOG.length > MAX_LOG) REQUEST_LOG.shift();
+  const key = `${log.method} ${log.path.split("?")[0]}`;
+  HIT_COUNTS[key] = (HIT_COUNTS[key] || 0) + 1;
+  if (log.status >= 400 && log.status < 500) ERROR_COUNTS.total4xx++;
+  if (log.status >= 500) ERROR_COUNTS.total5xx++;
+}
+
+// ─── Admin Auth ───────────────────────────────────────────────────────────────
+
+function requireAdminAuth(req: any, res: any, next: any) {
+  const pwd = req.headers["x-admin-password"] as string | undefined;
+  const settings = getSettings();
+  if (!pwd || pwd !== settings.password) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+  next();
+}
 
 function isYouTubeUrl(input: string): boolean {
   return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com)\//i.test(input) ||
@@ -60,6 +98,95 @@ export async function registerRoutes(
 ): Promise<Server> {
   registerAIRoutes(app);
   registerXcasperRoutes(app);
+
+  // ─── Activity tracking middleware ──────────────────────────────────────────
+  loadSettings();
+  app.use((req: any, res: any, next: any) => {
+    if (!req.path.startsWith("/api") && !req.path.startsWith("/download")) return next();
+    const start = Date.now();
+    res.on("finish", () => {
+      recordRequest({ ts: Date.now(), method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - start });
+    });
+    next();
+  });
+
+  // ─── Public config endpoints ───────────────────────────────────────────────
+  app.get("/api/config/cards", (_req, res) => {
+    const s = getSettings();
+    return res.json({ success: true, githubUrl: s.githubUrl, cards: s.repoCards });
+  });
+
+  // ─── Admin: Login ──────────────────────────────────────────────────────────
+  app.post("/api/admin/login", (req: any, res: any) => {
+    const { password } = req.body || {};
+    const settings = getSettings();
+    if (!password || password !== settings.password) {
+      return res.status(401).json({ success: false, error: "Incorrect password" });
+    }
+    return res.json({ success: true });
+  });
+
+  // ─── Admin: Stats ──────────────────────────────────────────────────────────
+  app.get("/api/admin/stats", requireAdminAuth, (_req: any, res: any) => {
+    const now = Date.now();
+    const hour = now - 3600_000;
+    const day = now - 86400_000;
+    const reqLastHour = REQUEST_LOG.filter((r) => r.ts > hour).length;
+    const reqLastDay = REQUEST_LOG.filter((r) => r.ts > day).length;
+    const avgMs = REQUEST_LOG.length
+      ? Math.round(REQUEST_LOG.slice(-50).reduce((a, r) => a + r.ms, 0) / Math.min(REQUEST_LOG.length, 50))
+      : 0;
+    const topEndpoints = Object.entries(HIT_COUNTS)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([endpoint, hits]) => ({ endpoint, hits }));
+    return res.json({
+      success: true,
+      totalRequests,
+      reqLastHour,
+      reqLastDay,
+      avgMs,
+      errors4xx: ERROR_COUNTS.total4xx,
+      errors5xx: ERROR_COUNTS.total5xx,
+      topEndpoints,
+      loggedCount: REQUEST_LOG.length,
+    });
+  });
+
+  // ─── Admin: Request Log ────────────────────────────────────────────────────
+  app.get("/api/admin/logs", requireAdminAuth, (req: any, res: any) => {
+    const limit = Math.min(parseInt((req.query.limit as string) || "100", 10), 300);
+    const logs = REQUEST_LOG.slice(-limit).reverse();
+    return res.json({ success: true, count: logs.length, logs });
+  });
+
+  // ─── Admin: Get Settings ───────────────────────────────────────────────────
+  app.get("/api/admin/settings", requireAdminAuth, (_req: any, res: any) => {
+    const s = getSettings();
+    return res.json({ success: true, settings: { githubUrl: s.githubUrl, repoCards: s.repoCards } });
+  });
+
+  // ─── Admin: Update Settings ────────────────────────────────────────────────
+  app.post("/api/admin/settings", requireAdminAuth, (req: any, res: any) => {
+    const { githubUrl, repoCards } = req.body || {};
+    const current = getSettings();
+    const updated = { ...current };
+    if (githubUrl !== undefined) updated.githubUrl = String(githubUrl);
+    if (Array.isArray(repoCards)) updated.repoCards = repoCards;
+    saveSettings(updated);
+    return res.json({ success: true, settings: { githubUrl: updated.githubUrl, repoCards: updated.repoCards } });
+  });
+
+  // ─── Admin: Change Password ────────────────────────────────────────────────
+  app.post("/api/admin/change-password", requireAdminAuth, (req: any, res: any) => {
+    const { newPassword } = req.body || {};
+    if (!newPassword || String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+    }
+    const current = getSettings();
+    saveSettings({ ...current, password: String(newPassword) });
+    return res.json({ success: true, message: "Password updated" });
+  });
 
   app.get("/api/search", async (req, res) => {
     try {
