@@ -4,16 +4,7 @@ import OpenAI from "openai";
 const CHAT_EVERYWHERE_BASE = "https://chateverywhere.app";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 
-let openai: OpenAI | null = null;
 let groqClient: OpenAI | null = null;
-
-function getOpenAI(): OpenAI {
-  if (!openai) {
-    if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured.");
-    openai = new OpenAI();
-  }
-  return openai;
-}
 
 function getGroq(): OpenAI | null {
   if (!process.env.GROQ_API_KEY) return null;
@@ -53,21 +44,7 @@ async function groqProxy(prompt: string, systemPrompt: string, model: string): P
   return completion.choices[0]?.message?.content || "No response generated.";
 }
 
-async function openaiProxy(prompt: string, systemPrompt: string, model: string): Promise<string> {
-  const client = getOpenAI();
-  const completion = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: prompt.trim() },
-    ],
-    temperature: 0.7,
-    max_tokens: 2048,
-  });
-  return completion.choices[0]?.message?.content || "No response generated.";
-}
-
-type ProviderType = "chateverywhere" | "openai" | "groq";
+type ProviderType = "chateverywhere" | "groq";
 
 interface ChatEndpointConfig {
   path: string;
@@ -92,20 +69,6 @@ const chatEndpoints: ChatEndpointConfig[] = [
     provider: "chateverywhere",
     model: "gpt-3.5-turbo",
     system: "You are ChatGPT, a helpful AI assistant by OpenAI. Respond clearly, concisely, and helpfully.",
-  },
-  {
-    path: "/api/ai/gpt4",
-    label: "GPT-4",
-    provider: "openai",
-    model: "gpt-4o-mini",
-    system: "You are GPT-4, a large language model by OpenAI. Respond helpfully and accurately.",
-  },
-  {
-    path: "/api/ai/gpt4o",
-    label: "GPT-4o",
-    provider: "openai",
-    model: "gpt-4o",
-    system: "You are GPT-4o, OpenAI's most capable model. Respond helpfully and accurately.",
   },
   {
     path: "/api/ai/claude",
@@ -390,7 +353,6 @@ export function registerAIRoutes(app: Express): void {
 
       const tryProvider = async (provider: ProviderType, model: string): Promise<string> => {
         if (provider === "groq") return groqProxy(prompt.trim(), ep.system, model);
-        if (provider === "openai") return openaiProxy(prompt.trim(), ep.system, model);
         return chatEverywhereProxy(prompt.trim(), ep.system);
       };
 

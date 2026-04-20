@@ -75,8 +75,6 @@ const Q_PARAM = [{ name: "q", type: "string", required: true, description: "Your
 
 const aiChatEndpoints: ApiEndpoint[] = [
   { path: "/api/ai/gpt", method: "GET", description: "Chat with GPT - general purpose AI assistant", params: Q_PARAM, format: "json", category: "ai-chat", provider: "ChatEverywhere" },
-  { path: "/api/ai/gpt4", method: "GET", description: "Chat with GPT-4 - advanced reasoning AI", params: Q_PARAM, format: "json", category: "ai-chat", provider: "OpenAI" },
-  { path: "/api/ai/gpt4o", method: "GET", description: "Chat with GPT-4o - OpenAI's most capable model", params: Q_PARAM, format: "json", category: "ai-chat", provider: "OpenAI" },
   { path: "/api/ai/claude", method: "GET", description: "Chat with Claude-style AI assistant", params: Q_PARAM, format: "json", category: "ai-chat", provider: "ChatEverywhere" },
   { path: "/api/ai/mistral", method: "GET", description: "Chat with Mistral AI assistant", params: Q_PARAM, format: "json", category: "ai-chat", provider: "ChatEverywhere" },
   { path: "/api/ai/gemini", method: "GET", description: "Chat with Gemini AI assistant", params: Q_PARAM, format: "json", category: "ai-chat", provider: "ChatEverywhere" },
