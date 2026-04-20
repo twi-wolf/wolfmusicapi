@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { getDownloadInfo, extractVideoId } from "../scraper";
 
 const execAsync = promisify(exec);
 
@@ -16,6 +17,7 @@ export interface YandexVideoResult {
   durationSeconds: number;
   thumbnail: string;
   url: string;
+  downloadUrl: string;
 }
 
 export interface YandexVideoSearchResponse {
@@ -48,9 +50,33 @@ async function fetchViaProxy(targetUrl: string): Promise<string> {
   return stdout;
 }
 
-function parseResponse(raw: string, query: string, page: number): YandexVideoSearchResponse {
-  const creator = "APIs by Silent Wolf | A tech explorer";
+async function resolveDownloadUrl(videoPageUrl: string): Promise<string> {
+  if (!videoPageUrl) return "";
 
+  // For YouTube URLs use the existing multi-provider downloader (no cookies needed)
+  if (extractVideoId(videoPageUrl)) {
+    try {
+      const result = await getDownloadInfo(videoPageUrl, "mp4");
+      if (result.success && result.downloadUrl && result.downloadUrl.startsWith("http")) {
+        return result.downloadUrl;
+      }
+    } catch {}
+    return "";
+  }
+
+  // For other platforms try yt-dlp directly
+  try {
+    const cmd = `yt-dlp --no-warnings -f "best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best" --socket-timeout 12 -g "${videoPageUrl}" 2>/dev/null`;
+    const { stdout } = await execAsync(cmd, { timeout: 18000 });
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    const url = lines[lines.length - 1] || "";
+    return url.startsWith("http") ? url : "";
+  } catch {
+    return "";
+  }
+}
+
+function parseResponse(raw: string): YandexVideoResult[] {
   let data: any;
   try {
     data = JSON.parse(raw);
@@ -78,17 +104,12 @@ function parseResponse(raw: string, query: string, page: number): YandexVideoSea
     const clip = clips[videoId];
     if (!clip) continue;
 
-    // Title: from relatedParams.text (the clean title)
     const title: string = clip.relatedParams?.text || "";
     if (!title) continue;
 
-    // Description
     const description: string = clip.description || "";
-
-    // Thumbnail
     const thumbnail = toAbsUrl(clip.preview?.posterSrc || "");
 
-    // URL: nested in relatedParams.related (JSON string)
     let url = "";
     let domain = "";
     const relatedStr: string = clip.relatedParams?.related || "";
@@ -102,24 +123,21 @@ function parseResponse(raw: string, query: string, page: number): YandexVideoSea
       }
     }
 
-    // Duration — not in the initial response; leave blank
-    const durationSeconds = 0;
-    const duration = "";
-
     results.push({
       id: videoId,
       pos: i,
       title,
       description,
       domain,
-      duration,
-      durationSeconds,
+      duration: "",
+      durationSeconds: 0,
       thumbnail,
       url,
+      downloadUrl: "",
     });
   }
 
-  return { success: true, creator, query, page, count: results.length, results };
+  return results;
 }
 
 export async function searchYandexVideos(
@@ -135,7 +153,18 @@ export async function searchYandexVideos(
       throw new Error("Empty or too-short response received from proxy");
     }
 
-    return parseResponse(raw, query, page);
+    const results = parseResponse(raw);
+
+    // Resolve download URLs in parallel for all results
+    const downloadUrls = await Promise.all(
+      results.map((r) => resolveDownloadUrl(r.url))
+    );
+
+    downloadUrls.forEach((dlUrl, i) => {
+      results[i].downloadUrl = dlUrl;
+    });
+
+    return { success: true, creator, query, page, count: results.length, results };
   } catch (err: any) {
     return {
       success: false,
