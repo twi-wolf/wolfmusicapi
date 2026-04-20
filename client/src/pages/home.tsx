@@ -736,7 +736,7 @@ interface SiteCard { id: string; name: string; url: string; description: string;
 interface SiteConfig { githubUrl: string; cards: SiteCard[]; }
 
 const DEFAULT_CARDS: SiteCard[] = [
-  { id: "wolfxcore", name: "wolfXcore", url: "https://github.com/sil3nt-wolf/wolfXcore", description: "Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning", badge: "Laravel + React", display: "github.com/sil3nt-wolf/wolfXcore", icon: "github" },
+  { id: "wolfxcore", name: "wolfXcore", url: "https://github.com/SilentWolf-Kenya/wolfXcore", description: "Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning", badge: "Laravel + React", display: "github.com/SilentWolf-Kenya/wolfXcore", icon: "github" },
   { id: "panel", name: "panel.xwolf.space", url: "https://panel.xwolf.space", description: "Host, manage and provision game servers with automated billing", badge: "GAME SERVER", display: "panel.xwolf.space", icon: "cpu" },
   { id: "host", name: "host.xwolf.space", url: "https://host.xwolf.space", description: "One-click deployment platform for chatbots and automation scripts", badge: "BOT HOSTING", display: "host.xwolf.space", icon: "globe" },
 ];
@@ -749,11 +749,11 @@ async function fetchSiteConfig(): Promise<SiteConfig> {
     const r = await fetch("/api/config/cards");
     if (r.ok) {
       const d = await r.json();
-      _cachedConfig = { githubUrl: d.githubUrl || "https://github.com/sil3nt-wolf", cards: d.cards || DEFAULT_CARDS };
+      _cachedConfig = { githubUrl: d.githubUrl || "https://github.com/SilentWolf-Kenya", cards: d.cards || DEFAULT_CARDS };
       return _cachedConfig!;
     }
   } catch {}
-  return { githubUrl: "https://github.com/sil3nt-wolf", cards: DEFAULT_CARDS };
+  return { githubUrl: "https://github.com/SilentWolf-Kenya", cards: DEFAULT_CARDS };
 }
 
 function CardIcon({ icon }: { icon: string }) {
@@ -767,7 +767,7 @@ function CardIcon({ icon }: { icon: string }) {
 
 function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCategoryClick: (id: string) => void; onTryEndpoint: (ep: ApiEndpoint) => void; mediaStatus?: MediaStatusData }) {
   const [globalSearch, setGlobalSearch] = useState("");
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>({ githubUrl: "https://github.com/sil3nt-wolf", cards: DEFAULT_CARDS });
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>({ githubUrl: "https://github.com/SilentWolf-Kenya", cards: DEFAULT_CARDS });
   useEffect(() => { fetchSiteConfig().then(setSiteConfig); }, []);
   const stats = [
     { label: "TOTAL ENDPOINTS", value: allEndpoints.length.toString(), icon: Globe, desc: "Across all categories" },
@@ -959,7 +959,7 @@ function DocumentationPage({ onNavigateToCategory }: { onNavigateToCategory?: (c
     {
       title: "GitHub",
       description: "View source code, report issues, and contribute",
-      url: "https://github.com/sil3nt-wolf",
+      url: "https://github.com/SilentWolf-Kenya",
       icon: Code2,
       color: "#ffffff",
     },
@@ -1402,7 +1402,7 @@ export default function Home() {
   const [photofuniaExpanded, setPhotofuniaExpanded] = useState(false);
   const [photofuniaSubCategory, setPhotofuniaSubCategory] = useState<string | null>(null);
   const [showSocialPopup, setShowSocialPopup] = useState(false);
-  const [githubUrl, setGithubUrl] = useState("https://github.com/sil3nt-wolf");
+  const [githubUrl, setGithubUrl] = useState("https://github.com/SilentWolf-Kenya");
 
   useEffect(() => {
     fetchSiteConfig().then((cfg) => setGithubUrl(cfg.githubUrl));
@@ -2033,7 +2033,7 @@ export default function Home() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold" style={{ color: "#ffffff" }}>Follow on GitHub</p>
-                  <p className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>github.com/sil3nt-wolf — more projects</p>
+                  <p className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>github.com/SilentWolf-Kenya — more projects</p>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 flex-shrink-0 opacity-40 group-hover:opacity-80 transition-opacity" style={{ color: "#00ff00" }} />
               </a>

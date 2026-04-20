@@ -1,14 +1,14 @@
 {
   "password": "wolfadmin2026",
-  "githubUrl": "https://github.com/sil3nt-wolf",
+  "githubUrl": "https://github.com/SilentWolf-Kenya",
   "repoCards": [
     {
       "id": "wolfxcore",
       "name": "wolfXcore",
-      "url": "https://github.com/sil3nt-wolf/wolfXcore",
+      "url": "https://github.com/SilentWolf-Kenya/wolfXcore",
       "description": "Cyberpunk game server panel — Paystack/M-Pesa billing & auto-provisioning",
       "badge": "Laravel + React",
-      "display": "github.com/sil3nt-wolf/wolfXcore",
+      "display": "github.com/SilentWolf-Kenya/wolfXcore",
       "icon": "github"
     },
     {
