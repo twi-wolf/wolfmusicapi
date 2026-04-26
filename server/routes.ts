@@ -635,6 +635,9 @@ export async function registerRoutes(
           error: "Query parameter 'url' is required. Provide a TikTok video URL.",
         });
       }
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const baseUrl = `${protocol}://${host}`;
       const result = await downloadTikTok(url);
       return res.json(addMediaProxyUrls(baseUrl, result));
     } catch (error: any) {
@@ -651,6 +654,9 @@ export async function registerRoutes(
           error: "Query parameter 'url' is required. Provide an Instagram post/reel URL.",
         });
       }
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const baseUrl = `${protocol}://${host}`;
       const result = await downloadInstagram(url);
       return res.json(addMediaProxyUrls(baseUrl, result));
     } catch (error: any) {
