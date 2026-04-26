@@ -1,0 +1,85 @@
+// API Configuration - Wolf Music API
+const API_BASE_URL = 'https://apis.xwolf.space';
+
+class TikTokAPI {
+    constructor() {
+        this.videoEndpoint = `${API_BASE_URL}/api/download/tiktok`;
+        this.audioEndpoint = `${API_BASE_URL}/api/download/tiktok/audio`;
+    }
+
+    async fetchVideo(url) {
+        try {
+            const encodedUrl = encodeURIComponent(url);
+            const response = await fetch(`${this.videoEndpoint}?url=${encodedUrl}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch video');
+            }
+
+            // Response fields:
+            // data.title           - video title / username
+            // data.videoUrl        - video WITH watermark
+            // data.videoUrlNoWatermark  - video WITHOUT watermark
+            // data.videoProxyUrl        - watermarked video via proxy (use if direct URL fails)
+            // data.videoNoWatermarkProxyUrl - no-watermark video via proxy
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching video:', error);
+            throw error;
+        }
+    }
+
+    async fetchAudio(url) {
+        try {
+            const encodedUrl = encodeURIComponent(url);
+            const response = await fetch(`${this.audioEndpoint}?url=${encodedUrl}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to fetch audio');
+            }
+
+            // Response fields:
+            // data.title      - video title / username
+            // data.author     - author handle
+            // data.audioUrl   - direct audio URL (falls back to videoUrl if no separate audio)
+            // data.note       - explains whether audio is separate or taken from video
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching audio:', error);
+            throw error;
+        }
+    }
+
+    isValidTikTokUrl(url) {
+        const patterns = [
+            /https?:\/\/(www\.)?tiktok\.com\/@[\w.]+\/video\/\d+/,
+            /https?:\/\/(www\.)?tiktok\.com\/t\/[\w]+/,
+            /https?:\/\/vm\.tiktok\.com\/[\w]+/
+        ];
+        return patterns.some(pattern => pattern.test(url));
+    }
+}
+
+// Initialize API
+const tiktokAPI = new TikTokAPI();
+
+// --- Usage example ---
+// Video download (no watermark preferred):
+// const video = await tiktokAPI.fetchVideo('https://www.tiktok.com/@user/video/123');
+// const downloadUrl = video.videoNoWatermarkProxyUrl || video.videoUrlNoWatermark || video.videoProxyUrl;
+
+// Audio download:
+// const audio = await tiktokAPI.fetchAudio('https://www.tiktok.com/@user/video/123');
+// const audioUrl = audio.audioUrl;
