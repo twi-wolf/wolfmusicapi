@@ -1,0 +1,67 @@
+// API Configuration - Now points to your local server
+const API_BASE_URL = '/api/tiktok';  // This will go to http://localhost:3000/api/tiktok
+
+class TikTokAPI {
+    constructor() {
+        this.videoEndpoint = `${API_BASE_URL}/video`;
+        this.audioEndpoint = `${API_BASE_URL}/audio`;
+    }
+
+    async fetchVideo(url) {
+        try {
+            const encodedUrl = encodeURIComponent(url);
+            const response = await fetch(`${this.videoEndpoint}?url=${encodedUrl}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching video:', error);
+            throw error;
+        }
+    }
+
+    async fetchAudio(url) {
+        try {
+            const encodedUrl = encodeURIComponent(url);
+            const response = await fetch(`${this.audioEndpoint}?url=${encodedUrl}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching audio:', error);
+            throw error;
+        }
+    }
+
+    isValidTikTokUrl(url) {
+        const patterns = [
+            /https?:\/\/(www\.)?tiktok\.com\/@[\w.]+\/video\/\d+/,
+            /https?:\/\/(www\.)?tiktok\.com\/t\/[\w]+/,
+            /https?:\/\/vm\.tiktok\.com\/[\w]+/
+        ];
+        return patterns.some(pattern => pattern.test(url));
+    }
+}
+
+// Initialize API
+const tiktokAPI = new TikTokAPI();
