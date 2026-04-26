@@ -69,6 +69,7 @@ export const apiCategories = [
   { id: "textpro", name: "Text Effects", description: "109 text effect generators with neon, 3D, chrome, fire, and more", icon: "Type" },
   { id: "converter", name: "Converter", description: "Media conversion tools for WhatsApp bots (sticker, image, video, GIF)", icon: "RefreshCw" },
   { id: "audio-fx", name: "Audio Effects", description: "25 audio effects: bass boost, robot, echo, nightcore, 8D, reverb, and more", icon: "Headphones" },
+  { id: "economy", name: "Economy", description: "Live forex rates, crypto prices, stocks, gold, GDP, inflation, and financial market data", icon: "TrendingUp" },
 ];
 
 const Q_PARAM = [{ name: "q", type: "string", required: true, description: "Your message or question", default: "Hello! How are you?" }];
@@ -1152,6 +1153,95 @@ const audioFxEndpoints: ApiEndpoint[] = [
   })),
 ];
 
+const economyEndpoints: ApiEndpoint[] = [
+  {
+    path: "/api/economy/forex",
+    method: "GET",
+    description: "Get live foreign exchange rate between two currencies",
+    params: [
+      { name: "from", type: "string", required: true, description: "Base currency code (e.g. USD)", default: "USD" },
+      { name: "to", type: "string", required: true, description: "Target currency code (e.g. KES)", default: "KES" },
+    ],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/crypto",
+    method: "GET",
+    description: "Get live cryptocurrency price in USD",
+    params: [{ name: "coin", type: "string", required: true, description: "Coin symbol (e.g. BTC, ETH, SOL)", default: "BTC" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/stock",
+    method: "GET",
+    description: "Get latest stock price and market data for a ticker symbol",
+    params: [{ name: "symbol", type: "string", required: true, description: "Stock ticker symbol (e.g. AAPL, TSLA)", default: "AAPL" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/gold",
+    method: "GET",
+    description: "Get current gold and silver spot prices in USD per troy ounce",
+    params: [],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/market",
+    method: "GET",
+    description: "Get major market index data (S&P 500, Dow Jones, Nasdaq, etc.)",
+    params: [{ name: "index", type: "string", required: false, description: "Index name (sp500, dow, nasdaq)", default: "sp500" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/inflation",
+    method: "GET",
+    description: "Get annual inflation rate for a given country",
+    params: [{ name: "country", type: "string", required: false, description: "Country code (e.g. US, KE, GB)", default: "US" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/gdp",
+    method: "GET",
+    description: "Get GDP and economic indicators for a country",
+    params: [{ name: "country", type: "string", required: false, description: "Country code (e.g. US, KE, CN)", default: "US" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/bank-rate",
+    method: "GET",
+    description: "Get central bank interest rate for a country",
+    params: [{ name: "country", type: "string", required: false, description: "Country code (e.g. US, KE, EU)", default: "US" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/news",
+    method: "GET",
+    description: "Get latest financial and economic news headlines",
+    params: [{ name: "q", type: "string", required: false, description: "Topic or keyword to filter news", default: "economy" }],
+    format: "json",
+    category: "economy",
+  },
+  {
+    path: "/api/economy/wallet",
+    method: "GET",
+    description: "Get balance and transaction count for a crypto wallet address",
+    params: [
+      { name: "address", type: "string", required: true, description: "Crypto wallet address", default: "1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf Na" },
+      { name: "coin", type: "string", required: false, description: "Coin type (BTC, ETH)", default: "BTC" },
+    ],
+    format: "json",
+    category: "economy",
+  },
+];
+
 export const allEndpoints: ApiEndpoint[] = [
   ...aiChatEndpoints,
   ...aiToolEndpoints,
@@ -1174,6 +1264,7 @@ export const allEndpoints: ApiEndpoint[] = [
   ...textproEndpoints,
   ...converterEndpoints,
   ...audioFxEndpoints,
+  ...economyEndpoints,
 ];
 
 export const endpointInfo = allEndpoints.filter(e => e.category === "music");

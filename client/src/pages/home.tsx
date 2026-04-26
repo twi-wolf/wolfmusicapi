@@ -53,6 +53,7 @@ import {
   ChevronDown,
   Server,
   Code,
+  TrendingUp,
 } from "lucide-react";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, TEXTPRO_EFFECTS, AUDIO_EFFECTS_LIST, EPHOTO_SUBCATEGORIES, PHOTOFUNIA_SUBCATEGORIES, type ApiEndpoint } from "@shared/schema";
 import wolfLogo from "../assets/wolf-logo.png";
@@ -122,6 +123,7 @@ const categoryIcons: Record<string, typeof MessageSquare> = {
   textpro: Type,
   converter: RefreshCw,
   "audio-fx": Headphones,
+  economy: TrendingUp,
 };
 
 const heroData: Record<string, { tagline: string; title: string; description: string }> = {
@@ -229,6 +231,11 @@ const heroData: Record<string, { tagline: string; title: string; description: st
     tagline: "AUDIO EFFECTS ENGINE",
     title: `${AUDIO_EFFECTS_LIST.length} Audio Effects`,
     description: "Bass boost, robot, echo, nightcore, 8D audio, reverb, chipmunk, vaporwave, karaoke, distortion, and more. Get audio data with ready-to-use ffmpeg filter commands.",
+  },
+  "economy": {
+    tagline: "FINANCIAL DATA API",
+    title: "10 Economy Endpoints",
+    description: "Live forex rates, crypto prices, stock market data, gold prices, GDP, inflation, central bank rates, financial news, and crypto wallet lookups — all in one place.",
   },
 };
 
@@ -809,6 +816,12 @@ function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCatego
               border: "1px solid rgba(0,255,0,0.12)",
               color: "rgba(255,255,255,0.35)",
             }}>v1.0.0</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <Zap className="w-3.5 h-3.5" style={{ color: "#00ff00" }} />
+            <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+              Powered by <span style={{ color: "#00ff00" }}>WOLF TECH</span>
+            </span>
           </div>
         </div>
       </div>
