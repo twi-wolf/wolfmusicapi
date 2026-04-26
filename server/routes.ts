@@ -3473,5 +3473,156 @@ export async function registerRoutes(
     }
   });
 
+  // ─── ECONOMY ROUTES ──────────────────────────────────────────────────────────
+
+  app.get("/api/economy/forex", async (req, res) => {
+    const { from = "USD", to = "KES" } = req.query;
+    const fromCode = String(from).toUpperCase();
+    const toCode = String(to).toUpperCase();
+    try {
+      const r = await fetch(`https://open.er-api.com/v6/latest/${fromCode}`);
+      if (!r.ok) throw new Error(`Exchange rate API error ${r.status}`);
+      const data = await r.json();
+      if (data.result !== "success") throw new Error(data["error-type"] || "Failed to fetch rates");
+      const rate = data.rates?.[toCode];
+      if (!rate) throw new Error(`Currency '${toCode}' not supported`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", from: fromCode, to: toCode, rate, date: data.time_last_update_utc });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  const COIN_IDS: Record<string, string> = {
+    BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin",
+    XRP: "ripple", ADA: "cardano", DOGE: "dogecoin", TRX: "tron",
+    AVAX: "avalanche-2", MATIC: "matic-network", DOT: "polkadot",
+    LTC: "litecoin", SHIB: "shiba-inu", LINK: "chainlink", UNI: "uniswap",
+  };
+
+  app.get("/api/economy/crypto", async (req, res) => {
+    const { coin = "BTC" } = req.query;
+    const symbol = String(coin).toUpperCase();
+    const id = COIN_IDS[symbol] || symbol.toLowerCase();
+    try {
+      const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`);
+      if (!r.ok) throw new Error(`CoinGecko error ${r.status}`);
+      const data = await r.json();
+      const info = data[id];
+      if (!info) throw new Error(`Coin '${symbol}' not found`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", symbol, price_usd: info.usd, change_24h: parseFloat(info.usd_24h_change?.toFixed(2)), market_cap_usd: info.usd_market_cap });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/stock", async (req, res) => {
+    const { symbol = "AAPL" } = req.query;
+    const ticker = String(symbol).toUpperCase();
+    try {
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1d&interval=1d`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!r.ok) throw new Error(`Yahoo Finance error ${r.status}`);
+      const data = await r.json();
+      const meta = data.chart?.result?.[0]?.meta;
+      if (!meta) throw new Error(`Symbol '${ticker}' not found`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", symbol: meta.symbol, name: meta.longName || meta.shortName || ticker, price: meta.regularMarketPrice, previous_close: meta.previousClose, currency: meta.currency, exchange: meta.exchangeName, market_state: meta.marketState });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/gold", async (_req, res) => {
+    try {
+      const [goldRes, silverRes] = await Promise.all([
+        fetch("https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=1d&interval=1d", { headers: { "User-Agent": "Mozilla/5.0" } }),
+        fetch("https://query1.finance.yahoo.com/v8/finance/chart/SI=F?range=1d&interval=1d", { headers: { "User-Agent": "Mozilla/5.0" } }),
+      ]);
+      const [goldData, silverData] = await Promise.all([goldRes.json(), silverRes.json()]);
+      const gm = goldData.chart?.result?.[0]?.meta;
+      const sm = silverData.chart?.result?.[0]?.meta;
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", unit: "troy ounce", gold: { price_usd: gm?.regularMarketPrice, previous_close: gm?.previousClose, currency: "USD" }, silver: { price_usd: sm?.regularMarketPrice, previous_close: sm?.previousClose, currency: "USD" } });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  const MARKET_INDICES: Record<string, string> = {
+    sp500: "^GSPC", dow: "^DJI", nasdaq: "^IXIC", ftse: "^FTSE",
+    nikkei: "^N225", dax: "^GDAXI", cac: "^FCHI", shanghai: "000001.SS",
+  };
+
+  app.get("/api/economy/market", async (req, res) => {
+    const { index = "sp500" } = req.query;
+    const key = String(index).toLowerCase();
+    const ticker = MARKET_INDICES[key] || String(index).toUpperCase();
+    try {
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1d&interval=1d`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!r.ok) throw new Error(`Yahoo Finance error ${r.status}`);
+      const data = await r.json();
+      const meta = data.chart?.result?.[0]?.meta;
+      if (!meta) throw new Error(`Index '${index}' not found`);
+      const change = meta.regularMarketPrice - meta.previousClose;
+      const changePct = (change / meta.previousClose) * 100;
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", index: key, ticker, price: meta.regularMarketPrice, change: parseFloat(change.toFixed(2)), change_pct: parseFloat(changePct.toFixed(2)), previous_close: meta.previousClose, currency: meta.currency, market_state: meta.marketState });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/inflation", async (req, res) => {
+    const { country = "US" } = req.query;
+    const code = String(country).toUpperCase();
+    try {
+      const r = await fetch(`https://api.worldbank.org/v2/country/${code}/indicator/FP.CPI.TOTL.ZG?format=json&mrv=3`);
+      if (!r.ok) throw new Error(`World Bank error ${r.status}`);
+      const data = await r.json();
+      const entries = (data[1] || []).filter((d: any) => d.value !== null);
+      const latest = entries[0];
+      if (!latest) throw new Error(`No inflation data for '${code}'`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", country: latest.country?.value, country_code: code, inflation_rate_pct: parseFloat(latest.value?.toFixed(2)), year: latest.date, indicator: "CPI Inflation Rate (Annual %)", source: "World Bank" });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/gdp", async (req, res) => {
+    const { country = "US" } = req.query;
+    const code = String(country).toUpperCase();
+    try {
+      const r = await fetch(`https://api.worldbank.org/v2/country/${code}/indicator/NY.GDP.MKTP.CD?format=json&mrv=3`);
+      if (!r.ok) throw new Error(`World Bank error ${r.status}`);
+      const data = await r.json();
+      const entries = (data[1] || []).filter((d: any) => d.value !== null);
+      const latest = entries[0];
+      if (!latest) throw new Error(`No GDP data for '${code}'`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", country: latest.country?.value, country_code: code, gdp_usd: latest.value, gdp_formatted: `$${(latest.value / 1e12).toFixed(2)}T`, year: latest.date, indicator: "GDP (Current USD)", source: "World Bank" });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/bank-rate", async (req, res) => {
+    const { country = "US" } = req.query;
+    const code = String(country).toUpperCase();
+    try {
+      const r = await fetch(`https://api.worldbank.org/v2/country/${code}/indicator/FR.INR.LEND?format=json&mrv=3`);
+      if (!r.ok) throw new Error(`World Bank error ${r.status}`);
+      const data = await r.json();
+      const entries = (data[1] || []).filter((d: any) => d.value !== null);
+      const latest = entries[0];
+      if (!latest) throw new Error(`No lending rate data for '${code}'`);
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", country: latest.country?.value, country_code: code, lending_rate_pct: parseFloat(latest.value?.toFixed(2)), year: latest.date, indicator: "Lending Interest Rate (%)", source: "World Bank" });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/news", async (req, res) => {
+    const { q = "economy" } = req.query;
+    try {
+      const r = await fetch(`https://content.guardianapis.com/search?q=${encodeURIComponent(String(q))}&section=business&show-fields=headline,trailText,byline&page-size=10&api-key=test`);
+      if (!r.ok) throw new Error(`Guardian error ${r.status}`);
+      const data = await r.json();
+      const articles = (data.response?.results || []).map((a: any) => ({ title: a.fields?.headline || a.webTitle, summary: a.fields?.trailText || "", author: a.fields?.byline || "", url: a.webUrl, published: a.webPublicationDate, section: a.sectionName }));
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", query: String(q), total: data.response?.total, articles, source: "The Guardian" });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get("/api/economy/wallet", async (req, res) => {
+    const { address, coin = "BTC" } = req.query;
+    if (!address) return res.status(400).json({ success: false, error: "Parameter 'address' is required" });
+    const coinSymbol = String(coin).toUpperCase();
+    try {
+      if (coinSymbol !== "BTC") throw new Error("Only BTC wallets are currently supported");
+      const r = await fetch(`https://blockchain.info/rawaddr/${address}?limit=0`);
+      if (!r.ok) throw new Error(`Blockchain.info error ${r.status}`);
+      const data = await r.json();
+      res.json({ success: true, creator: "APIs by Silent Wolf | A tech explorer", address, coin: "BTC", balance_btc: data.final_balance / 1e8, balance_satoshi: data.final_balance, total_received_btc: data.total_received / 1e8, total_sent_btc: data.total_sent / 1e8, tx_count: data.n_tx });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
   return httpServer;
 }
