@@ -611,6 +611,176 @@ function ProvidersTab() {
   );
 }
 
+// ─── Error Logs Tab ───────────────────────────────────────────────────────────
+function ErrorLogsTab({ pwd }: { pwd: string }) {
+  const [data, setData] = useState<{ apiErrors: any[]; consoleLogs: any[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [activeSection, setActiveSection] = useState<"api" | "console">("api");
+  const [filter, setFilter] = useState("");
+
+  function fmt(ts: number) {
+    return new Date(ts).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  function fmtDate(ts: number) {
+    return new Date(ts).toLocaleString("en-GB", { hour12: false, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  async function fetchLogs() {
+    try {
+      const res = await fetch("/api/admin/error-logs", { headers: { "x-admin-password": pwd } });
+      const d = await res.json();
+      if (d.success) setData({ apiErrors: d.apiErrors, consoleLogs: d.consoleLogs });
+    } catch (_) {}
+    setLoading(false);
+  }
+
+  async function clearLogs() {
+    setClearing(true);
+    try {
+      await fetch("/api/admin/error-logs", { method: "DELETE", headers: { "x-admin-password": pwd } });
+      setData({ apiErrors: [], consoleLogs: [] });
+    } catch (_) {}
+    setClearing(false);
+  }
+
+  useEffect(() => {
+    fetchLogs();
+    const t = setInterval(fetchLogs, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const apiErrors = (data?.apiErrors || []).filter(e =>
+    !filter || e.path.includes(filter) || String(e.status).includes(filter) || JSON.stringify(e.body).toLowerCase().includes(filter.toLowerCase())
+  );
+  const consoleLogs = (data?.consoleLogs || []).filter(e =>
+    !filter || e.message.toLowerCase().includes(filter.toLowerCase()) || e.level.includes(filter)
+  );
+
+  const RED = "#ff4444";
+  const ORANGE = "#ffaa00";
+  const totalErrors = (data?.apiErrors.length || 0) + (data?.consoleLogs.length || 0);
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#fff" }}>
+            Error Logs
+            {totalErrors > 0 && (
+              <span style={{ marginLeft: 10, background: "rgba(255,68,68,0.15)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 20, padding: "2px 10px", fontSize: 12, color: RED }}>
+                {totalErrors} entries
+              </span>
+            )}
+          </h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+            API error responses and server console errors — auto-refreshes every 5s
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={fetchLogs} style={{ background: "rgba(0,255,0,0.06)", border: "1px solid rgba(0,255,0,0.15)", borderRadius: 8, padding: "6px 12px", color: NEON, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <RefreshCw size={12} /> Refresh
+          </button>
+          <button onClick={clearLogs} disabled={clearing} style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.2)", borderRadius: 8, padding: "6px 12px", color: RED, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <Trash2 size={12} /> {clearing ? "Clearing..." : "Clear All"}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter + Section toggle */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 0, border: "1px solid rgba(0,255,0,0.15)", borderRadius: 8, overflow: "hidden" }}>
+          {(["api", "console"] as const).map(s => (
+            <button key={s} onClick={() => setActiveSection(s)} style={{ padding: "6px 16px", background: activeSection === s ? "rgba(0,255,0,0.1)" : "transparent", color: activeSection === s ? NEON : "rgba(255,255,255,0.4)", border: "none", cursor: "pointer", fontSize: 12, fontWeight: activeSection === s ? 700 : 400 }}>
+              {s === "api" ? `API Errors (${data?.apiErrors.length ?? 0})` : `Console (${data?.consoleLogs.length ?? 0})`}
+            </button>
+          ))}
+        </div>
+        <input
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder="Filter by path, status, message..."
+          style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 12, outline: "none" }}
+        />
+      </div>
+
+      {loading ? (
+        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, textAlign: "center", padding: 40 }}>Loading...</div>
+      ) : activeSection === "api" ? (
+        /* ── API Errors ── */
+        apiErrors.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+            <CheckCircle size={32} style={{ marginBottom: 12, opacity: 0.4 }} />
+            <div>No API errors recorded</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {apiErrors.map((e, i) => {
+              const isServer = e.status >= 500;
+              const color = isServer ? RED : ORANGE;
+              const errorMsg = e.body?.error || e.body?.message || null;
+              return (
+                <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${isServer ? "rgba(255,68,68,0.2)" : "rgba(255,170,0,0.15)"}`, borderRadius: 10, padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: errorMsg ? 8 : 0, flexWrap: "wrap" }}>
+                    <span style={{ background: `rgba(${isServer ? "255,68,68" : "255,170,0"},0.15)`, color, borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 700, fontFamily: "monospace" }}>
+                      {e.status}
+                    </span>
+                    <span style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontFamily: "monospace" }}>
+                      {e.method}
+                    </span>
+                    <span style={{ color: "#fff", fontFamily: "monospace", fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {e.path}{e.query}
+                    </span>
+                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, whiteSpace: "nowrap" }}>{e.ms}ms</span>
+                    <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, whiteSpace: "nowrap" }}>{fmtDate(e.ts)}</span>
+                  </div>
+                  {errorMsg && (
+                    <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 12, color, wordBreak: "break-word" }}>
+                      {errorMsg}
+                    </div>
+                  )}
+                  {e.body && !errorMsg && (
+                    <pre style={{ margin: 0, background: "rgba(0,0,0,0.3)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 11, color: "rgba(255,255,255,0.5)", overflow: "auto", maxHeight: 100 }}>
+                      {JSON.stringify(e.body, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        /* ── Console Logs ── */
+        consoleLogs.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+            <CheckCircle size={32} style={{ marginBottom: 12, opacity: 0.4 }} />
+            <div>No console errors or warnings recorded</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {consoleLogs.map((e, i) => {
+              const isError = e.level === "error";
+              const color = isError ? RED : ORANGE;
+              return (
+                <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${isError ? "rgba(255,68,68,0.15)" : "rgba(255,170,0,0.12)"}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ background: `rgba(${isError ? "255,68,68" : "255,170,0"},0.12)`, color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", marginTop: 1 }}>
+                    {e.level.toUpperCase()}
+                  </span>
+                  <span style={{ flex: 1, fontFamily: "monospace", fontSize: 12, color: "rgba(255,255,255,0.75)", wordBreak: "break-word", lineHeight: 1.5 }}>
+                    {e.message}
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, whiteSpace: "nowrap", marginTop: 2 }}>{fmt(e.ts)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 // ─── Security Tab ─────────────────────────────────────────────────────────────
 function SecurityTab({ onPasswordChange }: { onPasswordChange: (pwd: string) => void }) {
   const [newPwd, setNewPwd] = useState("");
@@ -830,6 +1000,7 @@ function SecurityTab({ onPasswordChange }: { onPasswordChange: (pwd: string) => 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "logs", label: "Live Log", icon: ScrollText },
+  { id: "errors", label: "Error Logs", icon: AlertTriangle },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "providers", label: "Providers", icon: Cpu },
   { id: "security", label: "Security", icon: Shield },
@@ -899,6 +1070,7 @@ export default function AdminPage() {
         <main style={{ flex: 1, padding: "28px 28px", overflowY: "auto", minWidth: 0 }}>
           {activeTab === "overview" && <OverviewTab />}
           {activeTab === "logs" && <LiveLogTab />}
+          {activeTab === "errors" && <ErrorLogsTab pwd={pwd} />}
           {activeTab === "settings" && <SettingsTab />}
           {activeTab === "providers" && <ProvidersTab />}
           {activeTab === "security" && <SecurityTab onPasswordChange={(p) => { setPwd(p); sessionStorage.setItem(AUTH_KEY, p); }} />}

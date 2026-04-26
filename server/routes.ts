@@ -61,11 +61,47 @@ interface RequestLog {
   ms: number;
 }
 
+interface ErrorDetailLog {
+  ts: number;
+  method: string;
+  path: string;
+  query: string;
+  status: number;
+  ms: number;
+  body: any;
+}
+
+interface ConsoleLog {
+  ts: number;
+  level: "error" | "warn";
+  message: string;
+}
+
 const REQUEST_LOG: RequestLog[] = [];
+const ERROR_DETAIL_LOG: ErrorDetailLog[] = [];
+const CONSOLE_LOG: ConsoleLog[] = [];
 const MAX_LOG = 300;
+const MAX_ERROR_LOG = 200;
+const MAX_CONSOLE_LOG = 200;
 const HIT_COUNTS: Record<string, number> = {};
 const ERROR_COUNTS = { total4xx: 0, total5xx: 0 };
 let totalRequests = 0;
+
+// ─── Console interception ─────────────────────────────────────────────────────
+const _origError = console.error.bind(console);
+const _origWarn = console.warn.bind(console);
+console.error = (...args: any[]) => {
+  _origError(...args);
+  const message = args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+  CONSOLE_LOG.push({ ts: Date.now(), level: "error", message });
+  if (CONSOLE_LOG.length > MAX_CONSOLE_LOG) CONSOLE_LOG.shift();
+};
+console.warn = (...args: any[]) => {
+  _origWarn(...args);
+  const message = args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+  CONSOLE_LOG.push({ ts: Date.now(), level: "warn", message });
+  if (CONSOLE_LOG.length > MAX_CONSOLE_LOG) CONSOLE_LOG.shift();
+};
 
 // ─── Daily tracking (resets at midnight) ──────────────────────────────────────
 const DAILY_HIT_COUNTS: Record<string, number> = {};
@@ -128,8 +164,24 @@ export async function registerRoutes(
     const start = Date.now();
     const ip = (req.ip || req.socket?.remoteAddress || "").replace(/^::ffff:/, "");
     if (ip) trackIpRequest(ip);
+
+    // Intercept res.json to capture error bodies
+    const origJson = res.json.bind(res);
+    let capturedBody: any = null;
+    res.json = function (body: any) {
+      capturedBody = body;
+      return origJson(body);
+    };
+
     res.on("finish", () => {
-      recordRequest({ ts: Date.now(), method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - start });
+      const ms = Date.now() - start;
+      const status = res.statusCode;
+      recordRequest({ ts: Date.now(), method: req.method, path: req.path, status, ms });
+      if (status >= 400) {
+        const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+        ERROR_DETAIL_LOG.push({ ts: Date.now(), method: req.method, path: req.path, query, status, ms, body: capturedBody });
+        if (ERROR_DETAIL_LOG.length > MAX_ERROR_LOG) ERROR_DETAIL_LOG.shift();
+      }
     });
     next();
   });
@@ -197,6 +249,21 @@ export async function registerRoutes(
     const limit = Math.min(parseInt((req.query.limit as string) || "100", 10), 300);
     const logs = REQUEST_LOG.slice(-limit).reverse();
     return res.json({ success: true, count: logs.length, logs });
+  });
+
+  // ─── Admin: Error Logs ─────────────────────────────────────────────────────
+  app.get("/api/admin/error-logs", requireAdminAuth, (_req: any, res: any) => {
+    return res.json({
+      success: true,
+      apiErrors: ERROR_DETAIL_LOG.slice().reverse(),
+      consoleLogs: CONSOLE_LOG.slice().reverse(),
+    });
+  });
+
+  app.delete("/api/admin/error-logs", requireAdminAuth, (_req: any, res: any) => {
+    ERROR_DETAIL_LOG.length = 0;
+    CONSOLE_LOG.length = 0;
+    return res.json({ success: true, message: "Error logs cleared" });
   });
 
   // ─── Admin: Get Settings ───────────────────────────────────────────────────
