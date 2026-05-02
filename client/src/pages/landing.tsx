@@ -312,7 +312,7 @@ export default function Landing() {
               <Github className="w-4 h-4" />
             </a>
             <button
-              onClick={() => setLocation("/docs")}
+              onClick={() => setLocation("/home")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold tracking-wide transition-all"
               style={{ background: NEON, color: "#000000", fontFamily: "'Orbitron', sans-serif", fontSize: "11px" }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 0 20px rgba(0,255,0,0.4)"}
@@ -383,7 +383,7 @@ export default function Landing() {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
             <button
-              onClick={() => setLocation("/docs")}
+              onClick={() => setLocation("/home")}
               className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold tracking-widest text-sm transition-all"
               style={{
                 background: NEON,
@@ -483,7 +483,7 @@ export default function Landing() {
           <TerminalDemo />
           <div className="flex items-center justify-center">
             <button
-              onClick={() => setLocation("/docs")}
+              onClick={() => setLocation("/home")}
               className="flex items-center gap-2 text-sm transition-all"
               style={{ color: "rgba(0,255,0,0.6)" }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = NEON}
@@ -524,7 +524,7 @@ export default function Landing() {
                     (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,0,0.1)";
                     (e.currentTarget as HTMLElement).style.background = "#050505";
                   }}
-                  onClick={() => setLocation("/docs")}
+                  onClick={() => setLocation("/home")}
                   data-testid={`card-feature-${f.id}`}
                 >
                   <div className="flex items-start justify-between">
@@ -647,7 +647,7 @@ export default function Landing() {
             Start calling APIs in seconds.
           </p>
           <button
-            onClick={() => setLocation("/docs")}
+            onClick={() => setLocation("/home")}
             className="inline-flex items-center gap-3 px-10 py-4 rounded-xl font-black tracking-widest transition-all"
             style={{
               background: NEON,
@@ -704,7 +704,7 @@ export default function Landing() {
               <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
             </a>
             <button
-              onClick={() => setLocation("/docs")}
+              onClick={() => setLocation("/home")}
               className="flex items-center gap-1.5 text-xs transition-all"
               style={{ color: "rgba(255,255,255,0.3)" }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#ffffff"}
