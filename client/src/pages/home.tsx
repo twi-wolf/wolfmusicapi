@@ -777,143 +777,106 @@ function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCatego
   const [globalSearch, setGlobalSearch] = useState("");
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({ githubUrl: "https://github.com/SilentWolf-Kenya", cards: DEFAULT_CARDS });
   useEffect(() => { fetchSiteConfig().then(setSiteConfig); }, []);
-  const stats = [
-    { label: "TOTAL ENDPOINTS", value: allEndpoints.length.toString(), icon: Globe, desc: "Across all categories" },
-    { label: "AI MODELS", value: "35+", icon: Cpu, desc: "Multi-provider hub" },
-    { label: "CATEGORIES", value: apiCategories.length.toString(), icon: Shield, desc: `${apiCategories.length} API groups` },
-    { label: "PHOTO EFFECTS", value: `${ephotoEffectsList.length + photofuniaEffectsList.length}+`, icon: Sparkles, desc: "Ephoto & PhotoFunia" },
+
+  const quickStats = [
+    { label: "ENDPOINTS", value: String(allEndpoints.length) + "+", icon: Globe },
+    { label: "AI MODELS", value: "35+", icon: Cpu },
+    { label: "CATEGORIES", value: String(apiCategories.length), icon: Zap },
+    { label: "AUDIO FX", value: String(AUDIO_EFFECTS_LIST.length), icon: Headphones },
   ];
 
   return (
-    <div className="px-3 py-4 sm:px-6 sm:py-6 space-y-6 sm:space-y-8">
-      <div className="rounded-lg p-6 sm:p-10 lg:p-14" style={{
-        background: "#000000",
-        border: "1px solid rgba(0,255,0,0.12)",
-      }}>
-        <div className="space-y-5 flex flex-col items-center text-center">
-          <div className="flex items-center justify-center gap-2">
-            <Zap className="w-5 h-5" style={{ color: "#00ff00" }} />
-            <span className="text-[11px] font-bold tracking-[0.25em]" style={{ color: "#00ff00" }}>
-              APIS BY SILENT WOLF
-            </span>
+    <div className="px-4 sm:px-8 py-6 sm:py-8 space-y-8 max-w-6xl">
+
+      {/* Dashboard header */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 6px rgba(0,255,0,0.5)" }} />
+            <span className="text-[10px] font-bold tracking-[0.25em]" style={{ color: "rgba(0,255,0,0.65)" }}>ALL SYSTEMS LIVE</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }} data-testid="text-hero-title">
-            Multi-Provider<br className="hidden sm:block" /> API Hub
+          <h2 className="text-2xl sm:text-3xl font-black mb-1.5" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }} data-testid="text-hero-title">
+            API Explorer
           </h2>
-          <p className="text-sm sm:text-base max-w-2xl" style={{ color: "rgba(255,255,255,0.4)" }}>
-            {allEndpoints.length}+ endpoints across {apiCategories.length} categories.
-            AI chat, image effects, social media downloaders, music tools, and OSINT utilities.
-            All free, no API key required.
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {allEndpoints.length}+ free endpoints — no registration, no keys.
           </p>
-          <div className="flex items-center justify-center gap-3 pt-1">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{
-              border: "1px solid rgba(0,255,0,0.2)",
-            }}>
-              <div className="w-2 h-2 rounded-full" style={{ background: "#00ff00", boxShadow: "0 0 8px #00ff00" }} />
-              <span className="text-[11px] font-semibold" style={{ color: "#00ff00" }}>ALL SYSTEMS LIVE</span>
-            </div>
-            <span className="text-[11px] font-mono px-2.5 py-1 rounded" style={{
-              border: "1px solid rgba(0,255,0,0.12)",
-              color: "rgba(255,255,255,0.35)",
-            }}>v1.0.0</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 pt-1">
-            <Zap className="w-3.5 h-3.5" style={{ color: "#00ff00" }} />
-            <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Powered by <span style={{ color: "#00ff00" }}>WOLF TECH</span>
-            </span>
-          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-2 flex-shrink-0">
+          {quickStats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={s.label}
+                className="flex flex-col items-center justify-center px-3 py-2.5 rounded-xl"
+                style={{ background: "#060606", border: "1px solid rgba(0,255,0,0.1)", minWidth: "62px" }}
+                data-testid={"stat-" + s.label.toLowerCase().replace(/\s+/g, "-")}
+              >
+                <Icon className="w-3.5 h-3.5 mb-1" style={{ color: "rgba(0,255,0,0.45)" }} />
+                <span className="text-sm font-black leading-none" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>{s.value}</span>
+                <span className="text-[8px] tracking-widest mt-1 text-center leading-tight" style={{ color: "rgba(255,255,255,0.25)" }}>{s.label}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
+      {/* Search */}
       <EndpointSearchBar
         endpoints={allEndpoints}
         searchQuery={globalSearch}
         setSearchQuery={setGlobalSearch}
         onSelectEndpoint={onTryEndpoint}
-        placeholder={`Search all ${allEndpoints.length}+ endpoints... (e.g. neon, fire, translate, sticker)`}
+        placeholder={"Search " + allEndpoints.length + "+ endpoints… (e.g. neon, translate, tiktok, mp3)"}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="relative rounded-lg p-3 sm:p-5"
-              style={{
-                background: "#000000",
-                border: "1px solid rgba(0,255,0,0.12)",
-              }}
-              data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              <Icon
-                className="absolute top-3 right-3 w-4 h-4 sm:w-5 sm:h-5"
-                style={{ color: "rgba(0,255,0,0.4)" }}
-              />
-              <span className="text-[9px] sm:text-[10px] font-semibold tracking-wider block mb-1 sm:mb-2 pr-5 leading-tight" style={{ color: "rgba(255,255,255,0.35)" }}>
-                {stat.label}
-              </span>
-              <p className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>
-                {stat.value}
-              </p>
-              <p className="text-[9px] sm:text-[10px] mt-1 sm:mt-2" style={{ color: "rgba(255,255,255,0.25)" }}>
-                {stat.desc}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
+      {/* Categories */}
       <div>
-        <div className="flex items-center gap-2 mb-5">
-          <Zap className="w-4 h-4" style={{ color: "#00ff00" }} />
-          <h3 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>
-            API Categories
-          </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.28)", fontFamily: "'Orbitron', sans-serif" }}>CATEGORIES</span>
+          <div className="flex-1 h-px" style={{ background: "rgba(0,255,0,0.06)" }} />
+          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(0,255,0,0.05)", color: "rgba(0,255,0,0.5)", border: "1px solid rgba(0,255,0,0.1)" }}>
+            {apiCategories.length} total
+          </span>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
           {apiCategories.map((cat) => {
             const Icon = categoryIcons[cat.id] || Code2;
             const count = allEndpoints.filter(e => e.category === cat.id).length;
             return (
               <button
                 key={cat.id}
-                className="relative flex items-center gap-3 rounded-lg p-3 sm:p-4 text-left transition-all"
-                style={{
-                  background: "#000000",
-                  border: "1px solid rgba(0,255,0,0.12)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.35)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.12)"; }}
+                className="group relative text-left rounded-xl p-4 transition-all"
+                style={{ background: "#050505", border: "1px solid rgba(0,255,0,0.08)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.28)"; e.currentTarget.style.background = "rgba(0,255,0,0.02)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,0,0.08)"; e.currentTarget.style.background = "#050505"; }}
                 onClick={() => onCategoryClick(cat.id)}
-                data-testid={`card-category-${cat.id}`}
+                data-testid={"card-category-" + cat.id}
               >
-                <ArrowUpRight
-                  className="absolute top-2.5 right-2.5 w-3 h-3"
-                  style={{ color: "rgba(0,255,0,0.3)" }}
-                />
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.15)" }}
-                >
-                  <Icon className="w-4 h-4" style={{ color: "#00ff00" }} />
+                <div className="flex items-start gap-3 mb-2.5">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "rgba(0,255,0,0.06)", border: "1px solid rgba(0,255,0,0.11)" }}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: "#00ff00" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold block leading-tight" style={{ color: "#ffffff" }}>{cat.name}</span>
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 inline-block"
+                      style={{ background: "rgba(0,255,0,0.05)", color: "rgba(0,255,0,0.55)", border: "1px solid rgba(0,255,0,0.1)" }}
+                    >
+                      {count} endpoints
+                    </span>
+                  </div>
+                  <ArrowUpRight className="w-3.5 h-3.5 flex-shrink-0 opacity-0 group-hover:opacity-60 transition-opacity mt-0.5" style={{ color: "#00ff00" }} />
                 </div>
-                <div className="flex-1 min-w-0 pr-8">
-                  <span className="text-sm font-bold block leading-tight" style={{ color: "#ffffff" }}>
-                    {cat.name}
-                  </span>
-                  <span className="text-[11px] block mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.3)" }}>
-                    {cat.description}
-                  </span>
-                  {MEDIA_STATUS_CATEGORIES.includes(cat.id) && (
-                    <ProviderDots categoryId={cat.id} status={mediaStatus} />
-                  )}
-                </div>
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded absolute bottom-2.5 right-2.5"
-                  style={{ background: "rgba(0,255,0,0.08)", color: "#00ff00", border: "1px solid rgba(0,255,0,0.12)" }}
-                >{count}</span>
+                <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: "rgba(255,255,255,0.28)" }}>
+                  {cat.description}
+                </p>
+                {MEDIA_STATUS_CATEGORIES.includes(cat.id) && (
+                  <ProviderDots categoryId={cat.id} status={mediaStatus} />
+                )}
               </button>
             );
           })}
@@ -922,30 +885,42 @@ function WelcomePage({ onCategoryClick, onTryEndpoint, mediaStatus }: { onCatego
     </div>
   );
 }
-
 function HeroSection({ categoryId }: { categoryId: string }) {
   const data = heroData[categoryId];
   if (!data) return null;
   const Icon = categoryIcons[categoryId] || Zap;
+  const count = allEndpoints.filter(e => e.category === categoryId).length;
   return (
-    <section className="px-3 pt-4 pb-2 sm:px-6 sm:pt-6">
-      <div className="rounded-lg p-4 sm:p-6" style={{
-        background: "#000000",
-        border: "1px solid rgba(0,255,0,0.12)",
-      }}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" style={{ color: "#00ff00" }} />
-            <span className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "#00ff00" }}>
+    <section className="px-4 pt-4 pb-1 sm:px-8 sm:pt-6">
+      <div
+        className="rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
+        style={{ background: "#050505", border: "1px solid rgba(0,255,0,0.1)" }}
+      >
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "rgba(0,255,0,0.07)", border: "1px solid rgba(0,255,0,0.13)" }}
+        >
+          <Icon className="w-6 h-6" style={{ color: "#00ff00" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,0,0.6)" }}>
               {data.tagline}
             </span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }}>
+          <h3 className="text-lg sm:text-xl font-bold leading-tight" style={{ fontFamily: "'Orbitron', sans-serif", color: "#ffffff" }}>
             {data.title}
           </h3>
-          <p className="text-sm max-w-lg" style={{ color: "rgba(255,255,255,0.35)" }}>
+          <p className="text-[12px] mt-1 max-w-xl" style={{ color: "rgba(255,255,255,0.32)" }}>
             {data.description}
           </p>
+        </div>
+        <div
+          className="flex-shrink-0 px-4 py-2.5 rounded-lg text-center"
+          style={{ background: "rgba(0,255,0,0.04)", border: "1px solid rgba(0,255,0,0.1)" }}
+        >
+          <div className="text-2xl font-black" style={{ fontFamily: "'Orbitron', sans-serif", color: "#00ff00" }}>{count}</div>
+          <div className="text-[9px] tracking-widest mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>ENDPOINTS</div>
         </div>
       </div>
     </section>
@@ -1826,18 +1801,19 @@ export default function Home() {
     <div className="min-h-screen flex" style={{ background: "#050505" }}>
       {sidebarOpen && (
         <div
-          className="fixed inset-0"
+          className="fixed inset-0 lg:hidden"
           style={{ zIndex: 40, background: "rgba(0,0,0,0.7)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{
-          width: "260px",
+          width: "240px",
           zIndex: 45,
-          background: "#080808",
+          background: "#070707",
+          borderRight: "1px solid rgba(0,255,0,0.05)",
         }}
         data-testid="sidebar"
       >
@@ -2176,7 +2152,7 @@ export default function Home() {
         )}
       </aside>
 
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 lg:ml-[240px]">
         <header
           className="sticky top-0"
           style={{
@@ -2188,13 +2164,26 @@ export default function Home() {
         >
           <div className="px-3 py-2 sm:px-6 sm:py-3 flex items-center gap-2 sm:gap-3">
             <button
-              className="p-1.5 rounded-md"
+              className="p-1.5 rounded-md lg:hidden"
               onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); }}
               style={{ color: "rgba(255,255,255,0.5)" }}
               data-testid="button-open-sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
+
+            <a
+              href="/"
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all flex-shrink-0"
+              style={{ color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.06)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#00ff00"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,0,0.2)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.35)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.06)"; }}
+              data-testid="link-back-landing"
+              title="Back to landing page"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-semibold tracking-wider">HOME</span>
+            </a>
 
             {activeCategory !== null && (
               <button

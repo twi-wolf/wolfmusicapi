@@ -64,8 +64,8 @@ function GlowOrb({ x, y, size, opacity }: { x: string; y: string; size: string; 
         width: size,
         height: size,
         borderRadius: "50%",
-        background: `radial-gradient(circle, rgba(0,255,0,${opacity}) 0%, transparent 70%)`,
-        filter: "blur(40px)",
+        background: `radial-gradient(circle, rgba(0,255,0,${opacity * 0.55}) 0%, transparent 70%)`,
+        filter: "blur(50px)",
         pointerEvents: "none",
       }}
     />
@@ -256,7 +256,7 @@ function StatCard({ label, value, suffix = "", delay = 0 }: { label: string; val
 
   return (
     <div ref={ref} className="text-center">
-      <div className="text-3xl sm:text-4xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: NEON, textShadow: `0 0 20px rgba(0,255,0,0.4)` }}>
+      <div className="text-3xl sm:text-4xl font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: NEON, textShadow: `0 0 10px rgba(0,255,0,0.2)` }}>
         {count}{suffix}
       </div>
       <div className="text-[11px] mt-1 tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</div>
@@ -365,7 +365,7 @@ export default function Landing() {
               }}
               data-testid="text-hero-headline"
             >
-              WOLF<span style={{ color: NEON, textShadow: "0 0 40px rgba(0,255,0,0.6)" }}>APIs</span>
+              WOLF<span style={{ color: NEON, textShadow: "0 0 18px rgba(0,255,0,0.28)" }}>APIs</span>
             </h1>
             <p
               className="text-base sm:text-xl lg:text-2xl font-light tracking-[0.1em]"
