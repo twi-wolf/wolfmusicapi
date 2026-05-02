@@ -19,9 +19,10 @@ export function LoaderProvider({ children }: { children: React.ReactNode }) {
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const runLoader = useCallback(() => {
+  const runLoader = useCallback((skip?: boolean) => {
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (skip) { setVisible(false); setFading(false); return; }
     setFading(false);
     setVisible(true);
     fadeTimerRef.current = setTimeout(() => setFading(true), 1500);
@@ -29,7 +30,7 @@ export function LoaderProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    runLoader();
+    runLoader(location === "/");
   }, [location]);
 
   return (
