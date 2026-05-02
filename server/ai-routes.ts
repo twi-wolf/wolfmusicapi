@@ -703,6 +703,210 @@ export function registerAIRoutes(app: Express): void {
     }
   });
 
+  // ── Photo Editor AI-style image tools (Pollinations Image API) ───────────────
+
+  function pollinationsImageUrl(prompt: string, model: string, width: number, height: number): string {
+    const seed = Math.floor(Math.random() * 999999) + 1;
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&model=${model}&nologo=true&seed=${seed}`;
+  }
+
+  function parseRatio(ratio: string | undefined, defaultW: number, defaultH: number): { width: number; height: number } {
+    const map: Record<string, [number, number]> = {
+      "1:1": [1024, 1024],
+      "16:9": [1344, 768],
+      "9:16": [768, 1344],
+      "4:3": [1152, 864],
+      "3:4": [864, 1152],
+    };
+    const r = ratio?.trim() ?? "";
+    const dims = map[r];
+    return dims ? { width: dims[0], height: dims[1] } : { width: defaultW, height: defaultH };
+  }
+
+  const VALID_MODELS = new Set(["flux", "flux-realism", "flux-anime", "flux-3d", "any-dark", "turbo", "sana"]);
+
+  app.get("/api/ai/tools/generate", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const rawModel = (req.query.model as string)?.trim() || "flux";
+    const model = VALID_MODELS.has(rawModel) ? rawModel : "flux";
+    const { width, height } = parseRatio(req.query.ratio as string, 1024, 1024);
+    const url = pollinationsImageUrl(prompt, model, width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      model,
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/ghibli", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const { width, height } = parseRatio(req.query.ratio as string, 1344, 768);
+    const styledPrompt = `Studio Ghibli anime style, soft watercolor background, hand-painted look, Hayao Miyazaki aesthetic, lush environment, warm gentle lighting: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, "flux", width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style: "Studio Ghibli",
+      model: "flux",
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/anime", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const { width, height } = parseRatio(req.query.ratio as string, 768, 1344);
+    const styledPrompt = `anime illustration, cel-shaded, vibrant colors, detailed linework, manga panel quality: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, "flux-anime", width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style: "Anime",
+      model: "flux-anime",
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/realistic", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const { width, height } = parseRatio(req.query.ratio as string, 1344, 768);
+    const styledPrompt = `photorealistic, ultra detailed, 8K resolution, professional photography, DSLR quality, sharp focus, natural lighting: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, "flux-realism", width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style: "Photorealistic",
+      model: "flux-realism",
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/portrait", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const { width, height } = parseRatio(req.query.ratio as string, 1024, 1024);
+    const styledPrompt = `professional portrait photo, studio lighting, sharp focus, highly detailed face, cinematic color grading, editorial quality: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, "flux-realism", width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style: "Portrait",
+      model: "flux-realism",
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/dark-art", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    const { width, height } = parseRatio(req.query.ratio as string, 768, 1344);
+    const styledPrompt = `dark fantasy art, gothic atmosphere, dramatic shadows, deep contrast, ominous mood, intricate dark details: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, "any-dark", width, height);
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style: "Dark Fantasy",
+      model: "any-dark",
+      prompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/style-transfer", (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    const style = (req.query.style as string)?.trim().toLowerCase();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+    if (!style) return res.status(400).json({ status: false, error: "Parameter 'style' is required. Options: ghibli | anime | oil-painting | watercolor | cartoon | cyberpunk | vintage | sketch | 3d-render" });
+
+    const styleMap: Record<string, { model: string; prefix: string }> = {
+      "ghibli": { model: "flux", prefix: "Studio Ghibli animated art, Miyazaki style, watercolor background, lush scenery" },
+      "anime": { model: "flux-anime", prefix: "anime illustration, cel-shaded, vibrant manga art style" },
+      "oil-painting": { model: "flux", prefix: "oil painting, thick impasto brushstrokes, canvas texture, classical art" },
+      "watercolor": { model: "flux", prefix: "watercolor painting, soft wet-on-wet washes, delicate translucent colors, artistic" },
+      "cartoon": { model: "flux", prefix: "cartoon illustration, bold outlines, flat shading, comic-book style, vivid colors" },
+      "cyberpunk": { model: "any-dark", prefix: "cyberpunk style, neon lights, dark rainy streets, futuristic dystopian aesthetic" },
+      "vintage": { model: "flux", prefix: "vintage film photograph, grain overlay, faded warm tones, retro 1970s aesthetic" },
+      "sketch": { model: "flux", prefix: "detailed pencil sketch, black and white, fine crosshatching, artistic linework" },
+      "3d-render": { model: "flux-3d", prefix: "3D CGI render, octane renderer, studio lighting, ray-traced reflections, high polygon" },
+    };
+
+    const styleConfig = styleMap[style];
+    if (!styleConfig) {
+      return res.status(400).json({
+        status: false,
+        error: `Unknown style '${style}'. Valid options: ${Object.keys(styleMap).join(" | ")}`,
+      });
+    }
+
+    const { width, height } = parseRatio(req.query.ratio as string, 1024, 1024);
+    const styledPrompt = `${styleConfig.prefix}: ${prompt}`;
+    const url = pollinationsImageUrl(styledPrompt, styleConfig.model, width, height);
+
+    return res.json({
+      status: true,
+      creator: "APIs by Silent Wolf | A tech explorer",
+      provider: "Pollinations",
+      style,
+      model: styleConfig.model,
+      prompt,
+      styledPrompt,
+      width,
+      height,
+      url,
+    });
+  });
+
+  app.get("/api/ai/tools/prompt-enhance", async (req: Request, res: Response) => {
+    const prompt = (req.query.prompt as string)?.trim();
+    if (!prompt) return res.status(400).json({ status: false, error: "Parameter 'prompt' is required." });
+
+    try {
+      const enhanced = await chatEverywhereProxy(
+        `Expand and enhance the following basic image idea into a rich, detailed AI image generation prompt. Add vivid descriptors for lighting, atmosphere, composition, style, color palette, and technical quality. Keep it under 200 words. Return ONLY the enhanced prompt, nothing else.\n\nBasic idea: "${prompt}"`,
+        "You are an expert AI image prompt engineer. Your job is to transform simple image descriptions into detailed, high-quality prompts that produce stunning results with AI image generators like Flux and Stable Diffusion. Focus on visual details, artistic style, lighting conditions, color mood, and camera/composition details. Output only the enhanced prompt."
+      );
+      return res.json({
+        status: true,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        provider: "ChatEverywhere",
+        original: prompt,
+        enhanced,
+        tip: "Use the enhanced prompt with /api/ai/tools/generate for best results",
+      });
+    } catch (error: any) {
+      return res.status(500).json({ status: false, error: error.message });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   app.get("/api/ai/image/pixabay", async (req: Request, res: Response) => {
     const q = req.query.q as string;
     if (!q) return res.status(400).json({ success: false, error: "Parameter 'q' is required." });

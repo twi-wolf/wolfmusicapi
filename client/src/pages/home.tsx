@@ -291,6 +291,9 @@ function TestPopup({
   const overlayRef = useRef<HTMLDivElement>(null);
   const isAiChat = endpoint.category === "ai-chat";
 
+  const parsedResult: any = (() => { try { return result ? JSON.parse(result) : null; } catch { return null; } })();
+  const resultImageUrl: string | null = parsedResult?.url && typeof parsedResult.url === "string" && parsedResult.url.includes("image.pollinations.ai") ? parsedResult.url : null;
+
   const getInputValue = (name: string) => inputs[name] ?? "";
 
   const updateInput = (name: string, value: string) => {
@@ -572,6 +575,35 @@ function TestPopup({
                   </span>
                   <CopyButton text={result} />
                 </div>
+                {resultImageUrl && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold tracking-wider" style={{ color: "rgba(255,255,255,0.4)" }}>
+                      IMAGE PREVIEW
+                    </span>
+                    <div
+                      className="rounded-lg overflow-hidden flex items-center justify-center"
+                      style={{ border: "1px solid rgba(0,255,0,0.2)", background: "#0a0a0a", minHeight: "120px" }}
+                    >
+                      <img
+                        src={resultImageUrl}
+                        alt="AI Generated"
+                        className="w-full object-contain"
+                        style={{ maxHeight: "320px" }}
+                        data-testid="img-generated-result"
+                      />
+                    </div>
+                    <a
+                      href={resultImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-mono transition-opacity hover:opacity-80"
+                      style={{ color: "#00ff00" }}
+                      data-testid="link-open-image"
+                    >
+                      OPEN FULL SIZE ↗
+                    </a>
+                  </div>
+                )}
                 <pre
                   className="text-xs font-mono p-4 rounded-lg overflow-auto"
                   style={{
