@@ -1605,7 +1605,7 @@ export default function Home() {
   const [testEndpoint, setTestEndpoint] = useState<ApiEndpoint | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarDesktopOpen, setSidebarDesktopOpen] = useState(true);
+  const [sidebarDesktopOpen, setSidebarDesktopOpen] = useState(false);
   const [effectSearch, setEffectSearch] = useState("");
   const [copiedAllEndpoints, setCopiedAllEndpoints] = useState(false);
   const [ephotoExpanded, setEphotoExpanded] = useState(false);
@@ -1834,33 +1834,14 @@ export default function Home() {
     <div className="min-h-screen flex" style={{ background: "#050505" }}>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 lg:hidden"
-          style={{ zIndex: 40, background: "rgba(0,0,0,0.7)" }}
+          className="fixed inset-0"
+          style={{ zIndex: 40, background: "rgba(0,0,0,0.75)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {!sidebarDesktopOpen && (
-        <button
-          className="fixed left-0 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center justify-center gap-1"
-          style={{
-            zIndex: 50,
-            width: "18px",
-            height: "56px",
-            background: "#00ff00",
-            borderRadius: "0 6px 6px 0",
-            boxShadow: "2px 0 12px rgba(0,255,0,0.4)",
-          }}
-          onClick={() => { setSidebarDesktopOpen(true); setSidebarCollapsed(false); }}
-          title="Open sidebar"
-          data-testid="button-reveal-sidebar"
-        >
-          <ChevronRight className="w-3 h-3" style={{ color: "#000" }} />
-        </button>
-      )}
-
       <aside
-        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : sidebarDesktopOpen ? "-translate-x-full lg:translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
           width: "240px",
           zIndex: 45,
@@ -2204,7 +2185,7 @@ export default function Home() {
         )}
       </aside>
 
-      <main className={`flex-1 min-w-0 transition-all ${sidebarDesktopOpen ? "lg:ml-[240px]" : ""}`}>
+      <main className="flex-1 min-w-0">
         <header
           className="sticky top-0"
           style={{
@@ -2216,8 +2197,8 @@ export default function Home() {
         >
           <div className="px-3 py-2 sm:px-6 sm:py-3 flex items-center gap-2 sm:gap-3">
             <button
-              className={`p-1.5 rounded-md ${sidebarDesktopOpen ? "lg:hidden" : ""}`}
-              onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); setSidebarDesktopOpen(true); }}
+              className="p-1.5 rounded-md"
+              onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); }}
               style={{ color: "rgba(255,255,255,0.5)" }}
               data-testid="button-open-sidebar"
             >

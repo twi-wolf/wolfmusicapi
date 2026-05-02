@@ -4,7 +4,7 @@ import {
   Zap, Music, Video, MessageSquare, Image, Shield, Globe, Cpu, Sparkles,
   AudioLines, Search, Film, Laugh, Link, Wrench, Trophy, TrendingUp,
   RefreshCw, Headphones, Eye, ArrowRight, Github, ExternalLink, Share2,
-  Code2, Terminal, ChevronRight, Activity, Wand2
+  Code2, Terminal, ChevronRight, Activity, Wand2, Loader2
 } from "lucide-react";
 import wolfLogo from "../assets/wolf-logo.png";
 import { allEndpoints, apiCategories, ephotoEffectsList, photofuniaEffectsList, AUDIO_EFFECTS_LIST } from "@shared/schema";
@@ -69,6 +69,198 @@ function GlowOrb({ x, y, size, opacity }: { x: string; y: string; size: string; 
         pointerEvents: "none",
       }}
     />
+  );
+}
+
+const HERO_ENDPOINTS = [
+  {
+    path: "/api/ai/gpt4o",
+    params: "?q=Tell+me+something+cool",
+    label: "AI Chat",
+    response: `{
+  "success": true,
+  "model": "gpt-4o",
+  "response": "Did you know honey never
+  spoils? 3000-year-old honey from
+  Egyptian tombs is still edible."
+}`,
+  },
+  {
+    path: "/api/music/download",
+    params: "?url=youtu.be/abc123",
+    label: "Music DL",
+    response: `{
+  "success": true,
+  "title": "Blinding Lights",
+  "artist": "The Weeknd",
+  "quality": "320kbps",
+  "url": "https://cdn.wolf.../mp3"
+}`,
+  },
+  {
+    path: "/api/quran/random",
+    params: "",
+    label: "Quran",
+    response: `{
+  "success": true,
+  "reference": "Al-Baqarah 2:255",
+  "translation": "Allah — there is no
+  deity except Him, the Ever-Living,
+  the Sustainer of existence."
+}`,
+  },
+  {
+    path: "/api/pokemon/info",
+    params: "?name=pikachu",
+    label: "Pokemon",
+    response: `{
+  "success": true,
+  "name": "pikachu",
+  "types": ["electric"],
+  "hp": 35,
+  "speed": 90
+}`,
+  },
+  {
+    path: "/api/nasa/neo",
+    params: "",
+    label: "NASA",
+    response: `{
+  "success": true,
+  "date": "2026-05-02",
+  "count": 2,
+  "hazardous": 0,
+  "objects": [...]
+}`,
+  },
+];
+
+function LiveApiCard() {
+  const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [charIdx, setCharIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoading(true);
+      setVisible(false);
+      setCharIdx(0);
+      setTimeout(() => {
+        setCurrent(prev => (prev + 1) % HERO_ENDPOINTS.length);
+        setLoading(false);
+        setVisible(true);
+      }, 800);
+    }, 3800);
+    return () => clearInterval(interval);
+  }, []);
+
+  const endpoint = HERO_ENDPOINTS[current];
+  const fullResponse = endpoint.response;
+
+  useEffect(() => {
+    if (!visible) { setCharIdx(0); return; }
+    if (charIdx >= fullResponse.length) return;
+    const t = setTimeout(() => setCharIdx(p => Math.min(p + 4, fullResponse.length)), 10);
+    return () => clearTimeout(t);
+  }, [visible, charIdx, fullResponse]);
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden relative"
+      style={{
+        background: "linear-gradient(135deg, #0a0a0a 0%, #060606 100%)",
+        border: "1px solid rgba(0,255,0,0.18)",
+        boxShadow: "0 0 80px rgba(0,255,0,0.07), 0 0 0 1px rgba(0,255,0,0.05), inset 0 1px 0 rgba(0,255,0,0.06)",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0,255,0,0.04) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Title bar */}
+      <div className="flex items-center gap-2 px-4 py-3" style={{ background: "rgba(0,0,0,0.4)", borderBottom: "1px solid rgba(0,255,0,0.08)" }}>
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full" style={{ background: "rgba(255,95,87,0.7)" }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: "rgba(254,188,46,0.7)" }} />
+          <div className="w-3 h-3 rounded-full" style={{ background: "rgba(40,200,64,0.7)" }} />
+        </div>
+        <span className="text-[11px] ml-2" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "'JetBrains Mono', monospace" }}>
+          api-explorer — {endpoint.label}
+        </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: NEON, boxShadow: `0 0 6px ${NEON}` }} />
+          <span style={{ color: NEON, fontSize: "9px", letterSpacing: "0.12em", fontFamily: "'JetBrains Mono', monospace" }}>LIVE</span>
+        </div>
+      </div>
+
+      {/* Request line */}
+      <div className="px-5 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: "rgba(0,0,0,0.2)" }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,0,0.1)", color: NEON, fontFamily: "'JetBrains Mono', monospace" }}>GET</span>
+          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }}>apis.xwolf.space</span>
+          <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }}>{endpoint.path}</span>
+        </div>
+        {endpoint.params && (
+          <div style={{ color: "rgba(0,255,0,0.55)", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", marginTop: "4px" }}>
+            {endpoint.params}
+          </div>
+        )}
+      </div>
+
+      {/* Response */}
+      <div className="px-5 py-4" style={{ minHeight: "180px" }}>
+        {loading ? (
+          <div className="flex items-center gap-2 pt-4">
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: "rgba(0,255,0,0.5)" }} />
+            <span style={{ color: "rgba(0,255,0,0.4)", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }}>
+              fetching response...
+            </span>
+          </div>
+        ) : (
+          <pre style={{
+            color: "rgba(255,255,255,0.7)",
+            fontSize: "12px",
+            fontFamily: "'JetBrains Mono', monospace",
+            lineHeight: "1.65",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            margin: 0,
+          }}>
+            {fullResponse.slice(0, charIdx)}
+            {charIdx < fullResponse.length && (
+              <span style={{ opacity: 0.8, color: NEON }}>▌</span>
+            )}
+          </pre>
+        )}
+      </div>
+
+      {/* Endpoint tabs */}
+      <div className="px-4 pb-4 flex items-center gap-1.5 flex-wrap">
+        {HERO_ENDPOINTS.map((ep, i) => (
+          <button
+            key={i}
+            onClick={() => { setCurrent(i); setVisible(true); setCharIdx(0); setLoading(false); }}
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "10px",
+              padding: "3px 10px",
+              borderRadius: "100px",
+              background: i === current ? "rgba(0,255,0,0.1)" : "transparent",
+              color: i === current ? NEON : "rgba(255,255,255,0.25)",
+              border: i === current ? "1px solid rgba(0,255,0,0.25)" : "1px solid rgba(255,255,255,0.06)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            {ep.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -200,7 +392,7 @@ function TerminalDemo() {
         </div>
         <span className="text-[11px] ml-2" style={{ color: "rgba(255,255,255,0.3)" }}>wolfapis — terminal</span>
         <div className="ml-auto flex gap-1">
-          {DEMO_ENDPOINTS.map((ep, i) => (
+          {HERO_ENDPOINTS.map((ep, i) => (
             <button
               key={ep.label}
               onClick={() => setActiveIdx(i)}
@@ -326,115 +518,166 @@ export default function Landing() {
       </nav>
 
       {/* HERO */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-16 overflow-hidden">
+      <section className="relative min-h-screen flex items-center px-4 sm:px-6 pt-16 pb-8 overflow-hidden">
         <GridBackground />
-        <GlowOrb x="10%" y="20%" size="400px" opacity={0.06} />
-        <GlowOrb x="70%" y="60%" size="500px" opacity={0.04} />
-        <GlowOrb x="50%" y="5%" size="300px" opacity={0.08} />
+        <GlowOrb x="-10%" y="20%" size="700px" opacity={0.06} />
+        <GlowOrb x="60%" y="65%" size="500px" opacity={0.04} />
+        <GlowOrb x="45%" y="-15%" size="450px" opacity={0.07} />
 
-        <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto space-y-8">
+        {/* Horizontal scan line */}
+        <div
+          style={{
+            position: "absolute",
+            top: "38%",
+            left: 0,
+            right: 0,
+            height: "1px",
+            background: "linear-gradient(90deg, transparent 0%, rgba(0,255,0,0.06) 20%, rgba(0,255,0,0.12) 50%, rgba(0,255,0,0.06) 80%, transparent 100%)",
+            pointerEvents: "none",
+          }}
+        />
 
-          <div
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full"
-            style={{ border: "1px solid rgba(0,255,0,0.25)", background: "rgba(0,255,0,0.04)" }}
-          >
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: NEON, boxShadow: `0 0 8px ${NEON}` }} />
-            <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: NEON }}>ALL SYSTEMS LIVE · NO KEY REQUIRED</span>
-          </div>
+        <div className="relative z-10 max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center py-16 lg:py-24">
 
-          <div className="relative">
-            <div
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl flex items-center justify-center mx-auto mb-2"
-              style={{
-                border: "1px solid rgba(0,255,0,0.3)",
-                background: "rgba(0,255,0,0.04)",
-                boxShadow: "0 0 60px rgba(0,255,0,0.15), inset 0 0 40px rgba(0,255,0,0.04)",
-              }}
-            >
-              <img src={wolfLogo} alt="WolfAPIs" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
-            </div>
-          </div>
+            {/* LEFT COLUMN */}
+            <div className="space-y-7">
 
-          <div className="space-y-3">
-            <h1
-              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight"
-              style={{
-                fontFamily: "'Orbitron', sans-serif",
-                color: "#ffffff",
-                textShadow: "0 0 60px rgba(255,255,255,0.1)",
-              }}
-              data-testid="text-hero-headline"
-            >
-              WOLF<span style={{ color: NEON, textShadow: "0 0 18px rgba(0,255,0,0.28)" }}>APIs</span>
-            </h1>
-            <p
-              className="text-base sm:text-xl lg:text-2xl font-light tracking-[0.1em]"
-              style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Orbitron', sans-serif" }}
-            >
-              MULTI-PROVIDER · FREE · FAST
-            </p>
-          </div>
-
-          <p className="text-sm sm:text-base max-w-2xl leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-            {allEndpoints.length}+ endpoints across {apiCategories.length} categories.
-            AI chat models, music downloaders, audio effects, photo & text effects,
-            social media scrapers, security tools, and more. Zero setup, zero keys.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-            <button
-              onClick={() => setLocation("/home")}
-              className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold tracking-widest text-sm transition-all"
-              style={{
-                background: NEON,
-                color: "#000000",
-                fontFamily: "'Orbitron', sans-serif",
-                fontSize: "12px",
-                boxShadow: "0 0 30px rgba(0,255,0,0.25)",
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 0 50px rgba(0,255,0,0.5)"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = "0 0 30px rgba(0,255,0,0.25)"}
-              data-testid="button-hero-explore"
-            >
-              <Terminal className="w-4 h-4" /> EXPLORE APIs
-            </button>
-            <a
-              href="https://github.com/SilentWolf-Kenya"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold tracking-widest text-sm transition-all"
-              style={{
-                background: "transparent",
-                color: "#ffffff",
-                fontFamily: "'Orbitron', sans-serif",
-                fontSize: "12px",
-                border: "1px solid rgba(255,255,255,0.15)",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,0,0.4)"; (e.currentTarget as HTMLElement).style.color = NEON; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.15)"; (e.currentTarget as HTMLElement).style.color = "#ffffff"; }}
-              data-testid="link-hero-github"
-            >
-              <Github className="w-4 h-4" /> GITHUB
-            </a>
-          </div>
-
-          <div className="w-full max-w-xs h-px mt-4" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,0,0.3), transparent)" }} />
-
-          <div className="flex items-center gap-3 flex-wrap justify-center">
-            {["GPT-4o", "Claude", "Gemini", "TikTok DL", "MP3 DL", "8D Audio", "Nightcore", "Neon FX", "OSINT"].map(tag => (
-              <span
-                key={tag}
-                className="text-[10px] px-2.5 py-1 rounded-full"
-                style={{ border: "1px solid rgba(0,255,0,0.15)", color: "rgba(255,255,255,0.35)", background: "rgba(0,255,0,0.03)" }}
+              {/* Status badge */}
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full w-fit"
+                style={{ border: "1px solid rgba(0,255,0,0.22)", background: "rgba(0,255,0,0.04)" }}
               >
-                {tag}
-              </span>
-            ))}
+                <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: NEON, boxShadow: `0 0 8px ${NEON}` }} />
+                <span className="font-bold tracking-[0.18em]" style={{ color: NEON, fontSize: "10px" }}>
+                  ALL SYSTEMS LIVE · NO KEY REQUIRED
+                </span>
+              </div>
+
+              {/* Logo + Headline */}
+              <div className="space-y-4">
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center"
+                  style={{
+                    border: "1px solid rgba(0,255,0,0.25)",
+                    background: "rgba(0,255,0,0.05)",
+                    boxShadow: "0 0 40px rgba(0,255,0,0.12), inset 0 0 20px rgba(0,255,0,0.04)",
+                  }}
+                >
+                  <img src={wolfLogo} alt="WolfAPIs" className="w-9 h-9 object-contain" />
+                </div>
+                <h1
+                  className="font-black leading-[0.9] tracking-tight"
+                  style={{
+                    fontFamily: "'Orbitron', sans-serif",
+                    fontSize: "clamp(52px, 8vw, 88px)",
+                  }}
+                  data-testid="text-hero-headline"
+                >
+                  <span style={{ color: "#ffffff" }}>WOLF</span>
+                  <span style={{ color: NEON, textShadow: "0 0 40px rgba(0,255,0,0.4)" }}>APIs</span>
+                </h1>
+                <p
+                  className="tracking-[0.22em] font-semibold"
+                  style={{ fontFamily: "'Orbitron', sans-serif", color: "rgba(255,255,255,0.3)", fontSize: "11px" }}
+                >
+                  THE ULTIMATE API HUB
+                </p>
+              </div>
+
+              {/* Description */}
+              <p className="leading-relaxed" style={{ color: "rgba(255,255,255,0.45)", fontSize: "14px", maxWidth: "460px" }}>
+                {allEndpoints.length}+ endpoints — AI models, music downloaders, social scrapers,
+                audio effects, photo tools, anime, Quran, Pokemon, NASA & more.
+                One base URL. Zero sign-up.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <button
+                  onClick={() => setLocation("/home")}
+                  className="flex items-center gap-2.5 rounded-xl font-bold tracking-widest transition-all"
+                  style={{
+                    background: NEON,
+                    color: "#000000",
+                    fontFamily: "'Orbitron', sans-serif",
+                    fontSize: "11px",
+                    padding: "13px 26px",
+                    boxShadow: "0 0 32px rgba(0,255,0,0.3)",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 0 55px rgba(0,255,0,0.55)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 0 32px rgba(0,255,0,0.3)"; (e.currentTarget as HTMLElement).style.transform = "none"; }}
+                  data-testid="button-hero-explore"
+                >
+                  <Terminal className="w-4 h-4" /> EXPLORE APIs
+                </button>
+                <a
+                  href="https://github.com/SilentWolf-Kenya"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 rounded-xl font-bold tracking-widest transition-all"
+                  style={{
+                    background: "transparent",
+                    color: "rgba(255,255,255,0.65)",
+                    fontFamily: "'Orbitron', sans-serif",
+                    fontSize: "11px",
+                    padding: "12px 26px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,255,0,0.35)"; (e.currentTarget as HTMLElement).style.color = NEON; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.12)"; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.65)"; (e.currentTarget as HTMLElement).style.transform = "none"; }}
+                  data-testid="link-hero-github"
+                >
+                  <Github className="w-4 h-4" /> GITHUB
+                </a>
+              </div>
+
+              {/* Stats row */}
+              <div
+                className="flex items-center gap-8 pt-4"
+                style={{ borderTop: "1px solid rgba(0,255,0,0.08)" }}
+              >
+                {[
+                  { v: `${allEndpoints.length}+`, l: "ENDPOINTS" },
+                  { v: "35+", l: "AI MODELS" },
+                  { v: `${apiCategories.length}`, l: "CATEGORIES" },
+                ].map(s => (
+                  <div key={s.l}>
+                    <div style={{ fontFamily: "'Orbitron', sans-serif", color: NEON, fontSize: "22px", fontWeight: 900, textShadow: "0 0 16px rgba(0,255,0,0.3)" }}>{s.v}</div>
+                    <div style={{ color: "rgba(255,255,255,0.28)", fontSize: "9px", letterSpacing: "0.15em", marginTop: "3px" }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tags */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {["GPT-4o", "Claude", "TikTok DL", "MP3 DL", "8D Audio", "Neon FX", "OSINT", "Quran", "NASA"].map(tag => (
+                  <span
+                    key={tag}
+                    style={{
+                      border: "1px solid rgba(0,255,0,0.1)",
+                      color: "rgba(255,255,255,0.28)",
+                      background: "rgba(0,255,0,0.02)",
+                      fontSize: "10px",
+                      padding: "3px 10px",
+                      borderRadius: "100px",
+                    }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN — Live API Preview */}
+            <div className="hidden lg:block">
+              <LiveApiCard />
+            </div>
           </div>
         </div>
 
         <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce"
           style={{ color: "rgba(0,255,0,0.3)" }}
         >
           <div className="w-px h-8" style={{ background: "linear-gradient(to bottom, transparent, rgba(0,255,0,0.4))" }} />
