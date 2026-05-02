@@ -5,7 +5,7 @@ import {
   RefreshCw, LogOut, ChevronUp, ChevronDown, Trash2,
   Plus, Save, Eye, EyeOff, Zap, RotateCcw, Activity,
   CheckCircle, XCircle, Clock, AlertTriangle, Globe, Github, Code, Server,
-  TrendingUp, Star, CalendarDays
+  TrendingUp, Star, CalendarDays, KeyRound, FlaskConical
 } from "lucide-react";
 
 const NEON = "#00ff00";
@@ -996,12 +996,175 @@ function SecurityTab({ onPasswordChange }: { onPasswordChange: (pwd: string) => 
   );
 }
 
+// ─── API Keys Tab ─────────────────────────────────────────────────────────────
+function ApiKeysTab() {
+  const [tmdbKey, setTmdbKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [masked, setMasked] = useState("");
+  const [configured, setConfigured] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api("/api/admin/keys");
+      if (r.ok) {
+        const d = await r.json();
+        setMasked(d.keys?.tmdb?.masked || "");
+        setConfigured(d.keys?.tmdb?.configured || false);
+      }
+    } catch {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleSave() {
+    if (!tmdbKey.trim()) return;
+    setSaving(true); setSaveMsg(null); setTestMsg(null);
+    try {
+      const r = await api("/api/admin/keys", { method: "POST", body: JSON.stringify({ tmdbApiKey: tmdbKey.trim() }) });
+      const d = await r.json();
+      if (d.success) {
+        setSaveMsg({ ok: true, text: "Key saved successfully." });
+        setMasked(`${tmdbKey.slice(0, 4)}${"•".repeat(Math.max(0, tmdbKey.length - 8))}${tmdbKey.slice(-4)}`);
+        setConfigured(true);
+        setTmdbKey("");
+        setShowKey(false);
+      } else {
+        setSaveMsg({ ok: false, text: d.error || "Save failed." });
+      }
+    } catch { setSaveMsg({ ok: false, text: "Network error." }); }
+    setSaving(false);
+  }
+
+  async function handleTest() {
+    const keyToTest = tmdbKey.trim();
+    if (!keyToTest) { setTestMsg({ ok: false, text: "Enter a key first before testing." }); return; }
+    setTesting(true); setTestMsg(null);
+    try {
+      const r = await api("/api/admin/keys/test-tmdb", { method: "POST", body: JSON.stringify({ key: keyToTest }) });
+      const d = await r.json();
+      setTestMsg({ ok: d.success, text: d.message || d.error || "Unknown result." });
+    } catch { setTestMsg({ ok: false, text: "Network error." }); }
+    setTesting(false);
+  }
+
+  async function handleRemove() {
+    setSaving(true); setSaveMsg(null);
+    try {
+      const r = await api("/api/admin/keys", { method: "POST", body: JSON.stringify({ tmdbApiKey: "" }) });
+      const d = await r.json();
+      if (d.success) {
+        setMasked(""); setConfigured(false);
+        setSaveMsg({ ok: true, text: "Key removed." });
+      }
+    } catch {}
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: "'Orbitron', sans-serif", color: NEON, fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>API KEYS</h2>
+      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, margin: "0 0 24px" }}>Manage third-party API keys. Keys are stored on disk — no need to touch the VPS environment.</p>
+
+      {/* TMDB Card */}
+      <div style={{ background: "#0a0a0a", border: `1px solid ${configured ? "rgba(0,255,0,0.2)" : "rgba(255,255,255,0.08)"}`, borderRadius: 14, padding: "24px 24px", maxWidth: 560 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ width: 42, height: 42, background: "rgba(0,180,255,0.08)", border: "1px solid rgba(0,180,255,0.2)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Orbitron', sans-serif", color: "#00b4ff", fontSize: 10, fontWeight: 700 }}>TMDB</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: "#fff", fontSize: 14, fontWeight: 600, margin: "0 0 2px" }}>The Movie Database</p>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: 0 }}>Powers all Movie category endpoints — search, trailers, trending, rankings</p>
+          </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", background: configured ? "rgba(0,255,0,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${configured ? "rgba(0,255,0,0.25)" : "rgba(255,255,255,0.1)"}`, color: configured ? NEON : "rgba(255,255,255,0.3)", flexShrink: 0 }}>
+            {configured ? <><CheckCircle size={9} /> ACTIVE</> : <><XCircle size={9} /> NOT SET</>}
+          </span>
+        </div>
+
+        {loading ? (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>Loading...</p>
+        ) : (
+          <>
+            {/* Current key display */}
+            {configured && masked && (
+              <div style={{ background: "rgba(0,255,0,0.04)", border: "1px solid rgba(0,255,0,0.1)", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{masked}</span>
+                <button onClick={handleRemove} disabled={saving} style={{ background: "none", border: "none", color: "rgba(255,80,80,0.6)", cursor: "pointer", fontSize: 11, padding: "2px 6px", borderRadius: 4 }}>Remove</button>
+              </div>
+            )}
+
+            {/* Input + actions */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{configured ? "Replace Key" : "Enter API Key"}</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  data-testid="input-tmdb-key"
+                  type={showKey ? "text" : "password"}
+                  value={tmdbKey}
+                  onChange={(e) => { setTmdbKey(e.target.value); setSaveMsg(null); setTestMsg(null); }}
+                  placeholder="Paste your TMDB API key here..."
+                  style={{ width: "100%", background: "#111", border: "1px solid rgba(0,255,0,0.15)", borderRadius: 8, padding: "10px 42px 10px 14px", color: "#fff", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", outline: "none", boxSizing: "border-box" }}
+                />
+                <button type="button" onClick={() => setShowKey(!showKey)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.35)", padding: 0 }}>
+                  {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+
+            <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 16px" }}>
+              Get a free key at <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer" style={{ color: "#00b4ff", textDecoration: "none" }}>themoviedb.org/settings/api</a> → API → Create → Developer
+            </p>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                data-testid="button-test-tmdb"
+                onClick={handleTest}
+                disabled={testing || !tmdbKey.trim()}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(0,180,255,0.08)", border: `1px solid rgba(0,180,255,${tmdbKey.trim() ? "0.3" : "0.1"})`, borderRadius: 8, padding: "9px 18px", color: tmdbKey.trim() ? "#00b4ff" : "rgba(0,180,255,0.3)", cursor: tmdbKey.trim() && !testing ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600 }}
+              >
+                <FlaskConical size={13} /> {testing ? "Testing..." : "Test Connection"}
+              </button>
+              <button
+                data-testid="button-save-tmdb"
+                onClick={handleSave}
+                disabled={saving || !tmdbKey.trim()}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: tmdbKey.trim() ? "rgba(0,255,0,0.1)" : "rgba(0,255,0,0.04)", border: `1px solid rgba(0,255,0,${tmdbKey.trim() ? "0.3" : "0.1"})`, borderRadius: 8, padding: "9px 18px", color: tmdbKey.trim() ? NEON : "rgba(0,255,0,0.3)", cursor: tmdbKey.trim() && !saving ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600 }}
+              >
+                <Save size={13} /> {saving ? "Saving..." : "Save Key"}
+              </button>
+            </div>
+
+            {testMsg && (
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, background: testMsg.ok ? "rgba(0,255,0,0.05)" : "rgba(255,80,80,0.05)", border: `1px solid ${testMsg.ok ? "rgba(0,255,0,0.2)" : "rgba(255,80,80,0.2)"}` }}>
+                {testMsg.ok ? <CheckCircle size={14} color={NEON} /> : <XCircle size={14} color="#ff6b6b" />}
+                <span style={{ color: testMsg.ok ? NEON : "#ff6b6b", fontSize: 12 }}>{testMsg.text}</span>
+              </div>
+            )}
+            {saveMsg && (
+              <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, background: saveMsg.ok ? "rgba(0,255,0,0.05)" : "rgba(255,80,80,0.05)", border: `1px solid ${saveMsg.ok ? "rgba(0,255,0,0.2)" : "rgba(255,80,80,0.2)"}` }}>
+                {saveMsg.ok ? <CheckCircle size={14} color={NEON} /> : <XCircle size={14} color="#ff6b6b" />}
+                <span style={{ color: saveMsg.ok ? NEON : "#ff6b6b", fontSize: 12 }}>{saveMsg.text}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "logs", label: "Live Log", icon: ScrollText },
   { id: "errors", label: "Error Logs", icon: AlertTriangle },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "apikeys", label: "API Keys", icon: KeyRound },
   { id: "providers", label: "Providers", icon: Cpu },
   { id: "security", label: "Security", icon: Shield },
 ] as const;
@@ -1072,6 +1235,7 @@ export default function AdminPage() {
           {activeTab === "logs" && <LiveLogTab />}
           {activeTab === "errors" && <ErrorLogsTab pwd={pwd} />}
           {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "apikeys" && <ApiKeysTab />}
           {activeTab === "providers" && <ProvidersTab />}
           {activeTab === "security" && <SecurityTab onPasswordChange={(p) => { setPwd(p); sessionStorage.setItem(AUTH_KEY, p); }} />}
         </main>

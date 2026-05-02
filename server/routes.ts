@@ -294,6 +294,43 @@ export async function registerRoutes(
     return res.json({ success: true, message: "Password updated" });
   });
 
+  // ─── Admin: API Keys (get) ──────────────────────────────────────────────────
+  app.get("/api/admin/keys", requireAdminAuth, (_req: any, res: any) => {
+    const s = getSettings();
+    const tmdbKey = s.tmdbApiKey || "";
+    return res.json({
+      success: true,
+      keys: {
+        tmdb: { configured: tmdbKey.length > 0, masked: tmdbKey ? `${tmdbKey.slice(0, 4)}${"•".repeat(Math.max(0, tmdbKey.length - 8))}${tmdbKey.slice(-4)}` : "" },
+      },
+    });
+  });
+
+  // ─── Admin: API Keys (save) ─────────────────────────────────────────────────
+  app.post("/api/admin/keys", requireAdminAuth, (req: any, res: any) => {
+    const { tmdbApiKey } = req.body || {};
+    const current = getSettings();
+    saveSettings({ ...current, tmdbApiKey: String(tmdbApiKey ?? current.tmdbApiKey ?? "") });
+    return res.json({ success: true, message: "API keys saved" });
+  });
+
+  // ─── Admin: Test TMDB Key ───────────────────────────────────────────────────
+  app.post("/api/admin/keys/test-tmdb", requireAdminAuth, async (req: any, res: any) => {
+    const { key } = req.body || {};
+    const testKey = String(key || "").trim();
+    if (!testKey) return res.status(400).json({ success: false, error: "No key provided" });
+    try {
+      const url = `https://api.themoviedb.org/3/movie/popular?api_key=${testKey}&page=1`;
+      const r = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+      if (r.status === 401) return res.json({ success: false, error: "Invalid API key — TMDB rejected it." });
+      if (!r.ok) return res.json({ success: false, error: `TMDB returned status ${r.status}` });
+      const data = await r.json();
+      return res.json({ success: true, message: `Connected! Found ${data.total_results?.toLocaleString() ?? "many"} movies.` });
+    } catch (e: any) {
+      return res.json({ success: false, error: e.message || "Connection failed" });
+    }
+  });
+
   // ─── Admin: Security Stats ──────────────────────────────────────────────────
   app.get("/api/admin/security", requireAdminAuth, (_req: any, res: any) => {
     const s = getSettings();

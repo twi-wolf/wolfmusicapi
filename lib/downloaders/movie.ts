@@ -1,10 +1,14 @@
+import { getSettings } from "../../server/admin-settings";
+
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
 function getTmdbKey(): string {
-  const key = process.env.TMDB_API_KEY;
-  if (!key) throw new Error("TMDB_API_KEY is not configured");
-  return key;
+  const fromSettings = getSettings().tmdbApiKey;
+  if (fromSettings && fromSettings.trim()) return fromSettings.trim();
+  const fromEnv = process.env.TMDB_API_KEY;
+  if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+  throw new Error("TMDB API key is not configured. Set it in the Admin Dashboard → API Keys.");
 }
 
 async function tmdbFetch(path: string, params: Record<string, string> = {}): Promise<any> {
