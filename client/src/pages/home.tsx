@@ -1840,6 +1840,25 @@ export default function Home() {
         />
       )}
 
+      {!sidebarDesktopOpen && (
+        <button
+          className="fixed left-0 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center justify-center gap-1"
+          style={{
+            zIndex: 50,
+            width: "18px",
+            height: "56px",
+            background: "#00ff00",
+            borderRadius: "0 6px 6px 0",
+            boxShadow: "2px 0 12px rgba(0,255,0,0.4)",
+          }}
+          onClick={() => { setSidebarDesktopOpen(true); setSidebarCollapsed(false); }}
+          title="Open sidebar"
+          data-testid="button-reveal-sidebar"
+        >
+          <ChevronRight className="w-3 h-3" style={{ color: "#000" }} />
+        </button>
+      )}
+
       <aside
         className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : sidebarDesktopOpen ? "-translate-x-full lg:translate-x-0" : "-translate-x-full"}`}
         style={{
