@@ -3189,7 +3189,10 @@ export async function registerRoutes(
       const effectId = req.params.effectId;
       const url = req.query.url as string;
       if (!url) return res.status(400).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "Missing 'url' parameter - provide an audio/video URL" });
-      const result = await applyAudioEffect(effectId, url);
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const baseUrl = `${protocol}://${host}`;
+      const result = await applyAudioEffect(effectId, url, baseUrl);
       return res.json({ ...result, creator: "APIs by Silent Wolf | A tech explorer" });
     } catch (error: any) { return res.status(500).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: error.message }); }
   });

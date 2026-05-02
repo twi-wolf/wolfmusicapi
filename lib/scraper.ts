@@ -765,8 +765,107 @@ async function youtubeHtmlSearch(query: string): Promise<{ query: string; items:
   return { query, items };
 }
 
+// ─── YouTube Music Search (fast, music-focused) ───────────────────────────────
+// Uses the YouTube Music internal API (WEB_REMIX client) which returns music-
+// focused results faster than regular YouTube search — ideal for song queries.
+
+async function youtubeMusicSearch(query: string): Promise<{ query: string; items: any[] }> {
+  const res = await fetchWithTimeout(
+    "https://music.youtube.com/youtubei/v1/search",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://music.youtube.com",
+        "Referer": "https://music.youtube.com/",
+        "x-youtube-client-name": "67",
+        "x-youtube-client-version": "1.20241219.01.00",
+        "x-origin": "https://music.youtube.com",
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: "WEB_REMIX",
+            clientVersion: "1.20241219.01.00",
+            hl: "en",
+            gl: "US",
+          },
+        },
+        query,
+      }),
+    },
+    15000
+  );
+
+  if (!res.ok) throw new Error(`YouTube Music API: HTTP ${res.status}`);
+  const data = await safeJsonParse(res, "ytmusic");
+
+  const items: any[] = [];
+
+  // Navigate the WEB_REMIX response structure
+  const tabs = data?.contents?.tabbedSearchResultsRenderer?.tabs;
+  const sectionList = tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents;
+  if (!sectionList) return { query, items };
+
+  for (const section of sectionList) {
+    const shelf = section?.musicShelfRenderer?.contents || [];
+    for (const item of shelf) {
+      const renderer = item?.musicResponsiveListItemRenderer;
+      if (!renderer) continue;
+
+      // Extract video ID from the play button overlay
+      const videoId =
+        renderer?.overlay?.musicItemThumbnailOverlayRenderer?.content
+          ?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+        || renderer?.flexColumns?.[0]
+          ?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]
+          ?.navigationEndpoint?.watchEndpoint?.videoId;
+      if (!videoId) continue;
+
+      const flexCols = renderer?.flexColumns || [];
+      const title = flexCols[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || "Unknown";
+      const col2Runs: any[] = flexCols[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+      // Skip type labels like "Song", "Video", "Album", "Single", "EP", "Playlist", "Station", "Mix"
+      const TYPE_LABELS = new Set(["Song", "Video", "Album", "Single", "EP", "Playlist", "Station", "Mix", "Podcast"]);
+      const artistRun = col2Runs.find((r: any) => r.text && r.text.trim() && r.text !== " • " && !TYPE_LABELS.has(r.text));
+      const artist = artistRun?.text || "Unknown";
+      const duration = col2Runs.find((r: any) => /^\d+:\d+$/.test(r.text))?.text || "";
+
+      items.push({
+        title,
+        id: videoId,
+        size: "",
+        duration,
+        channelTitle: artist,
+        source: "ytmusic",
+      });
+      if (items.length >= 10) break;
+    }
+    if (items.length >= 10) break;
+  }
+
+  return { query, items };
+}
+
 export async function searchSongs(query: string) {
   const errors: string[] = [];
+
+  // YouTube Music first — fastest and music-focused, no subprocess overhead
+  try {
+    console.log(`[search] Trying YouTube Music for: ${query}`);
+    const result = await youtubeMusicSearch(query);
+    if (result.items.length > 0) {
+      console.log(`[search] YouTube Music returned ${result.items.length} results`);
+      return result;
+    }
+    errors.push("ytmusic: no results");
+  } catch (err: any) {
+    console.log(`[search] YouTube Music failed: ${err.message}`);
+    errors.push(`ytmusic: ${err.message}`);
+  }
 
   try {
     console.log(`[search] Trying yt-dlp for: ${query}`);
