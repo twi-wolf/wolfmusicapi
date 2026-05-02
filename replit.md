@@ -1,139 +1,39 @@
 # WolfApis
 
 ## Overview
-A multi-provider API hub (branded as WOLFAPIS v1.0.0) that provides unified access to 35+ AI chat models (including WormGPT, Replit AI), AI tools (translate, summarize, code, AI scanner, humanizer), AI image endpoints (7 providers: Unsplash, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS, Bing Image Creator), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook, Twitter/X, Snapchat — combined into one "Social Media" category with 15 endpoints), Spotify search/download, Shazam music recognition, Ephoto360 text effect generation (108 effects across 13 categories), PhotoFunia image effects (342 effects across 19 categories), Text Effects (109 effects via CoolText), movie data (13 endpoints via TMDB + 21 endpoints via XCasper: search, suggest, trending, browse, homepage, hot, ranking, popular, detail, rich-detail, recommend, showbox/search, showbox/movie, showbox/tv, newtoxic/search, newtoxic/latest, newtoxic/featured, newtoxic/detail, staff/detail, staff/works, staff/related), anime images (30 types), fun text content (37 categories), URL services (7 shorteners + ImgBB + Catbox image hosting), developer tools (21 utilities), security/ethical hacking tools (38 endpoints), sports data (24 endpoints via TheSportsDB), search APIs (10 endpoints), media converters (6 converter endpoints for WhatsApp bots), and audio effects (25 effects: bass, bassboost, robot, echo, nightcore, 8D, reverb, etc.). 880+ total endpoints across 21 categories. Features a cyberpunk-themed sidebar navigation UI with popup-based API testing, search bar with autocomplete for effect categories, and a documentation page with clickable expandable endpoint docs.
+WOLFAPIS v1.0.0 is a multi-provider API hub offering unified access to over 880 endpoints across 21 categories. It integrates 35+ AI chat models, AI tools (translate, summarize, code, AI scanner, humanizer), 7 AI image endpoints (including Bing Image Creator), music/media downloaders, social media downloaders (YouTube, TikTok, Instagram, Facebook, Twitter/X, Snapchat), Spotify search/download, Shazam music recognition, and various photo and text effect generators (Ephoto360, PhotoFunia, CoolText). The platform also includes movie data APIs, anime images, fun text content, URL services, developer utilities, security/ethical hacking tools, sports data, search APIs, media converters, and audio effects. The project aims to be a comprehensive and unified API solution, catering to a wide range of application development needs.
 
-## Architecture
-- **Frontend**: React + Vite + TailwindCSS + shadcn/ui components
-- **Backend**: Express.js server in `server/`
-- **AI Proxy**: `server/ai-routes.ts` - 35 AI chat endpoints via chateverywhere.app + OpenAI (GPT-4/4o), plus translate/summarize/code/scanner/humanizer tools and 7 image endpoints (including Bing Image Creator)
-- **Music Scraping**: `lib/scraper.ts` - YouTube music search via yt-dlp + HTML fallback. Download chain (MP3): ytdlpFile → ytdown → invidious → y2mate → fabdl → ytdlp → cobalt → piped. Download chain (MP4): ytdlpFile → ytdown → invidious → ytdlp → fabdl → cobalt → piped → y2mate. ytdown (Provider 7) = reverse-engineered ytdown.to: PHP session cookie gate → POST /proxy.php → CDN status polling on s19.ytcontent.com — returns direct signed download URLs from ytdown's own CDN (no YouTube IP lock).
-- **Social Media Downloaders**: `lib/downloaders/` - YouTube, TikTok (ssstik.io), Instagram, Facebook, Twitter/X, Snapchat (snapmate.io) video downloaders (15 endpoints combined)
-- **Instagram Provider Chain**: cobalt (dynamic instance list from instances.cobalt.best) → ytdlp (yt-dlp, uses cookies.txt if present) → graphql (direct Instagram GraphQL API). No third-party downloader sites. Fails on Replit datacenter IPs; works on VPS.
-- **Snapchat Downloader**: `lib/downloaders/snapchat.ts` - Snapchat stories/spotlights/profiles via snapmate.io scraper
-- **Spotify**: `lib/downloaders/spotify.ts` - Search and download via spotdown.org API with iTunes fallback
-- **Shazam**: `lib/downloaders/shazam.ts` - Shazam search + song recognition via reverse-engineered API
-- **Ephoto360**: `lib/downloaders/ephoto360.ts` - 108 text/neon/3D effect generators via ephoto360.com (13 categories: text-effects, 3d-effect, halloween, cover-facebook, game-effect, christmas, happy-birthday, fire-effects, love, animations, new-year, tattoo-effects, technology)
-- **PhotoFunia**: `lib/downloaders/photofunia.ts` - 342 photo effects via photofunia.com (19 categories: filters 31, billboards 62, lab 88, christmas 33, halloween 21, easter 9, valentine 6, faces 15, misc 16, posters 16, galleries 9, drawings 8, magazines 6, frames 5, celebrities 4, photography 3, vintage 2, books 3, cards 5)
-- **TextPro**: `lib/downloaders/textpro.ts` - 109 text effects via CoolText API (neon, 3D, chrome, fire, glitter, graffiti, etc.)
-- **Movie**: `lib/downloaders/movie.ts` - 13 movie data endpoints via OMDb/YTS APIs
-- **Anime**: `lib/downloaders/anime.ts` - 30 anime image types via waifu.pics & nekos.best
-- **Fun**: `lib/downloaders/fun.ts` - 37 fun text content categories with built-in arrays + external API fallbacks
-- **URL Shortener**: `lib/downloaders/urlshortener.ts` - 7 shortener services (TinyURL, is.gd, v.gd, CleanURI, etc.)
-- **Tools**: `lib/downloaders/tools.ts` - 21 utility endpoints (QR, dictionary, weather, password, hash, etc.)
-- **Security**: `lib/downloaders/security.ts` - 38 security/ethical hacking endpoints (DNS, WHOIS, port scan, SSL, WAF, etc.)
-- **Sports**: `lib/downloaders/sports.ts` - 24 sports data endpoints via TheSportsDB free API
-- **Search**: 10 search endpoints in `server/routes.ts` (Wikipedia, GNews, GitHub, NPM, PyPI, StackOverflow, Reddit, Urban Dictionary, Emoji, REST Countries)
-- **Converter**: `lib/downloaders/converter.ts` - 6 media converter endpoints for WhatsApp bots (image↔sticker, video↔sticker, video↔GIF)
-- **Lyrics**: Uses lrclib.net API for song lyrics (with synced lyrics support)
-- **Provider Health System**: Automatic tracking of provider failures with cooldown periods
-- **Media Provider Status API**: `/api/media/status` — lightweight live probes on all music/media providers (ytdlp, fabdl, cobalt, piped, y2mate, tiktok/ssstik, instagram, spotdown, shazam). Results cached 2 minutes. Used by the frontend to show green/red status dots on music, social-media, spotify, shazam category cards and sidebar items. Auto-refreshes every 60 seconds in the UI.
-- **Stalker**: `lib/downloaders/stalker.ts` - OSINT profile lookup tools (GitHub, IP, NPM, TikTok, Instagram, Twitter, WhatsApp)
+## User Preferences
+I prefer detailed explanations of the changes made. I want iterative development with clear communication at each step. Ask before making any major architectural changes or introducing new external dependencies.
 
-## Key Files
-- `shared/schema.ts` - All 626 endpoint definitions, 21 categories, and TypeScript types
-- `server/ai-routes.ts` - AI proxy endpoints (35 chat + 5 tools + 7 image)
-- `server/routes.ts` - Express API endpoint definitions (all categories + registers AI routes + 10 search routes)
-- `lib/scraper.ts` - Shared scraping logic (search, check, download info)
-- `lib/downloaders/` - All downloader/module implementations
-- `client/src/pages/home.tsx` - Main UI with sidebar navigation, popup API tester, and docs page
-- `client/src/index.css` - Neon cyberpunk theme styles
-- `client/src/assets/wolf-logo.png` - Wolf logo
+## System Architecture
+The application uses a React, Vite, TailwindCSS, and shadcn/ui frontend for a cyberpunk-themed UI with a sidebar navigation, popup API testing, and a search bar with autocomplete for effect categories. The backend is an Express.js server. Key architectural components include:
 
-## API Categories (626 endpoints across 21 categories)
+-   **AI Proxy**: `server/ai-routes.ts` manages 35 AI chat endpoints and AI tools.
+-   **Music Scraping**: `lib/scraper.ts` handles YouTube music search and downloads, utilizing a multi-provider download chain to ensure high availability and bypass IP locks.
+-   **Social Media Downloaders**: `lib/downloaders/` contains modules for various social media platforms, with Instagram downloads handled via a robust provider chain (Cobalt, yt-dlp, GraphQL API). Snapchat downloads use `snapmate.io`.
+-   **Specialized Downloaders**: Dedicated modules in `lib/downloaders/` for Spotify, Shazam, Ephoto360, PhotoFunia, TextPro, Movie, Anime, Fun, URL Shortener, Tools, Security, and Sports functionalities.
+-   **Search**: 10 search endpoints are defined in `server/routes.ts`.
+-   **Converter**: `lib/downloaders/converter.ts` provides media conversion endpoints for WhatsApp bots.
+-   **Lyrics**: Integrates with `lrclib.net` for song lyrics.
+-   **Provider Health System**: Automatically tracks provider failures and implements cooldown periods to maintain service reliability.
+-   **Media Provider Status API**: `/api/media/status` provides lightweight live probes of all music/media providers, cached for 2 minutes and auto-refreshing in the UI to display real-time status.
+-   **OSINT Tools**: `lib/downloaders/stalker.ts` offers OSINT profile lookup functionalities.
+-   **Security**: `server/security.ts` implements Helmet for security headers in production (CSP, CORS, referrer policy), anti-scraping measures (blocking suspicious UAs, IP tracking), anti-clone protection for sensitive API listings, and source file protection. APIs are designed without rate limiting.
+-   **Branding**: WOLFAPIS uses a distinct dark theme with neon green accents, featuring a "WOLF" in green and "APIS" in white.
 
-### AI Chat (35 endpoints)
-GPT, GPT-4, GPT-4o, Claude, Mistral, Gemini, DeepSeek, Venice, Groq, Cohere, LLaMA, Mixtral, Phi, Qwen, Falcon, Vicuna, OpenChat, WizardLM, Zephyr, CodeLlama, StarCoder, Dolphin, Nous Hermes, OpenHermes, NeuralChat, Solar, Yi, TinyLlama, Orca, Command R, Nemotron, InternLM, ChatGLM, WormGPT, Replit AI
-
-### AI Tools (5 endpoints)
-translate, summarize, code, scanner, humanizer
-
-### AI Image (7 endpoints)
-Unsplash+Picsum, Lorem Picsum, LoremFlickr, Dog CEO, CATAAS, image search, Bing Image Creator
-
-### Music & Media (15 endpoints)
-Search, MP3/MP4 download, lyrics (lrclib.net), trending
-
-### Spotify (2 endpoints)
-Search and download via spotdown.org
-
-### Shazam (3 endpoints)
-Search, recognize, track details
-
-### Ephoto360 (2 endpoints, 108 effects)
-List effects, generate text effect image - card grid view. 13 categories: text-effects (44), 3d-effect (18), halloween (9), cover-facebook (7), happy-birthday (10), game-effect (6), christmas (5), fire-effects (2), love (3), animations (1), new-year (1), tattoo-effects (1), technology (1)
-
-### PhotoFunia (2 endpoints, 342 effects)
-List effects, generate photo effect - card grid view. 19 categories: filters (31), billboards (62), lab (88), christmas (33), halloween (21), easter (9), faces (15), misc (16), posters (16), galleries (9), drawings (8), magazines (6), valentine (6), frames (5), celebrities (4), books (3), cards (5), photography (3), vintage (2)
-
-### Social Media (14 endpoints)
-YouTube (download, MP3, MP4, info, search), TikTok (download, audio, info), Instagram (download, story), Facebook (download, reel), Twitter/X (download, info)
-
-### Stalker (7 endpoints)
-GitHub, IP, NPM, TikTok, Instagram, Twitter/X, WhatsApp
-
-### Anime (30 endpoints)
-waifu, neko, shinobu, megumin, cuddle, hug, kiss, pat, smug, bonk, blush, smile, wave, dance, cry, slap, bite, poke, happy, wink, highfive, sleep, laugh, thumbsup, stare, baka, facepalm, yawn, nervous, punch
-
-### Fun (37 endpoints)
-jokes, advice, quotes, motivation, flirt, pickuplines, truth, dares, riddles, trivia, funfacts, puns, roasts, compliments, wouldyourather, goodmorning, goodnight, valentines, birthday, love, friendship, shayari, humor, wisdom, success, heartbreak, sorry, halloween, christmas, newyear, thankyou, gratitude, roseday, fathersday, mothersday, girlfriendsday, boyfriendsday
-
-### URL (9 endpoints)
-7 shorteners (TinyURL, is.gd, v.gd, CleanURI, Chilp.it, clck.ru, da.gd) + ImgBB + Catbox image hosting
-
-### Tools (21 endpoints)
-QR code, Bible verse, dictionary, Wikipedia, weather, Base64 encode/decode, text stats, password generator, Lorem Ipsum, color generator, timestamp, URL encode/decode, JSON formatter, email validation, IP validation, hash, UUID, password strength, screenshot
-
-### Security (38 endpoints)
-WHOIS, DNS lookup, subdomain scan, reverse IP, GeoIP, port scan, HTTP headers, SSL check, TLS info, ping, latency, traceroute, ASN lookup, MAC lookup, security headers, WAF detection, firewall check, robots.txt, sitemap, CMS detection, tech stack, cookies scan, redirect chain, XSS check, SQL injection check, CSRF check, clickjacking check, directory scan, exposed files, misconfig check, hash identify, hash generate, password strength, open ports, IP info, URL scan, phishing check, metadata extract
-
-### Sports (24 endpoints)
-Live scores, fixtures, standings, team/player/league search, event stats, lineups, highlights via TheSportsDB
-
-### Search (10 endpoints)
-Wikipedia, GNews, GitHub repos, NPM packages, PyPI, Stack Overflow, Reddit, Urban Dictionary, Emoji search, REST Countries
-
-### Movie (13 endpoints)
-Search, info, trailer, trending, popular, upcoming, top rated, cast, reviews, similar, genre list, discover, now playing
-
-### Text Effects (109 endpoints)
-CoolText-based effects: neon, 3D, chrome, fire, glitter, graffiti, vintage, and 100+ more
-
-### Converter (6 endpoints)
-Image↔Sticker, Video↔Sticker, Video↔GIF for WhatsApp bot media conversion
-
-### Audio Effects (26 endpoints: 1 list + 25 effects)
-bass, bassboost, robot, chipmunk, deep, echo, reverb, nightcore, slowed, 8d, vaporwave, karaoke, treble, distortion, flanger, phaser, chorus, vibrato, tremolo, reverse, speed2x, slow05x, telephone, underwater, megaphone
-
-## Security (`server/security.ts`)
-- **Helmet**: Full security headers in production (CSP with frame-ancestors, CORS, referrer policy); disabled in dev for Vite compatibility
-- **No Rate Limiting**: APIs are fully open — no request limits per IP (users may chain requests for other users)
-- **Anti-Scraping**: Blocks suspicious UAs (curl, wget, python-requests, scrapy, etc.), tracks IP request counts, auto-blocks IPs making clone-like requests
-- **Anti-Clone**: Protects `/api/endpoints/list` and `/api/all-endpoints` — only accessible from own site referer + browser UA
-- **Source Protection**: Blocks direct access to .ts/.tsx/.map/.env/.lock/.toml files and server/lib/shared directories (production only)
-- **Response Fingerprint**: Adds `X-Powered-By: WolfAPIs` and creator metadata to API responses
-
-## Environment Variables
-- `OPENAI_API_KEY` - Required for GPT-4/GPT-4o endpoints only (optional, other AI endpoints work without it)
-- `SPOTDOWN_API_KEY` - Spotify download API key (has fallback default)
-- `YOUTUBE_API_KEY` - YouTube trending API key (optional, falls back to search)
-- `DVLA_API_KEY` - Required for number plate lookup (`/api/stalk/numberplate`). Free key at https://developer-portal.driver-vehicle-licensing.api.gov.uk/
-- `REMOVE_BG_API_KEY` - Required for background removal (`/api/ai/removebg`). Free key (50 calls/month) at https://www.remove.bg/api
-
-## Branding
-- Name: WOLFAPIS (WOLF in green #00ff00, APIS in white)
-- Creator tag: "APIs by Silent Wolf | A tech explorer"
-- Dark theme: main #050505, sidebar #080808, cards #000000, neon green accents
-- Sidebar navigation with popup-based API testing, collapsible sidebar
-
-## Recent Changes
-- 2026-03-24: Added ytdown.to as Provider 7 in lib/scraper.ts. Reverse-engineered via DevTools: PHP session cookie gate (GET /en23/) → POST /proxy.php → CDN JSON polling (s19.ytcontent.com). Returns signed direct download URLs from ytdown's own CDN — bypasses YouTube IP blocks entirely. Added to status endpoint (/api/media/status) as "YTDown". Created docs.txt: comprehensive research notes on all 6 sites scraped (ytdown.to ✅, websolute.fr metadata ✅, apisyu.com ⚠️, cornerstonecountry ⚠️, yt1s.biz ❌ CF403, mediatheque ⚠️), including full API flows, reverse-engineering techniques, and why some sites require browser automation.
-- 2026-03-01: Merged YouTube, TikTok, Instagram, Facebook into one "Social Media" category, added Twitter/X downloader (multi-provider: TwitSave, SSSTwitter, TWDL), expanded to 14 social media endpoints (YouTube: download/mp3/mp4/info/search, TikTok: download/audio/info, Instagram: download/story, Facebook: download/reel, Twitter: download/info). Total now 626 endpoints across 21 categories.
-- 2026-03-01: Added Audio Effects category (25 effects: bass, bassboost, robot, echo, nightcore, 8D, reverb, etc.), removed italic text styling from all headings, made "Multi-Provider API Hub" title vertical on welcome page.
-- 2026-03-01: Added WormGPT and Replit AI to AI Chat (now 35 models), Bing Image Creator to AI Image (now 7 endpoints), Converter category with 6 media conversion endpoints (image↔sticker, video↔sticker, video↔GIF) for WhatsApp bots.
-- 2026-03-01: Added Search category (10 endpoints: Wikipedia, GNews, GitHub, NPM, PyPI, StackOverflow, Reddit, Urban Dictionary, Emoji, Countries). Changed Ephoto360 & PhotoFunia from table view to card grid view. Made Docs page API Categories clickable/expandable showing endpoint docs with method, path, params, and example requests.
-- 2026-03-01: v4.0 major expansion - Added 5 new categories: Anime (30 endpoints via waifu.pics/nekos.best), Fun (37 text content endpoints), URL Shortener (7 services), Tools (21 utility endpoints), Security (38 ethical hacking endpoints).
-- 2026-03-08: PhotoFunia lab category completed (26→88 effects, +62 new): oldtvset, balloon, surfingboard, beachsign, neonwriting, waterwriting, bracelet, frostedfilter, sparklers, neonsign, ledroadsign, airline, leprechaunhat, noir, spydossier, artisticfilter, planebanner, fortunecookie, pendant, lipstickwriting, lightwriting, numberplate, doubleexposure, blinkinglights, lifebuoy, hearttattoo, nightvision, books, tvinterference, footballfan, treecarving, soupletters, foggywindowwriting, quadriptych, moviemarquee, cookieswriting, triptych, graffititext, woodensign, chalkwriting, sandwriting, spaceromance, filmscan, keepcalm, hogwartsletter, instantcamera, clown, alien, oilpainting, fatmaker, photobooth, labembroidery, diploma, legoportrait, pencildrawing, vintagephoto, watercolor, classicframe, motivator, faceswap, filmeffect, engravement + more. Architecture fix: getPhotofuniaSession now fetches session from effect's own category page instead of all_effects. Multi-image support added (quadriptych 4x, triptych 3x, photobooth 4x, faceswap with donor field). Also removed 9 duplicate/dead effects (snowsign, christmaswriting, christmaslist, frostywindowwriting, snowwriting, crossstitchtext, xmascap from lab + birthdayparty). PhotoFunia total: 154→338 effects.
-- 2026-03-08: Massive Ephoto360 expansion (60→108 effects): added text-effects (foilballoon3d, colorfulpaint3d, blackpinksignature, dragonballtext, glossysilver3d, typographyart, foggyglass, narutologo + more), halloween (8 horror effects), birthday (7 cake effects), love (3), cover-facebook (7), game-effect (4 more), technology (youtubebutton), animations (examcrank). Fixed listEphotoEffects() bug (was returning 0). PhotoFunia XFF bypass (getXffIp() rotation): all 19 text effects + all image effects now working. Fixed chalkboard slug (blackboard→chalkboard), added hidden symbol field + required text2 field.
-- 2026-03-01: v4.0 initial - Added PhotoFunia (154 effects), expanded Ephoto360 (60 effects), fixed lyrics endpoint, fixed AI model names, updated schema
-- 2026-03-01: Major v3.0 expansion - 33 AI chat models, Spotify rewrite (spotdown.org), Ephoto360 text effects, sidebar UI + popup tester
+## External Dependencies
+-   **AI Services**: chateverywhere.app, OpenAI (GPT-4/4o), Bing Image Creator
+-   **Music/Media**: yt-dlp, ytdown.to (reverse-engineered), invidious, y2mate, fabdl, cobalt, piped
+-   **Social Media**: ssstik.io (TikTok), snapmate.io (Snapchat), TwitSave, SSSTwitter, TWDL (Twitter/X)
+-   **Spotify**: spotdown.org API, iTunes (fallback)
+-   **Shazam**: Reverse-engineered Shazam API
+-   **Effect Generators**: ephoto360.com, photofunia.com, CoolText API
+-   **Movie Data**: OMDb, YTS, TMDB, XCasper
+-   **Anime Images**: waifu.pics, nekos.best
+-   **URL Shorteners**: TinyURL, is.gd, v.gd, CleanURI, Chilp.it, clck.ru, da.gd
+-   **Image Hosting**: ImgBB, Catbox
+-   **Lyrics**: lrclib.net API
+-   **Sports Data**: TheSportsDB API
+-   **Search**: Wikipedia, GNews, GitHub, NPM, PyPI, Stack Overflow, Reddit, Urban Dictionary, Emoji, REST Countries
+-   **Environment Variables (Optional/Configurable)**: `OPENAI_API_KEY`, `SPOTDOWN_API_KEY`, `YOUTUBE_API_KEY`, `DVLA_API_KEY`, `REMOVE_BG_API_KEY`
