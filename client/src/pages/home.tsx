@@ -1658,7 +1658,7 @@ export default function Home() {
     staleTime: 60 * 1000,
   });
 
-  const comingSoonCategories = ["security", "movie", "urlshortener"];
+  const comingSoonCategories = ["security", "urlshortener"];
   const displayCategories = apiCategories.filter(cat => !comingSoonCategories.includes(cat.id));
   const soonCategories = apiCategories.filter(cat => comingSoonCategories.includes(cat.id));
 

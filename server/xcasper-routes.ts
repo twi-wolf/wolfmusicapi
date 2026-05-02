@@ -219,4 +219,119 @@ export function registerXcasperRoutes(app: Express): void {
       return res.json(wrap(data));
     } catch (e: any) { return err(res, e.message, 500); }
   });
+
+  app.get("/api/xcasper/trailer", async (req: Request, res: Response) => {
+    const { id } = req.query as Record<string, string>;
+    if (!id) return err(res, "Parameter 'id' (subjectId) is required — get it from /api/xcasper/search results.");
+    try {
+      const data = await xcasperProxy(`/rich-detail?subjectId=${encodeURIComponent(id)}`);
+      const d = data?.data ?? data;
+      if (!d?.trailerUrl) {
+        return res.status(404).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: "No trailer available for this title." });
+      }
+      return res.json({
+        success: true,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        provider: "XCasper",
+        subjectId: id,
+        title: d.title ?? null,
+        type: d.subjectType === 1 ? "movie" : d.subjectType === 2 ? "tv" : "unknown",
+        trailerUrl: d.trailerUrl,
+        trailerCover: d.trailerCover ?? null,
+        imdbRating: d.imdbRatingValue ?? null,
+        genre: d.genre ?? null,
+        releaseDate: d.releaseDate ?? null,
+        duration: d.duration ?? null,
+        cover: d.cover?.url ?? null,
+      });
+    } catch (e: any) { return err(res, e.message, 500); }
+  });
+
+  app.get("/api/xcasper/ranking-content", async (req: Request, res: Response) => {
+    const { id, genre, page = "1", perPage = "12" } = req.query as Record<string, string>;
+    const RANKING_GENRE_MAP: Record<string, string> = {
+      "997144265920760504": "Popular",
+      "8216283712045280":   "Nollywood",
+      "6050680843129996568":"Action",
+      "8614980535946986176":"Horror",
+      "9139789616411735224":"Romance",
+      "8599868521717400352":"Comedy",
+      "7486582804437256712":"Adventure",
+    };
+    const resolvedGenre = genre || (id ? RANKING_GENRE_MAP[id] : null);
+    if (!resolvedGenre) return err(res, "Provide 'id' (ranking category ID from /api/xcasper/ranking) or 'genre' (e.g. Action, Horror, Comedy, Romance, Nollywood).");
+    const genreForApi = resolvedGenre === "Popular" ? "" : resolvedGenre;
+    try {
+      const qs = `/browse?type=movie&page=${page}&perPage=${perPage}${genreForApi ? `&genre=${encodeURIComponent(genreForApi)}` : ""}`;
+      const data = await xcasperProxy(qs);
+      return res.json({ ...wrap(data), category: resolvedGenre, rankingId: id || null });
+    } catch (e: any) { return err(res, e.message, 500); }
+  });
+
+  app.get("/api/xcasper/ratings", async (req: Request, res: Response) => {
+    const { q, title, imdbid, t } = req.query as Record<string, string>;
+    const query = q || title;
+    const imdb = imdbid || t;
+    if (!query && !imdb) return err(res, "Provide 'q' (movie/show title) or 'imdbid' (IMDb ID like tt0848228).");
+    const OMDB_KEY = "trilogy";
+    try {
+      const params = imdb
+        ? `i=${encodeURIComponent(imdb)}&plot=short`
+        : `t=${encodeURIComponent(query!)}&type=movie`;
+      const r = await fetch(`https://www.omdbapi.com/?${params}&apikey=${OMDB_KEY}`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const d = await r.json() as any;
+      if (d.Response === "False") return res.status(404).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: d.Error || "Title not found." });
+      return res.json({
+        success: true,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        provider: "OMDB",
+        imdbId: d.imdbID,
+        title: d.Title,
+        year: d.Year,
+        type: d.Type,
+        rated: d.Rated,
+        runtime: d.Runtime,
+        genre: d.Genre,
+        director: d.Director,
+        actors: d.Actors,
+        plot: d.Plot,
+        language: d.Language,
+        country: d.Country,
+        poster: d.Poster !== "N/A" ? d.Poster : null,
+        imdbRating: d.imdbRating !== "N/A" ? d.imdbRating : null,
+        imdbVotes: d.imdbVotes !== "N/A" ? d.imdbVotes : null,
+        ratings: (d.Ratings || []).map((x: any) => ({ source: x.Source, value: x.Value })),
+        boxOffice: d.BoxOffice !== "N/A" ? d.BoxOffice : null,
+        awards: d.Awards !== "N/A" ? d.Awards : null,
+      });
+    } catch (e: any) { return err(res, e.message, 500); }
+  });
+
+  app.get("/api/xcasper/omdb-search", async (req: Request, res: Response) => {
+    const { q, s, type = "movie", page = "1" } = req.query as Record<string, string>;
+    const kw = q || s;
+    if (!kw) return err(res, "Parameter 'q' (search keyword) is required.");
+    const OMDB_KEY = "trilogy";
+    try {
+      const r = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(kw)}&type=${type}&page=${page}&apikey=${OMDB_KEY}`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const d = await r.json() as any;
+      if (d.Response === "False") return res.status(404).json({ success: false, creator: "APIs by Silent Wolf | A tech explorer", error: d.Error || "No results found." });
+      return res.json({
+        success: true,
+        creator: "APIs by Silent Wolf | A tech explorer",
+        provider: "OMDB",
+        keyword: kw,
+        type,
+        page: parseInt(page),
+        totalResults: parseInt(d.totalResults || "0"),
+        results: (d.Search || []).map((x: any) => ({
+          imdbId: x.imdbID,
+          title: x.Title,
+          year: x.Year,
+          type: x.Type,
+          poster: x.Poster !== "N/A" ? x.Poster : null,
+        })),
+      });
+    } catch (e: any) { return err(res, e.message, 500); }
+  });
 }
