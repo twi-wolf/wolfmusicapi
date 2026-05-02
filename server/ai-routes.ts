@@ -907,9 +907,17 @@ export function registerAIRoutes(app: Express): void {
 
   app.get("/api/ai/tools/image-edit", async (req: Request, res: Response) => {
     const description = (req.query.description as string)?.trim();
+    const imageUrl = (req.query.image_url as string)?.trim();
     const editPrompt = (req.query.edit_prompt as string)?.trim();
-    if (!description) return res.status(400).json({ status: false, error: "Parameter 'description' is required — describe what your current image looks like." });
+
+    if (!description && !imageUrl) return res.status(400).json({ status: false, error: "Provide at least one of 'description' (text describing your image) or 'image_url' (a direct link to an image)." });
     if (!editPrompt) return res.status(400).json({ status: false, error: "Parameter 'edit_prompt' is required — describe what you want to change." });
+
+    if (imageUrl) {
+      try { new URL(imageUrl); } catch {
+        return res.status(400).json({ status: false, error: "Invalid 'image_url' — must be a valid URL (e.g. https://example.com/photo.jpg)." });
+      }
+    }
 
     const rawStyle = (req.query.style as string)?.trim().toLowerCase() || "realistic";
     const styleModelMap: Record<string, { model: string; prefix: string }> = {
@@ -923,10 +931,15 @@ export function registerAIRoutes(app: Express): void {
     const styleConfig = styleModelMap[rawStyle] ?? styleModelMap["realistic"];
     const { width, height } = parseRatio(req.query.ratio as string, 1024, 1024);
 
+    const originalContext = [
+      imageUrl ? `Reference image URL: ${imageUrl}` : null,
+      description ? `Image description: "${description}"` : null,
+    ].filter(Boolean).join("\n");
+
     try {
       const mergedPrompt = await chatEverywhereProxy(
-        `You are given a description of an existing image and instructions to edit it. Merge them into a single, vivid AI image generation prompt that preserves key elements of the original while applying all requested edits. Be specific about lighting, colors, composition, and atmosphere. Output ONLY the final prompt — no explanations, no quotes, no labels.\n\nOriginal image: "${description}"\nEdit instructions: "${editPrompt}"`,
-        "You are an expert AI image prompt engineer. Combine an original image description with edit instructions into one seamless, detailed generation prompt. Keep the output under 180 words. Output only the final merged prompt."
+        `You are given a reference to an existing image and instructions to edit it. Merge them into a single, vivid AI image generation prompt that preserves key elements of the original while applying all requested edits. Be specific about lighting, colors, composition, and atmosphere. Output ONLY the final prompt — no explanations, no quotes, no labels.\n\n${originalContext}\nEdit instructions: "${editPrompt}"`,
+        "You are an expert AI image prompt engineer. Combine an original image reference with edit instructions into one seamless, detailed generation prompt. Keep the output under 180 words. Output only the final merged prompt."
       );
 
       const finalPrompt = `${styleConfig.prefix}: ${mergedPrompt}`;
@@ -936,7 +949,8 @@ export function registerAIRoutes(app: Express): void {
         status: true,
         creator: "APIs by Silent Wolf | A tech explorer",
         provider: "Pollinations + ChatEverywhere",
-        originalDescription: description,
+        ...(imageUrl ? { originalImageUrl: imageUrl } : {}),
+        ...(description ? { originalDescription: description } : {}),
         editApplied: editPrompt,
         style: rawStyle,
         model: styleConfig.model,
