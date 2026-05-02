@@ -1605,6 +1605,7 @@ export default function Home() {
   const [testEndpoint, setTestEndpoint] = useState<ApiEndpoint | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarDesktopOpen, setSidebarDesktopOpen] = useState(true);
   const [effectSearch, setEffectSearch] = useState("");
   const [copiedAllEndpoints, setCopiedAllEndpoints] = useState(false);
   const [ephotoExpanded, setEphotoExpanded] = useState(false);
@@ -1840,7 +1841,7 @@ export default function Home() {
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`fixed top-0 left-0 h-screen flex-shrink-0 overflow-y-auto overflow-x-hidden transition-all hide-scrollbar ${sidebarOpen ? "translate-x-0" : sidebarDesktopOpen ? "-translate-x-full lg:translate-x-0" : "-translate-x-full"}`}
         style={{
           width: "240px",
           zIndex: 45,
@@ -1884,7 +1885,7 @@ export default function Home() {
           )}
           <button
             className="ml-auto p-1.5 rounded flex-shrink-0"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => { setSidebarOpen(false); setSidebarDesktopOpen(false); }}
             style={{ color: "rgba(255,255,255,0.4)" }}
             data-testid="button-close-sidebar"
           >
@@ -2184,7 +2185,7 @@ export default function Home() {
         )}
       </aside>
 
-      <main className="flex-1 min-w-0 lg:ml-[240px]">
+      <main className={`flex-1 min-w-0 transition-all ${sidebarDesktopOpen ? "lg:ml-[240px]" : ""}`}>
         <header
           className="sticky top-0"
           style={{
@@ -2196,8 +2197,8 @@ export default function Home() {
         >
           <div className="px-3 py-2 sm:px-6 sm:py-3 flex items-center gap-2 sm:gap-3">
             <button
-              className="p-1.5 rounded-md lg:hidden"
-              onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); }}
+              className={`p-1.5 rounded-md ${sidebarDesktopOpen ? "lg:hidden" : ""}`}
+              onClick={() => { setSidebarOpen(true); setSidebarCollapsed(false); setSidebarDesktopOpen(true); }}
               style={{ color: "rgba(255,255,255,0.5)" }}
               data-testid="button-open-sidebar"
             >
